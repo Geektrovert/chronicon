@@ -6,7 +6,7 @@
     "dev": "bash scripts/dev.sh",
     "build": "bun run lint && next build",
     "start": "next start",
-    "lint": "oxlint --max-warnings 0",
+    "lint": "next typegen && oxlint --max-warnings 0",
     "doctor": "bunx vercel-doctor . --offline --yes --verbose",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
