@@ -1,0 +1,12 @@
+.env*
+!.env.example
+.chronicon/
+docs/
+.git/
+.vercel/
+.next/
+node_modules/
+*.tsbuildinfo
+*.pem
+*.key
+*.log
