@@ -12,7 +12,7 @@ import { slugify } from "@/lib/model";
 import { publishReport } from "@/client/actions/library";
 import { readHtmlFile } from "@/client/actions/files";
 import { runAction, useTask } from "@/client/runtime";
-import { previewHTML } from "@/lib/preview";
+import { ReportPreview } from "./report-preview";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -265,11 +265,10 @@ export function Publisher({
           </div>
           <div className="publish-editor">
             {preview ? (
-              <iframe
+              <ReportPreview
                 title="Report preview"
-                sandbox="allow-scripts"
-                referrerPolicy="no-referrer"
-                srcDoc={previewHTML(html)}
+                html={html}
+                onNavigate={() => onOpenChange(false)}
               />
             ) : (
               <CodeEditor value={html} onChange={setHTML} />

@@ -10,7 +10,7 @@ import type { DocumentDetail } from "@/lib/model";
 import { readReport } from "@/client/actions/library";
 import { copyText, downloadHtml, fullscreen } from "@/client/actions/files";
 import { useTask } from "@/client/runtime";
-import { previewHTML } from "@/lib/preview";
+import { ReportPreview } from "./report-preview";
 import { Button } from "./ui/button";
 import { CodeEditor } from "./code-editor";
 import { Publisher } from "./publisher";
@@ -151,12 +151,7 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
           {source ? (
             <CodeEditor value={report.html} readOnly />
           ) : (
-            <iframe
-              title={report.document.title}
-              sandbox="allow-scripts"
-              referrerPolicy="no-referrer"
-              srcDoc={previewHTML(report.html)}
-            />
+            <ReportPreview title={report.document.title} html={report.html} />
           )}
         </div>
       </div>
