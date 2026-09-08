@@ -7,8 +7,10 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   cacheComponents: true,
   partialPrefetching: true,
+  devIndicators: false,
   allowedDevOrigins: portlessUrl ? [new URL(portlessUrl).hostname] : [],
-  serverExternalPackages: ["pg"],
+  // Keep the cursor's CommonJS driver imports in the native runtime too.
+  serverExternalPackages: ["pg", "pg-cursor"],
   // oxlint-disable-next-line effecttsgo/async-function -- Next requires a Promise-returning headers configuration.
   async headers() {
     return [

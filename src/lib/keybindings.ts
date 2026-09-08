@@ -9,6 +9,7 @@ export const shortcutActions = [
   { id: "archive", label: "Archived documents", binding: "3" },
   { id: "refresh", label: "Refresh library", binding: "r" },
   { id: "shortcuts", label: "Keyboard shortcuts", binding: "," },
+  { id: "sidebar", label: "Toggle sidebar", binding: "Mod+b" },
 ] as const;
 export type ShortcutAction = (typeof shortcutActions)[number]["id"];
 export type Keybindings = Record<ShortcutAction, string>;
@@ -23,6 +24,7 @@ export const defaultBindings: Keybindings = {
   archive: "3",
   refresh: "r",
   shortcuts: ",",
+  sidebar: "Mod+b",
 };
 export function bindingFromEvent(
   event: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "altKey" | "shiftKey">,

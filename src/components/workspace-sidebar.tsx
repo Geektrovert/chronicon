@@ -1,169 +1,349 @@
 "use client";
-import { Button, ButtonLink } from "./ui/button";
-import { Brand } from "./brand";
+
+import { startTransition, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { DateTime } from "effect";
 import {
   Archive,
   Code2,
   FileText,
   Folder,
-  LogOut,
+  FolderPlus,
   Keyboard,
-  Plus,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
+  SquarePen,
   Star,
+  X,
 } from "lucide-react";
 import { signOut } from "@/client/actions/auth";
-import { useState } from "react";
+import { watchSidebarTime } from "@/client/actions/sidebar";
 import { useTask } from "@/client/runtime";
+import { formatRelativeDate, formatTimestamp } from "@/lib/date";
+import { formatBinding, type Keybindings } from "@/lib/keybindings";
 import type { Library } from "@/lib/model";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "./ui/dialog";
+import { Brand } from "./brand";
+import { Button, ButtonLink } from "./ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import {
+  Sidebar,
+  SidebarAction,
+  SidebarContent,
+  SidebarDocumentLink,
+  SidebarFooter,
+  SidebarHeader,
+} from "./ui/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function WorkspaceSidebar({
-  shortcutLabel,
+  bindings,
   keyboardSettings,
   library,
   name,
   pathname,
-  projectId,
+  collapsed,
+  toggleCollapsed,
   mobileOpen,
   createProject,
+  publish,
   search,
   settings,
   close,
 }: {
-  shortcutLabel: string;
+  bindings: Keybindings;
   keyboardSettings: () => void;
   library: Library;
   name: string;
   pathname: string;
-  projectId?: string;
+  collapsed: boolean;
+  toggleCollapsed: () => void;
   mobileOpen: boolean;
   createProject: () => void;
+  publish: () => void;
   search: () => void;
   settings: () => void;
   close: () => void;
 }) {
+  const router = useRouter();
   const run = useTask();
   const [signOutError, setSignOutError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
-  const content = (
-    <>
-      <Brand onNavigate={close} />
-      <Button variant="outline" className="mb-5 w-full justify-start" onClick={search}>
-        <Search size={16} />
-        <span className="min-w-0 flex-1 truncate text-left">Search</span>
-        {shortcutLabel !== "Disabled" && (
-          <kbd className="text-[10px]">{shortcutLabel.replace("Ctrl/Cmd+", "⌘/Ctrl ")}</kbd>
-        )}
-      </Button>
-      <nav className="nav-group" aria-label="Library">
-        {[
-          { href: "/", label: "All documents", icon: FileText },
-          { href: "/starred", label: "Starred", icon: Star },
-          { href: "/archive", label: "Archive", icon: Archive },
-        ].map((item) => (
-          <ButtonLink
-            variant="navigation"
-            key={item.href}
-            href={item.href}
-            onNavigate={close}
-            aria-current={pathname === item.href ? "page" : undefined}
-          >
-            <item.icon size={17} />
-            <span>{item.label}</span>
-            {item.href === "/" && (
-              <span className="nav-count">
-                {library.documents.filter((d) => !d.archived).length}
-              </span>
-            )}
-          </ButtonLink>
-        ))}
-      </nav>
-      <div className="project-label">
-        <span>Projects</span>
-        <Button variant="ghost" size="icon-sm" aria-label="Create project" onClick={createProject}>
-          <Plus size={15} />
-        </Button>
-      </div>
-      <nav className="nav-group projects-nav" aria-label="Projects">
-        {library.projects.map((p) => (
-          <ButtonLink
-            variant="navigation"
-            key={p.id}
-            href={`/projects/${p.slug}`}
-            onNavigate={close}
-            aria-current={
-              projectId === p.id
-                ? pathname === `/projects/${p.slug}`
-                  ? "page"
-                  : "location"
-                : undefined
+  const [now, setNow] = useState<DateTime.Utc>();
+  const activeDocument = library.documents.find((doc) => pathname === `/documents/${doc.id}`);
+  const [scope, setScope] = useState({
+    pathname,
+    collection: pathname.startsWith("/documents/")
+      ? activeDocument?.archived
+        ? "/archive"
+        : "/"
+      : pathname,
+    limit: 40,
+  });
+  const project = library.projects.find((item) => scope.collection === `/projects/${item.slug}`);
+
+  // Keep the originating collection while opening its documents. Direct links
+  // and Back navigation outside that collection return to an appropriate list.
+  if (scope.pathname !== pathname) {
+    let collection = scope.collection;
+    if (!pathname.startsWith("/documents/")) collection = pathname;
+    else if (
+      activeDocument &&
+      ((project && activeDocument.projectId !== project.id) ||
+        (scope.collection === "/starred" && !activeDocument.starred) ||
+        (scope.collection === "/archive") !== activeDocument.archived)
+    )
+      collection = activeDocument.archived ? "/archive" : "/";
+    setScope({ pathname, collection, limit: collection === scope.collection ? scope.limit : 40 });
+  }
+
+  const projectsById = new Map(library.projects.map((item) => [item.id, item]));
+  const documents = library.documents
+    .filter(
+      (document) =>
+        (!project || document.projectId === project.id) &&
+        (scope.collection === "/archive" ? document.archived : !document.archived) &&
+        (scope.collection !== "/starred" || document.starred),
+    )
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
+  const visibleCount = Math.max(
+    scope.limit,
+    documents.findIndex((document) => document.id === activeDocument?.id) + 1,
+  );
+  const projectOptions = [
+    { value: "all", label: "All projects" },
+    ...library.projects.map((item) => ({ value: item.id, label: item.name })),
+  ];
+
+  useEffect(() => run(watchSidebarTime(setNow)), [run]);
+
+  return (
+    <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onMobileOpenChange={close}>
+      {({ compact, mobile }) => (
+        <>
+          <SidebarHeader>
+            <div className="sidebar-brand-row">
+              <SidebarAction
+                label={
+                  mobile ? "Close navigation" : compact ? "Expand sidebar" : "Collapse sidebar"
+                }
+                shortcut={mobile ? undefined : formatBinding(bindings.sidebar)}
+                aria-expanded={!compact}
+                aria-controls={mobile ? undefined : "sidebar-documents"}
+                onClick={mobile ? close : toggleCollapsed}
+              >
+                {mobile ? <X /> : compact ? <PanelLeftOpen /> : <PanelLeftClose />}
+              </SidebarAction>
+              <Brand onNavigate={close} />
+            </div>
+            <div className="sidebar-control-row">
+              <SidebarAction
+                label="Search documents"
+                shortcut={formatBinding(bindings.search)}
+                variant="navigation"
+                size="default"
+                className="sidebar-search"
+                onClick={search}
+              >
+                <Search />
+                <span className="sidebar-control-label">Search</span>
+                {bindings.search && (
+                  <kbd className="sidebar-shortcut" aria-hidden="true">
+                    {formatBinding(bindings.search).replace("Ctrl/Cmd+", "⌘/Ctrl ")}
+                  </kbd>
+                )}
+              </SidebarAction>
+              <SidebarAction
+                label="New document"
+                shortcut={formatBinding(bindings.document)}
+                onClick={publish}
+              >
+                <SquarePen />
+              </SidebarAction>
+            </div>
+            <div className="sidebar-control-row">
+              <Select
+                items={projectOptions}
+                value={project?.id ?? "all"}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  const selected = projectsById.get(value);
+                  const href = selected ? `/projects/${selected.slug}` : "/";
+                  setScope({ pathname, collection: href, limit: 40 });
+                  close();
+                  startTransition(() => router.push(href));
+                }}
+              >
+                <SelectTrigger
+                  variant="navigation"
+                  className="sidebar-project-trigger"
+                  aria-label="Choose project"
+                  title={compact ? (project?.name ?? "All projects") : undefined}
+                >
+                  <Folder aria-hidden="true" />
+                  <SelectValue className="sidebar-control-label" />
+                </SelectTrigger>
+                <SelectContent
+                  align="start"
+                  alignItemWithTrigger={false}
+                  className="min-w-56 max-w-80 p-1"
+                >
+                  {projectOptions.map((item) => (
+                    <SelectItem key={item.value} value={item.value} className="min-h-9">
+                      <span className="truncate">{item.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <SidebarAction
+                label="Create project"
+                shortcut={formatBinding(bindings.project)}
+                onClick={createProject}
+              >
+                <FolderPlus />
+              </SidebarAction>
+            </div>
+            <nav className="sidebar-library-nav" aria-label="Library">
+              {[
+                {
+                  href: project ? `/projects/${project.slug}` : "/",
+                  label: "All documents",
+                  short: "All",
+                  icon: FileText,
+                },
+                { href: "/starred", label: "Starred documents", short: "Starred", icon: Star },
+                { href: "/archive", label: "Archive", short: "Archive", icon: Archive },
+              ].map((item) => (
+                <Tooltip key={item.label}>
+                  <TooltipTrigger
+                    render={
+                      <ButtonLink
+                        variant="navigation"
+                        className="sidebar-library-link"
+                        href={item.href}
+                        onNavigate={close}
+                        aria-label={item.label}
+                        aria-current={
+                          pathname === item.href
+                            ? "page"
+                            : scope.collection === item.href
+                              ? "location"
+                              : undefined
+                        }
+                      />
+                    }
+                  >
+                    <item.icon aria-hidden="true" />
+                    <span>{item.short}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>{item.label}</TooltipContent>
+                </Tooltip>
+              ))}
+            </nav>
+          </SidebarHeader>
+          <SidebarContent
+            id={mobile ? "mobile-sidebar-documents" : "sidebar-documents"}
+            aria-label={
+              project
+                ? `${project.name} documents`
+                : scope.collection === "/starred"
+                  ? "Starred documents"
+                  : scope.collection === "/archive"
+                    ? "Archived documents"
+                    : "Recent documents"
             }
           >
-            <Folder size={16} />
-            <span className="nav-project-name">{p.name}</span>
-          </ButtonLink>
-        ))}
-      </nav>
-      <div className="sidebar-bottom">
-        <Button variant="navigation" onClick={settings}>
-          <Code2 size={17} />
-          <span>Connect an agent</span>
-        </Button>
-        <Button variant="navigation" onClick={keyboardSettings}>
-          <Keyboard size={17} />
-          <span>Shortcuts</span>
-        </Button>
-        <div className="account-row">
-          <span className="avatar">{name.slice(0, 1).toUpperCase()}</span>
-          <span>{name}</span>
-          {signOutError && (
-            <span role="alert" className="error-text">
-              {signOutError}
-            </span>
-          )}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={signingOut ? "Signing out…" : "Sign out"}
-            disabled={signingOut}
-            onClick={() => {
-              setSignOutError("");
-              setSigningOut(true);
-              run(signOut, {
-                onError: (error) => {
-                  setSignOutError(error);
-                  setSigningOut(false);
-                },
-              });
-            }}
-          >
-            <LogOut size={16} />
-          </Button>
-        </div>
-      </div>
-    </>
-  );
-  return (
-    <>
-      <aside className="sidebar desktop-sidebar" aria-label="Workspace navigation">
-        {content}
-      </aside>
-      <Dialog
-        open={mobileOpen}
-        onOpenChange={(open) => {
-          if (!open) close();
-        }}
-      >
-        <DialogContent className="sidebar mobile-sidebar is-open" showCloseButton={false}>
-          <DialogTitle className="sr-only">Workspace navigation</DialogTitle>
-          <DialogDescription className="sr-only">Browse projects and documents.</DialogDescription>
-          {content}
-          <Button variant="outline" className="mt-4" onClick={close}>
-            Close navigation
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </>
+            <div className="sidebar-document-list">
+              {documents.slice(0, visibleCount).map((document) => (
+                <SidebarDocumentLink
+                  key={document.id}
+                  href={`/documents/${document.id}`}
+                  onNavigate={close}
+                  aria-label={document.title}
+                  aria-current={activeDocument?.id === document.id ? "page" : undefined}
+                  title={document.title}
+                >
+                  <span className="sidebar-document-meta">
+                    <Folder className="size-3.5" aria-hidden="true" />
+                    <span className="sidebar-document-project">
+                      {projectsById.get(document.projectId)?.name}
+                    </span>
+                    {document.starred && (
+                      <Star className="size-3 fill-current" aria-label="Starred" />
+                    )}
+                    <time
+                      dateTime={document.updatedAt}
+                      title={`Updated ${formatTimestamp(document.updatedAt)}`}
+                    >
+                      {formatRelativeDate(document.updatedAt, now)}
+                    </time>
+                  </span>
+                  <span className="sidebar-document-title">{document.title}</span>
+                </SidebarDocumentLink>
+              ))}
+            </div>
+            {!documents.length && (
+              <p className="sidebar-empty">
+                {scope.collection === "/starred"
+                  ? "No starred documents"
+                  : scope.collection === "/archive"
+                    ? "No archived documents"
+                    : "No documents yet"}
+              </p>
+            )}
+            {documents.length > visibleCount && (
+              <Button
+                variant="navigation"
+                size="sm"
+                onClick={() => setScope((current) => ({ ...current, limit: visibleCount + 40 }))}
+              >
+                Show older documents
+              </Button>
+            )}
+          </SidebarContent>
+          <SidebarFooter>
+            {signOutError && (
+              <p role="alert" className="error-text sidebar-footer-error">
+                {signOutError}
+              </p>
+            )}
+            <div className="sidebar-footer-actions">
+              <SidebarAction
+                label="Connect an agent"
+                shortcut={formatBinding(bindings.agents)}
+                onClick={settings}
+              >
+                <Code2 />
+              </SidebarAction>
+              <SidebarAction
+                label="Keyboard shortcuts"
+                shortcut={formatBinding(bindings.shortcuts)}
+                onClick={keyboardSettings}
+              >
+                <Keyboard />
+              </SidebarAction>
+              <SidebarAction
+                label={signingOut ? "Signing out…" : "Sign out"}
+                aria-description={`Signed in as ${name}`}
+                disabled={signingOut}
+                onClick={() => {
+                  setSignOutError("");
+                  setSigningOut(true);
+                  run(signOut, {
+                    onError: (error) => {
+                      setSignOutError(error);
+                      setSigningOut(false);
+                    },
+                  });
+                }}
+              >
+                <LogOut />
+              </SidebarAction>
+            </div>
+          </SidebarFooter>
+        </>
+      )}
+    </Sidebar>
   );
 }

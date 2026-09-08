@@ -14,14 +14,22 @@ const codec = Schema.fromJsonString(
     archive: Schema.String,
     refresh: Schema.String,
     shortcuts: Schema.String,
+    sidebar: Schema.optionalKey(Schema.String),
   }),
 );
 export const loadKeybindings = Effect.gen(function* () {
   const raw = yield* Effect.try(() => localStorage.getItem(storageKey));
   if (!raw) return defaultBindings;
   const decoded = yield* Schema.decodeEffect(codec)(raw);
-  if (bindingError(decoded)) return yield* new ClientError({ message: "Invalid saved shortcuts." });
-  return decoded;
+  const bindings = {
+    ...decoded,
+    sidebar:
+      decoded.sidebar ??
+      (Object.values(decoded).includes(defaultBindings.sidebar) ? "" : defaultBindings.sidebar),
+  };
+  if (bindingError(bindings))
+    return yield* new ClientError({ message: "Invalid saved shortcuts." });
+  return bindings;
 }).pipe(
   Effect.mapError(
     () => new ClientError({ message: "Saved shortcuts could not be loaded. Defaults are active." }),

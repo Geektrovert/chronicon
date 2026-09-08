@@ -38,7 +38,7 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
   size?: "default" | "wide" | "editor";
-  placement?: "center" | "right";
+  placement?: "center" | "right" | "left";
 }) {
   return (
     <DialogPortal>
@@ -46,10 +46,15 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none  data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed z-50 grid max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           size === "editor" ? "max-w-[940px]" : size === "wide" ? "max-w-[600px]" : "max-w-md",
+          placement === "center"
+            ? "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            : "inset-y-0 top-0 h-dvh max-h-dvh w-full translate-x-0 translate-y-0 rounded-none p-6 data-open:zoom-in-100 data-closed:zoom-out-100",
           placement === "right" &&
-            "inset-y-0 right-0 left-auto top-0 h-dvh max-h-dvh w-full translate-x-0 translate-y-0 rounded-none border-l p-6 data-open:slide-in-from-right data-closed:slide-out-to-right data-open:zoom-in-100 data-closed:zoom-out-100",
+            "right-0 left-auto border-l data-open:slide-in-from-right data-closed:slide-out-to-right",
+          placement === "left" &&
+            "start-0 end-auto border-e data-open:slide-in-from-left data-closed:slide-out-to-left",
           className,
         )}
         {...props}

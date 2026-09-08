@@ -1,12 +1,12 @@
 "use client";
 import { KeyboardSettings } from "./keyboard-settings";
-import {
-  bindingFromEvent,
-  defaultBindings,
-  formatBinding,
-  shortcutActions,
-} from "@/lib/keybindings";
+import { bindingFromEvent, defaultBindings, shortcutActions } from "@/lib/keybindings";
 import { loadKeybindings } from "@/client/actions/keybindings";
+import {
+  loadSidebarCollapsed,
+  saveSidebarCollapsed,
+  watchSidebarViewport,
+} from "@/client/actions/sidebar";
 import {
   createContext,
   use,
@@ -134,6 +134,8 @@ export function Workspace({
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileViewport, setMobileViewport] = useState(false);
   const [error, setError] = useState("");
   const search = useSearch(
     optimistic.library,
@@ -158,6 +160,15 @@ export function Workspace({
     if (library.projects.length) setPublishOpen(true);
     else setProjectOpen(true);
   }
+  function toggleSidebar() {
+    if (mobileViewport) {
+      setMobileOpen((open) => !open);
+      return;
+    }
+    const collapsed = !sidebarCollapsed;
+    setSidebarCollapsed(collapsed);
+    run(saveSidebarCollapsed(collapsed), { onError: setError });
+  }
   const documentChanged = useCallback((document: Document) => {
     setLibrary((current) => mergeLibrary(current, { projects: [], documents: [document] }));
   }, []);
@@ -178,6 +189,17 @@ export function Workspace({
     });
   }
   useEffect(() => run(loadKeybindings, { onSuccess: setBindings, onError: setError }), [run]);
+  useEffect(() => run(loadSidebarCollapsed, { onSuccess: setSidebarCollapsed }), [run]);
+  useEffect(
+    () =>
+      run(
+        watchSidebarViewport((mobile) => {
+          setMobileViewport(mobile);
+          if (!mobile) setMobileOpen(false);
+        }),
+      ),
+    [run],
+  );
   useEffect(() => run(watchSessionEnd), [run]);
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
@@ -190,14 +212,18 @@ export function Workspace({
         )
       )
         return;
-      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
       const binding = bindingFromEvent(event);
       const action = shortcutActions.find(
         (item) => bindings[item.id] && bindings[item.id] === binding,
       )?.id;
       if (!action) return;
+      if (
+        document.querySelector('[role="dialog"], [role="alertdialog"]') &&
+        !(action === "sidebar" && mobileOpen)
+      )
+        return;
       event.preventDefault();
-      setMobileOpen(false);
+      if (action !== "sidebar") setMobileOpen(false);
       switch (action) {
         case "search":
         case "projectSearch":
@@ -228,6 +254,9 @@ export function Workspace({
           break;
         case "refresh":
           refresh();
+          break;
+        case "sidebar":
+          toggleSidebar();
           break;
       }
     };
@@ -271,12 +300,12 @@ export function Workspace({
         refreshing,
       }}
     >
-      <div className="workspace">
+      <div className="workspace" data-sidebar-collapsed={sidebarCollapsed}>
         <a className="skip-link" href="#main">
           Skip to content
         </a>
         <WorkspaceSidebar
-          shortcutLabel={formatBinding(bindings.search)}
+          bindings={bindings}
           keyboardSettings={() => {
             setMobileOpen(false);
             setKeyboardOpen(true);
@@ -284,13 +313,18 @@ export function Workspace({
           library={optimistic.library}
           name={name}
           pathname={pathname}
-          projectId={projectId}
+          collapsed={sidebarCollapsed}
+          toggleCollapsed={toggleSidebar}
           mobileOpen={mobileOpen}
           createProject={() => {
             setMobileOpen(false);
             setProjectOpen(true);
           }}
           search={openSearch}
+          publish={() => {
+            setMobileOpen(false);
+            publish();
+          }}
           settings={() => {
             setMobileOpen(false);
             setSettingsOpen(true);

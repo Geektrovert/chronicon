@@ -4,6 +4,7 @@ import * as React from "react";
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { cn } from "cn";
 import { controlStyles, controlHeight } from "./control-styles";
+import { buttonVariants } from "./button";
 
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
@@ -19,13 +20,19 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
   );
 }
 
-function SelectTrigger({ className, children, ...props }: SelectPrimitive.Trigger.Props) {
+function SelectTrigger({
+  className,
+  children,
+  variant = "default",
+  ...props
+}: SelectPrimitive.Trigger.Props & { variant?: "default" | "navigation" }) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        controlStyles,
-        controlHeight,
+        variant === "navigation"
+          ? buttonVariants({ variant: "navigation" })
+          : cn(controlStyles, controlHeight),
         "flex items-center justify-between gap-2 whitespace-nowrap text-left data-placeholder:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         className,
       )}
@@ -91,7 +98,7 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
       )}
       {...props}
     >
-      <SelectPrimitive.ItemText className="flex flex-1 shrink-0 gap-2 whitespace-nowrap">
+      <SelectPrimitive.ItemText className="flex min-w-0 flex-1 gap-2 overflow-hidden whitespace-nowrap">
         {children}
       </SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator
