@@ -9,6 +9,15 @@ const departureMono = localFont({
   display: "swap",
 });
 
+const nacelle = localFont({
+  src: [
+    { path: "./fonts/nacelle-regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/nacelle-semibold.woff2", weight: "600", style: "normal" },
+  ],
+  variable: "--font-nacelle",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: { default: "Chronicon", template: "%s · Chronicon" },
   description: "A private library for plans, reports, and ideas.",
@@ -17,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${departureMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${departureMono.variable} ${nacelle.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

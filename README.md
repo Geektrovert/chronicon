@@ -24,8 +24,14 @@ There is no database schema change for this migration. Existing reports, revisio
 
 ## Frontend
 
-The interface uses shared Base UI shadcn controls, TanStack Form, and self-hosted
-Departure Mono typography. Reusable controls and styles live in `src/components/ui`.
+The interface uses shared Base UI shadcn controls and TanStack Form. Departure Mono
+is the default for controls, navigation, metadata, and code; Nacelle is for document
+titles and descriptions. `src/app/layout.tsx` loads each family once through
+`next/font/local`. `src/components/ui/typography.css` owns the font stacks, default
+typography, and document text styles: `content-title`, `content-title-sm`, and
+`content-description`. Use `font-sans` for editable document text and `font-mono`
+for explicit UI/code text. Components use these roles instead of raw font names or
+new font imports. Reusable controls and styles live in `src/components/ui`.
 
 Workspace pages use App Router paths: `/` for all documents, `/starred`, `/archive`,
 `/projects/[slug]`, and `/documents/[id]`. The `(workspace)` route group shares one

@@ -23,7 +23,7 @@ export function EmptyState({
       )}
       <div className="space-y-2">
         <h2 className="text-lg font-medium tracking-tight">{title}</h2>
-        <p className="max-w-prose text-sm text-muted-foreground">{description}</p>
+        <p className="content-description max-w-prose text-muted-foreground">{description}</p>
       </div>
       {children}
     </div>

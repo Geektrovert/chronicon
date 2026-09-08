@@ -69,8 +69,10 @@ export function DocumentList({
             )}
           </span>
           <NavigationLink className="document-row-link" href={`/documents/${doc.id}`}>
-            <h2>{doc.title}</h2>
-            <p>{doc.summary || `${doc.slug}.html`}</p>
+            <h2 className="content-title">{doc.title}</h2>
+            <p className={doc.summary ? "content-description" : "font-mono"}>
+              {doc.summary || `${doc.slug}.html`}
+            </p>
             <div className="document-meta">
               <span>{projects.find((p) => p.id === doc.projectId)?.name}</span>
               <span className="meta-dot">·</span>

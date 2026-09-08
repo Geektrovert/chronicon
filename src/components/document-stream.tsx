@@ -2,7 +2,7 @@
 
 import { Suspense, use } from "react";
 import type { Document, DocumentDetail, Project } from "@/lib/model";
-import { DocumentHeading } from "./document-heading";
+import { DocumentToolbar } from "./document-toolbar";
 import { LoadingState } from "./ui/loading-state";
 import { Viewer } from "./viewer";
 import { useWorkspace } from "./workspace";
@@ -14,7 +14,7 @@ function PendingDocument({ document, project }: { document: Document; project: P
     libraryDocument && libraryDocument.updatedAt >= document.updatedAt ? libraryDocument : document;
   return (
     <main id="main" className="viewer-main">
-      <DocumentHeading document={current} project={project} />
+      <DocumentToolbar document={current} project={project} />
       {error && (
         <p className="inline-error" role="alert">
           {error}

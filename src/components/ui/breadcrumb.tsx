@@ -9,21 +9,24 @@ export function Breadcrumb({
   title: string;
 }) {
   return (
-    <nav aria-label="Breadcrumb" className="min-w-0">
-      <ol className="flex min-w-0 flex-wrap items-center gap-2 text-[13px]">
-        <li className="min-w-0">
+    <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
+      <ol className="flex min-w-0 items-center gap-2 text-xs">
+        <li className="breadcrumb-parent min-w-0 shrink-0">
           <NavigationLink
-            className="rounded-md text-muted-foreground break-words hover:text-foreground"
+            className="block truncate rounded-md text-muted-foreground hover:text-foreground"
             href={parent.href}
+            title={parent.label}
           >
             {parent.label}
           </NavigationLink>
         </li>
-        <li role="presentation" aria-hidden="true">
+        <li role="presentation" aria-hidden="true" className="shrink-0">
           <ChevronRight className="size-3.5 text-muted-foreground" />
         </li>
         <li className="min-w-0" aria-current="page">
-          <h1 className="text-[13px] font-medium break-words">{title}</h1>
+          <h1 className="content-title truncate" title={title}>
+            {title}
+          </h1>
         </li>
       </ol>
     </nav>

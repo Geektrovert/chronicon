@@ -25,14 +25,16 @@ function SelectTrigger({
   children,
   variant = "default",
   ...props
-}: SelectPrimitive.Trigger.Props & { variant?: "default" | "navigation" }) {
+}: SelectPrimitive.Trigger.Props & { variant?: "default" | "navigation" | "toolbar" }) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
         variant === "navigation"
           ? buttonVariants({ variant: "navigation" })
-          : cn(controlStyles, controlHeight),
+          : variant === "toolbar"
+            ? buttonVariants({ variant: "ghost" })
+            : cn(controlStyles, controlHeight),
         "flex items-center justify-between gap-2 whitespace-nowrap text-left data-placeholder:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         className,
       )}

@@ -141,6 +141,7 @@ export function Publisher({
                   <FieldLabel htmlFor="publisher-field-1">Title</FieldLabel>
                   <Input
                     id="publisher-field-1"
+                    className="font-sans"
                     placeholder="What is this about?"
                     maxLength={160}
                     required
@@ -221,6 +222,7 @@ export function Publisher({
                   <FieldLabel htmlFor="publisher-field-5">Summary</FieldLabel>
                   <Input
                     id="publisher-field-5"
+                    className="font-sans"
                     name="summary"
                     placeholder="A sentence to help you find it later"
                     maxLength={500}

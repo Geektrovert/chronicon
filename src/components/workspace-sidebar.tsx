@@ -279,7 +279,7 @@ export function WorkspaceSidebar({
                       {formatRelativeDate(document.updatedAt, now)}
                     </time>
                   </span>
-                  <span className="sidebar-document-title">{document.title}</span>
+                  <span className="sidebar-document-title content-title-sm">{document.title}</span>
                 </SidebarDocumentLink>
               ))}
             </div>

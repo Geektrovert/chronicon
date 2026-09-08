@@ -391,8 +391,8 @@ export function Workspace({
                     }}
                   >
                     <FileText size={17} />
-                    <span className="flex-1">
-                      {doc.title}
+                    <span className="min-w-0 flex-1">
+                      <span className="content-title">{doc.title}</span>
                       <small className="block text-muted-foreground">
                         {library.projects.find((p) => p.id === doc.projectId)?.name}
                       </small>

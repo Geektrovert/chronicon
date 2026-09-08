@@ -179,7 +179,6 @@
   -webkit-line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;
-  line-height: 1.55;
   color: var(--foreground);
 }
 .sidebar-empty {
