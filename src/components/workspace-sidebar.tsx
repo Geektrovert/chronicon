@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Settings,
   SquarePen,
   Star,
   X,
@@ -322,6 +323,24 @@ export function WorkspaceSidebar({
               </p>
             )}
             <div className="sidebar-footer-actions">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <ButtonLink
+                      href="/settings/appearance"
+                      variant="navigation"
+                      className="w-auto justify-center"
+                      size="icon"
+                      aria-label="Settings"
+                      aria-current={pathname.startsWith("/settings") ? "page" : undefined}
+                      onNavigate={close}
+                    />
+                  }
+                >
+                  <Settings aria-hidden="true" />
+                </TooltipTrigger>
+                <TooltipContent>Settings</TooltipContent>
+              </Tooltip>
               <SidebarAction
                 label="Connect an agent"
                 shortcut={formatBinding(bindings.agents)}

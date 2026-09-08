@@ -31,6 +31,7 @@
 }
 
 :root {
+  color-scheme: light;
   /* Neutral surfaces and hierarchy, inspired by Linear's black/white theme system. */
   --neutral-0: oklch(0.997 0 0);
   --neutral-1: oklch(0.982 0 0);
@@ -70,6 +71,28 @@
   --sh-string: var(--muted-foreground);
   --sh-keyword: var(--foreground);
   --sh-comment: var(--muted-foreground);
+}
+
+.dark {
+  color-scheme: dark;
+  /* Dark surfaces rise toward the foreground; controls share the same tokens. */
+  --background: oklch(0.185 0 0);
+  --foreground: oklch(0.94 0 0);
+  --sidebar: oklch(0.165 0 0);
+  --card: oklch(0.215 0 0);
+  --popover: oklch(0.245 0 0);
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
+  --muted: oklch(0.28 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: var(--muted);
+  --border: oklch(0.33 0 0);
+  --input: oklch(0.57 0 0);
+  --destructive: oklch(0.75 0.14 25);
+  --success: var(--foreground);
+  --success-bg: var(--muted);
+  --overlay: oklch(0 0 0 / 0.65);
+  --editor-selection: oklch(0.72 0 0 / 0.25);
 }
 
 @layer base {
@@ -413,6 +436,7 @@ kbd {
 }
 .publish-editor iframe,
 .report-content iframe {
+  color-scheme: light;
   background: var(--preview-background);
   border: 0;
   width: 100%;
