@@ -1,7 +1,5 @@
 .workspace {
-  --sidebar-width: 18rem;
-  --sidebar-rail-width: 3.75rem;
-  --workspace-sidebar-width: var(--sidebar-width);
+  --workspace-sidebar-width: min(var(--sidebar-width), var(--sidebar-max-width));
 }
 .workspace[data-sidebar-collapsed="true"] {
   --workspace-sidebar-width: var(--sidebar-rail-width);
@@ -19,6 +17,67 @@
   background: var(--sidebar);
   border-inline-end: 1px solid var(--border);
   color: var(--muted-foreground);
+}
+.sidebar-resize-handle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: -8px;
+  z-index: 1;
+  width: 16px;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+.sidebar-resize-handle::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 6px;
+  width: 3px;
+  height: 40px;
+  border-radius: 2px;
+  background: var(--muted-foreground);
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .sidebar-resize-handle:hover::after {
+    opacity: 1;
+  }
+}
+.sidebar-resize-handle:focus-visible::after,
+.workspace[data-sidebar-resizing="true"] .sidebar-resize-handle::after {
+  opacity: 1;
+}
+.sidebar-resize-handle:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.sidebar-resize-handle:focus-visible::after {
+  outline: 1px solid var(--ring);
+  outline-offset: -1px;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+@media (forced-colors: active) {
+  .sidebar-resize-handle:focus-visible {
+    outline: none !important;
+  }
+  .sidebar-resize-handle::after {
+    background: ButtonText;
+  }
+  .sidebar-resize-handle:focus-visible::after {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+.workspace[data-sidebar-resizing="true"],
+.workspace[data-sidebar-resizing="true"] * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+.workspace[data-sidebar-resizing="true"] iframe {
+  pointer-events: none;
 }
 .sidebar-header {
   flex-shrink: 0;

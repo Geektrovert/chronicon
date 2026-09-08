@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { signOut } from "@/client/actions/auth";
-import { watchSidebarTime } from "@/client/actions/sidebar";
+import { watchSidebarTime, type SidebarLayout } from "@/client/actions/sidebar";
 import { useTask } from "@/client/runtime";
 import { formatRelativeDate, formatTimestamp } from "@/lib/date";
 import { formatBinding, type Keybindings } from "@/lib/keybindings";
@@ -43,7 +43,10 @@ export function WorkspaceSidebar({
   library,
   name,
   pathname,
-  collapsed,
+  layout,
+  maximumWidth,
+  resize,
+  resizeEnd,
   toggleCollapsed,
   mobileOpen,
   createProject,
@@ -57,7 +60,10 @@ export function WorkspaceSidebar({
   library: Library;
   name: string;
   pathname: string;
-  collapsed: boolean;
+  layout: SidebarLayout;
+  maximumWidth: number;
+  resize: (layout: SidebarLayout) => void;
+  resizeEnd: (layout: SidebarLayout) => void;
   toggleCollapsed: () => void;
   mobileOpen: boolean;
   createProject: () => void;
@@ -119,7 +125,14 @@ export function WorkspaceSidebar({
   useEffect(() => run(watchSidebarTime(setNow)), [run]);
 
   return (
-    <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onMobileOpenChange={close}>
+    <Sidebar
+      layout={layout}
+      maximumWidth={maximumWidth}
+      onResize={resize}
+      onResizeEnd={resizeEnd}
+      mobileOpen={mobileOpen}
+      onMobileOpenChange={close}
+    >
       {({ compact, mobile }) => (
         <>
           <SidebarHeader>

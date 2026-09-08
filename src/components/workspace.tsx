@@ -3,9 +3,12 @@ import { KeyboardSettings } from "./keyboard-settings";
 import { bindingFromEvent, defaultBindings, shortcutActions } from "@/lib/keybindings";
 import { loadKeybindings } from "@/client/actions/keybindings";
 import {
-  loadSidebarCollapsed,
-  saveSidebarCollapsed,
+  defaultSidebarLayout,
+  loadSidebarLayout,
+  saveSidebarLayout,
+  sidebarSizes,
   watchSidebarViewport,
+  type SidebarLayout,
 } from "@/client/actions/sidebar";
 import {
   createContext,
@@ -41,6 +44,7 @@ import { CreateProject } from "./create-project";
 import { Publisher } from "./publisher";
 import { AgentSettings } from "./agent-settings";
 import { WorkspaceSidebar } from "./workspace-sidebar";
+import { SidebarFrame } from "./ui/sidebar";
 
 const noPendingDocuments: ReadonlyArray<string> = [];
 
@@ -134,7 +138,8 @@ export function Workspace({
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarLayout, setSidebarLayout] = useState(defaultSidebarLayout);
+  const [maximumSidebarWidth, setMaximumSidebarWidth] = useState(sidebarSizes.max);
   const [mobileViewport, setMobileViewport] = useState(false);
   const [error, setError] = useState("");
   const search = useSearch(
@@ -160,14 +165,19 @@ export function Workspace({
     if (library.projects.length) setPublishOpen(true);
     else setProjectOpen(true);
   }
+  const commitSidebarLayout = useCallback(
+    (layout: SidebarLayout) => {
+      setSidebarLayout(layout);
+      run(saveSidebarLayout(layout), { onError: setError });
+    },
+    [run],
+  );
   function toggleSidebar() {
     if (mobileViewport) {
       setMobileOpen((open) => !open);
       return;
     }
-    const collapsed = !sidebarCollapsed;
-    setSidebarCollapsed(collapsed);
-    run(saveSidebarCollapsed(collapsed), { onError: setError });
+    commitSidebarLayout({ ...sidebarLayout, collapsed: !sidebarLayout.collapsed });
   }
   const documentChanged = useCallback((document: Document) => {
     setLibrary((current) => mergeLibrary(current, { projects: [], documents: [document] }));
@@ -189,12 +199,13 @@ export function Workspace({
     });
   }
   useEffect(() => run(loadKeybindings, { onSuccess: setBindings, onError: setError }), [run]);
-  useEffect(() => run(loadSidebarCollapsed, { onSuccess: setSidebarCollapsed }), [run]);
+  useEffect(() => run(loadSidebarLayout, { onSuccess: setSidebarLayout }), [run]);
   useEffect(
     () =>
       run(
-        watchSidebarViewport((mobile) => {
+        watchSidebarViewport((mobile, maximumWidth) => {
           setMobileViewport(mobile);
+          setMaximumSidebarWidth(maximumWidth);
           if (!mobile) setMobileOpen(false);
         }),
       ),
@@ -300,7 +311,7 @@ export function Workspace({
         refreshing,
       }}
     >
-      <div className="workspace" data-sidebar-collapsed={sidebarCollapsed}>
+      <SidebarFrame layout={sidebarLayout}>
         <a className="skip-link" href="#main">
           Skip to content
         </a>
@@ -313,7 +324,10 @@ export function Workspace({
           library={optimistic.library}
           name={name}
           pathname={pathname}
-          collapsed={sidebarCollapsed}
+          layout={sidebarLayout}
+          maximumWidth={maximumSidebarWidth}
+          resize={setSidebarLayout}
+          resizeEnd={commitSidebarLayout}
           toggleCollapsed={toggleSidebar}
           mobileOpen={mobileOpen}
           createProject={() => {
@@ -449,7 +463,7 @@ export function Workspace({
           onOpenChange={setSettingsOpen}
           projects={library.projects}
         />
-      </div>
+      </SidebarFrame>
     </WorkspaceContext>
   );
 }

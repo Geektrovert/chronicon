@@ -33,6 +33,14 @@ typography, and document text styles: `content-title`, `content-title-sm`, and
 for explicit UI/code text. Components use these roles instead of raw font names or
 new font imports. Reusable controls and styles live in `src/components/ui`.
 
+The shared sidebar owns its desktop resize rail. Width and collapse state persist
+in the browser; expanded width is bounded to 240–480px and at most 45% of the
+viewport. Dragging past the midpoint between the minimum width and collapsed rail
+collapses or reopens it. Clicking the rail also toggles collapse. Arrow keys resize
+the focused rail; Enter toggles collapse, and Shift+Home restores the default width.
+At 820px and below,
+navigation uses the existing menu drawer without a resize rail or width changes.
+
 Workspace pages use App Router paths: `/` for all documents, `/starred`, `/archive`,
 `/projects/[slug]`, and `/documents/[id]`. The `(workspace)` route group shares one
 authenticated layout. `Workspace` keeps the sidebar, search worker, shortcuts, and
