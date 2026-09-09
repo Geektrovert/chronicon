@@ -79,13 +79,14 @@ export function WorkspaceSidebar({
   const [signingOut, setSigningOut] = useState(false);
   const [now, setNow] = useState<DateTime.Utc>();
   const activeDocument = library.documents.find((doc) => pathname === `/documents/${doc.id}`);
+  const collectionPath = pathname.replace(/^(\/projects\/[^/]+)\/design\/?$/, "$1");
   const [scope, setScope] = useState({
     pathname,
     collection: pathname.startsWith("/documents/")
       ? activeDocument?.archived
         ? "/archive"
         : "/"
-      : pathname,
+      : collectionPath,
     limit: 40,
   });
   const project = library.projects.find((item) => scope.collection === `/projects/${item.slug}`);
@@ -94,7 +95,7 @@ export function WorkspaceSidebar({
   // and Back navigation outside that collection return to an appropriate list.
   if (scope.pathname !== pathname) {
     let collection = scope.collection;
-    if (!pathname.startsWith("/documents/")) collection = pathname;
+    if (!pathname.startsWith("/documents/")) collection = collectionPath;
     else if (
       activeDocument &&
       ((project && activeDocument.projectId !== project.id) ||

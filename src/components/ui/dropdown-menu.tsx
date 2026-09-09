@@ -2,10 +2,33 @@
 
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 export const DropdownMenu = MenuPrimitive.Root;
 export const DropdownMenuTrigger = MenuPrimitive.Trigger;
 export const DropdownMenuGroup = MenuPrimitive.Group;
+export const DropdownMenuRadioGroup = MenuPrimitive.RadioGroup;
+
+export function DropdownMenuRadioItem({
+  className,
+  children,
+  ...props
+}: MenuPrimitive.RadioItem.Props) {
+  return (
+    <MenuPrimitive.RadioItem
+      className={cn(
+        "relative flex min-h-10 cursor-default items-center gap-2 rounded-md py-2 pr-8 pl-2 text-sm outline-none select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+      <MenuPrimitive.RadioItemIndicator className="absolute right-2">
+        <Check className="size-4" />
+      </MenuPrimitive.RadioItemIndicator>
+    </MenuPrimitive.RadioItem>
+  );
+}
 
 export function DropdownMenuContent({
   align = "end",

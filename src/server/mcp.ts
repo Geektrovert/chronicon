@@ -18,6 +18,8 @@ import { readDocumentByReference, publishDocument } from "./actions/documents";
 import { LibraryInvalidation, readCachedLibrary, requestLibraryInvalidation } from "./cache";
 import { agentInstructions } from "./agent-instructions";
 import { AppError } from "./errors";
+import { readDesignInput, updateDesignInput } from "@/lib/project-design/model";
+import { readProjectDesign, updateProjectDesign } from "./actions/project-design";
 import { failure, privateHeaders, readBody } from "./http";
 import { runtime, type AppServices } from "./runtime";
 
@@ -157,6 +159,26 @@ function handler(
           annotations: { readOnlyHint: true },
         },
         (input, ctx) => tool(findDocuments(principal, input), ctx.mcpReq.signal),
+      );
+      server.registerTool(
+        "read_project_design",
+        {
+          description:
+            "Read a project's design.md, settings, light/dark tokens and revision on demand for design work.",
+          inputSchema: standard(readDesignInput),
+          annotations: { readOnlyHint: true },
+        },
+        (input, ctx) => tool(readProjectDesign(principal, input), ctx.mcpReq.signal),
+      );
+      server.registerTool(
+        "update_project_design",
+        {
+          description:
+            "Save theme settings and/or design guidance with the current expectedRevision (0 for defaults). Full markdown may edit guidance outside its generated block; use settings to change tokens. Read and reconcile conflicts before retrying.",
+          inputSchema: standard(updateDesignInput),
+          annotations: { destructiveHint: false },
+        },
+        (input, ctx) => tool(updateProjectDesign(principal, input), ctx.mcpReq.signal),
       );
       return server;
     },

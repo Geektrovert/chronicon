@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Palette } from "lucide-react";
 import type { Document } from "@/lib/model";
 import { DocumentList } from "./document-list";
 import { useWorkspace } from "./workspace";
-import { Button } from "./ui/button";
+import { Button, ButtonLink } from "./ui/button";
 import { Toolbar } from "./ui/toolbar";
 import { SearchField } from "./ui/search-field";
 import { SelectField } from "./ui/select-field";
@@ -120,6 +120,12 @@ export function LibraryView({
           {visible.length} {visible.length === 1 ? "document" : "documents"}
           {query.trim() ? ` matching “${query}”` : ""}
         </output>
+        {project && (
+          <ButtonLink href={`/projects/${project.slug}/design`} variant="ghost" size="sm">
+            <Palette />
+            Design system
+          </ButtonLink>
+        )}
         <Button variant="ghost" size="sm" onClick={refresh} disabled={refreshing}>
           {refreshing ? "Refreshing…" : "Refresh"}
         </Button>

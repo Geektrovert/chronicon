@@ -34,9 +34,13 @@ chronicon docs read plan
 chronicon docs read --id DOCUMENT_ID --revision 1
 chronicon docs upsert plan --file plan.html --title "Implementation plan" --kind plan --expected-revision 1
 chronicon call upsert_document --input document.json
+chronicon design read > design.md
+chronicon design read --json
+chronicon design update --file design.md --expected-revision 1
 ```
 
-Data commands print JSON. `call TOOL --input FILE` exposes every MCP capability,
+Data commands print JSON, except `design read`, which prints Markdown unless
+`--json` is supplied. `call TOOL --input FILE` exposes every MCP capability,
 including first-publication project creation. Document updates replace the full HTML
 and metadata. Read first, keep metadata you need, and pass the current revision.
 Use revision `0` only for new documents. Conflicts require reading and reconciling;
@@ -44,6 +48,29 @@ the CLI does not silently overwrite or retry a write.
 
 Use CSS variables with light defaults, `@media (prefers-color-scheme: dark)`
 overrides, and `:root { color-scheme: light dark }`. Previews follow the site's theme.
+
+`design read` fetches the project's current `design.md` on demand. Edit guidance
+outside the generated block, then update with its design revision (`0` before the
+first save). To change theme settings, use `design update --input design-update.json`:
+
+```json
+{
+  "expectedRevision": 1,
+  "settings": {
+    "baseColor": "neutral",
+    "theme": "blue",
+    "chartColor": "blue",
+    "font": "sans",
+    "radius": "medium",
+    "menuAccent": "subtle"
+  }
+}
+```
+
+JSON updates accept complete settings and/or `guidance` or a full `markdown` file
+string. Omitted fields are preserved. A stale revision fails; read and reconcile
+before retrying. Redirecting `design read` into a file uses your shell's normal
+overwrite behavior, so keep local changes before refreshing it.
 
 New projects automatically become the repository's default. The CLI stores the
 version-1 association at `chronicon/project.json` inside `git rev-parse

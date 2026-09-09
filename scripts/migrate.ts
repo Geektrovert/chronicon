@@ -32,6 +32,11 @@ const main = Effect.gen(function* () {
   yield* sql`ALTER TABLE project ADD COLUMN IF NOT EXISTS revision integer NOT NULL DEFAULT 1 CHECK (revision > 0)`.pipe(
     databaseError("migrate project revision"),
   );
+  yield* sql`CREATE TABLE IF NOT EXISTS project_design (
+    "projectId" text PRIMARY KEY REFERENCES project(id) ON DELETE CASCADE,
+    revision integer NOT NULL CHECK (revision > 0), settings jsonb NOT NULL, tokens jsonb NOT NULL,
+    guidance text NOT NULL CHECK (length(guidance) <= 64000), "sourceRevision" text NOT NULL, "updatedAt" text NOT NULL
+  )`.pipe(databaseError("migrate project design"));
   yield* sql`CREATE TABLE IF NOT EXISTS document (
     id text PRIMARY KEY, "projectId" text NOT NULL REFERENCES project(id), slug text NOT NULL,
     title text NOT NULL, summary text NOT NULL, kind text NOT NULL CHECK (kind IN ('report','plan','reference')),

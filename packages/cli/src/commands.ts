@@ -28,6 +28,9 @@ const help = `Chronicon CLI
   docs read SLUG [--revision N]         Read HTML and revision history
   docs read --id ID [--revision N]      Read without a repository association
   docs upsert SLUG --file FILE --title TITLE --expected-revision N
+  design read [--json]                 Read the project's design.md (JSON includes settings)
+  design update --file design.md --expected-revision N
+  design update --input FILE           Save settings/guidance from a JSON object
   call TOOL --input FILE               Call any MCP tool with a JSON object
 
 Options: --server ORIGIN, --project ID, --summary TEXT, --kind plan|report|reference,
@@ -258,6 +261,40 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
       return yield* persistPublished(result, saved, false);
     }
   }
+  if (command === "design") {
+    const project = reference(saved, credential, values.project);
+    if (action === "read") {
+      const result = yield* call("read_project_design", { project });
+      if (values.json) return yield* print(result);
+      const design = yield* decode(objectSchema, result);
+      return yield* Console.log(yield* decode(Schema.String, design.markdown));
+    }
+    if (action === "update") {
+      if (values.file && values.input)
+        return yield* new CliError({
+          message: "Use --file for Markdown or --input for JSON, not both.",
+        });
+      const jsonContent = values.input ? yield* readInputFile(values.input) : "";
+      const input = values.input
+        ? yield* decode(
+            objectSchema,
+            yield* Effect.try({
+              try: () => json(jsonContent),
+              catch: () => new CliError({ message: "The input file must contain a JSON object." }),
+            }),
+          )
+        : { markdown: yield* readInputFile(required(values.file, "--file or --input"), 100_000) };
+      return yield* print(
+        yield* call("update_project_design", {
+          ...input,
+          project,
+          ...(values["expected-revision"] !== undefined
+            ? { expectedRevision: revision(values["expected-revision"], "--expected-revision", 0) }
+            : {}),
+        }),
+      );
+    }
+  }
   if (command === "call") {
     const tool = required(action, "a tool name");
     const content = yield* readInputFile(required(values.input, "--input"));
@@ -267,7 +304,13 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
     });
     const input = { ...(yield* decode(objectSchema, parsed)) };
     if (
-      ["read_document", "upsert_document", "find_documents"].includes(tool) &&
+      [
+        "read_document",
+        "upsert_document",
+        "find_documents",
+        "read_project_design",
+        "update_project_design",
+      ].includes(tool) &&
       !input.project &&
       !input.id &&
       (saved || values.project)

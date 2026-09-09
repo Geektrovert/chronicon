@@ -36,7 +36,10 @@ export async function route<A, E>(
     Effect.provideService(LibraryInvalidation, requestLibraryInvalidation()),
   );
   return runtime.runPromiseExit(scoped, { signal: request.signal }).then((exit) => {
-    if (Exit.isSuccess(exit)) return Response.json(exit.value, { headers: privateHeaders });
+    if (Exit.isSuccess(exit))
+      return exit.value instanceof Response
+        ? exit.value
+        : Response.json(exit.value, { headers: privateHeaders });
     const error = failure(exit.cause);
     return Response.json(
       { error: error.message },

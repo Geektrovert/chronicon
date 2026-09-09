@@ -166,12 +166,14 @@ Use an HTTP MCP client that accepts a custom bearer header. For clients supporti
 
 Clients that only support OAuth connectors need a different client configuration or the REST API. Each key permits 120 requests per minute and can be expired or revoked immediately.
 
-| Tool              | Behavior                                                                                                                          |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `list_projects`   | Choose an accessible project when initially linking a repository                                                                  |
-| `find_documents`  | Recent documents when query is omitted; fuzzy search when supplied. Optional project `{id}` or `{slug}`; returns up to 20 results |
-| `read_document`   | HTML and revision history by document `id`, or `project` reference plus document `slug`; optional `revision`                      |
-| `upsert_document` | Create/reuse a project and create/update its document in one transaction; returns a viewer URL and repository association         |
+| Tool                    | Behavior                                                                                                                          |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `list_projects`         | Choose an accessible project when initially linking a repository                                                                  |
+| `find_documents`        | Recent documents when query is omitted; fuzzy search when supplied. Optional project `{id}` or `{slug}`; returns up to 20 results |
+| `read_document`         | HTML and revision history by document `id`, or `project` reference plus document `slug`; optional `revision`                      |
+| `upsert_document`       | Create/reuse a project and create/update its document in one transaction; returns a viewer URL and repository association         |
+| `read_project_design`   | Read the project's settings, paired tokens, revision, and generated `design.md` on demand                                         |
+| `update_project_design` | Save settings and/or guidance with an explicit expected design revision                                                           |
 
 Example first `upsert_document` call (also accepted by `POST /api/documents`):
 
@@ -189,7 +191,7 @@ Example first `upsert_document` call (also accepted by `POST /api/documents`):
 A missing project is created only with workspace-wide publishing access and
 `expectedRevision: 0`. An existing project's name/description is preserved. A scoped
 key may publish only into its authorized projects. Failed publishing rolls back new
-project creation too. No schema migration is needed.
+project creation too.
 
 The result includes `id`, `revision`, `created`, `unchanged`, `url`, and `association`.
 For subsequent calls, use `"project": { "id": "saved-project-id" }`.
@@ -265,6 +267,43 @@ stay stable. Build the package with `bun run --cwd packages/cli build`.
 
 The Bun workspace explicitly keeps the hoisted dependency layout for Next.js's
 native external packages. Adding the CLI must not silently change that layout.
+
+## Project design systems
+
+Open a project and choose **Design system**. The configurator adapts the actual
+[shadcn/create source](https://github.com/shadcn-ui/ui/tree/3ba91b1cc83e1bbe4ab35a422ff2a694849c5048/apps/v4/app/%28app%29/%28create%29/components)
+and Base UI preview templates. It supports the Nova style, seven base colors,
+17 accent palettes, chart colors, system fonts, radii, and menu accents. Light and
+dark previews are scoped to the project; changing them does not recolor Chronicon.
+The upstream MIT license, pinned revision, and adaptations are recorded in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Run `bun run db:migrate` before deploying. Existing and new projects read as the
+default design at revision `0` without a write. The first save creates revision `1`.
+Settings, resolved light/dark CSS tokens, source revision, and Markdown guidance
+are stored together. Updates compare the expected revision in SQL; a conflict
+leaves the browser draft intact. Reload saved data explicitly after reconciling.
+Notes-only updates retain saved tokens, even when the upstream catalog changes.
+
+`GET /api/projects/:id/design` returns the design and generated Markdown.
+`PUT` on that route accepts `expectedRevision` plus complete `settings`, `guidance`,
+or `markdown` (guidance and markdown are mutually exclusive). The authenticated
+`GET /api/projects/:id/design.md` downloads the same design file. These routes and
+the two MCP tools share actions, account ownership checks, and project key scopes.
+Read-only keys cannot edit designs.
+
+Agents can read `design.md` only when needed, edit prose outside its generated
+block, and submit the full file with its current revision. The generated block
+is checked against the current design; token changes go through the structured
+`settings` field. Nothing silently changes existing document HTML. Design records
+retain the latest value and revision; document-style revision history is not added.
+
+```sh
+chronicon design read > design.md
+chronicon design read --json
+chronicon design update --file design.md --expected-revision 1
+chronicon design update --input design-update.json
+```
 
 ## Search and privacy
 
