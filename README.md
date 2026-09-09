@@ -243,6 +243,14 @@ creation/retry flags, and viewer URL. Existing UI routes (`GET /api/library`,
 only the four tools above. Agents cannot manage keys or change archive/star preferences.
 Limits: 2 MB HTML and 3 MB serialized JSON per request.
 
+Documents follow the site's selected appearance through the iframe's inherited
+`color-scheme`. Use CSS variables with light defaults and
+`@media (prefers-color-scheme: dark)` overrides, plus
+`:root { color-scheme: light dark }`. This works with Light, Dark, and System
+without a document toggle or script. The publish tool describes this contract;
+the browser starter includes both palettes. Existing HTML keeps its authored colors
+until republished with both palettes. See [inherited iframe color schemes](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-color-scheme#embedded_elements).
+
 ## Search and privacy
 
 Authenticated library data is cached by owner and project access. A browser worker builds the fuzzy search index; typing makes no network requests or database queries. Publishing invalidates the library cache. Active, visible tabs refresh once per minute and on focus; polling pauses after two minutes without interaction so an abandoned tab does not keep Neon awake. MCP searches the cached library in server memory. Authentication and publishing still use the database.

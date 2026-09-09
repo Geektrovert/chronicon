@@ -93,6 +93,7 @@
   --success-bg: var(--muted);
   --overlay: oklch(0 0 0 / 0.65);
   --editor-selection: oklch(0.72 0 0 / 0.25);
+  --preview-background: var(--background);
 }
 
 @layer base {
@@ -436,7 +437,6 @@ kbd {
 }
 .publish-editor iframe,
 .report-content iframe {
-  color-scheme: light;
   background: var(--preview-background);
   border: 0;
   width: 100%;

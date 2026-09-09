@@ -80,5 +80,5 @@ window.addEventListener("message", function(event) {
 });
 })();
 </script>`;
-  return `<!doctype html><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="referrer" content="no-referrer">${navigation}${html}`;
+  return `<!doctype html><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">${navigation}${html}`;
 }

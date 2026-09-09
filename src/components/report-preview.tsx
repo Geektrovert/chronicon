@@ -29,10 +29,12 @@ export function ReportPreview({
       }),
     );
   }, [onNavigate, router, run]);
+  // Keep explicit inheritance out of CSS processing, which normalizes it to "normal".
   return (
     <iframe
       ref={frame}
       title={title}
+      style={{ colorScheme: "inherit" }}
       sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
       referrerPolicy="no-referrer"
       srcDoc={previewHTML(html)}

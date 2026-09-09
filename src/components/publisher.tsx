@@ -24,8 +24,12 @@ const starter = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Untitled report</title>
 <style>
+  :root { color-scheme: light dark; --background: oklch(0.997 0 0); --foreground: oklch(0.205 0 0); }
+  @media (prefers-color-scheme: dark) {
+    :root { --background: oklch(0.185 0 0); --foreground: oklch(0.94 0 0); }
+  }
   body { max-width: 760px; margin: 64px auto; padding: 0 24px;
-    font: 17px/1.7 system-ui; color: oklch(0.205 0 0); background: oklch(0.997 0 0); }
+    font: 17px/1.7 system-ui; color: var(--foreground); background: var(--background); }
   h1 { font-size: 40px; line-height: 1.2; letter-spacing: -.04em; }
 </style>
 <h1>Untitled report</h1>

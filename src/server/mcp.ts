@@ -121,7 +121,7 @@ function handler(
         "upsert_document",
         {
           description:
-            "Create or update a self-contained HTML document. Project: use {id} from the repository association; on first use, {slug,name} creates the project if missing (requires workspace-wide write access). Project creation and publishing are atomic. expectedRevision=0 creates a document; read_document first for updates. Identical retries do not create revisions. Save the returned association in the Git common directory as instructed at initialization.",
+            "Create or update self-contained HTML. Use light/dark CSS variables with @media (prefers-color-scheme: dark) and :root { color-scheme: light dark }; previews follow Chronicon's theme automatically. Project: use {id} from the repository association; on first use, {slug,name} creates the project if missing (requires workspace-wide write access). Project creation and publishing are atomic. expectedRevision=0 creates a document; read_document first for updates. Identical retries do not create revisions. Save the returned association in the Git common directory as instructed at initialization.",
           inputSchema: standard(publishInput),
           annotations: { idempotentHint: true, destructiveHint: false },
         },
