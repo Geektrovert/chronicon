@@ -1,10 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/unstable/sql";
-import type { AppConfig } from "../config";
 import { databaseError } from "../database";
-
-export const isOwnerEmail = (config: AppConfig["Service"], email: string) =>
-  !!config.ownerEmail && email.trim().toLowerCase() === config.ownerEmail;
 
 export const findOwnerEmail = Effect.fn("Owner.findEmail")(function* (id: string) {
   const sql = yield* SqlClient.SqlClient;

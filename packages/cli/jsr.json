@@ -1,0 +1,11 @@
+{
+  "name": "@chronicon/cli",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": { "./cli": "./src/cli.ts" },
+  "imports": {
+    "effect": "npm:effect@4.0.0-rc.112",
+    "@modelcontextprotocol/client": "npm:@modelcontextprotocol/client@2.0.0"
+  },
+  "publish": { "include": ["src/**/*.ts", "README.md", "LICENSE", "jsr.json"] }
+}

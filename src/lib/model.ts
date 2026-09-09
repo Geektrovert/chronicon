@@ -51,6 +51,13 @@ export const projectSchema = Schema.Struct({
   name: Schema.String,
   description: Schema.String,
   createdAt: Schema.String,
+  revision: Schema.Int.check(Schema.isGreaterThan(0)),
+});
+export const projectUpdate = Schema.Struct({
+  id: Schema.NonEmptyString,
+  name: requiredText(100),
+  description: Schema.optionalKey(text(400)),
+  expectedRevision: Schema.Int.check(Schema.isGreaterThan(0)),
 });
 export const documentSchema = Schema.Struct({
   id: Schema.String,
@@ -111,9 +118,15 @@ export type Principal = {
   readonly ownerId: string;
   readonly name: string;
   readonly access: "owner" | "agent";
+  readonly keyId?: string;
+  readonly email?: string;
   readonly projectIds: ReadonlyArray<string> | null;
   readonly canWrite: boolean;
 };
+
+export function repositoryAssociation(server: string, workspaceId: string, project: Project) {
+  return { version: 1, server, workspaceId, projectId: project.id, projectSlug: project.slug };
+}
 
 export function slugify(value: string) {
   return value

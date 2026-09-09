@@ -4,12 +4,17 @@ import { createAuthClient } from "better-auth/react";
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { ClientError } from "../errors";
 import { announceSignOut, leaveWorkspace } from "./session";
+import { signInDestination } from "@/lib/cli-auth";
 const authClient = createAuthClient({ plugins: [apiKeyClient()] });
 const credentials = Schema.Struct({
   email: Schema.String.check(Schema.isMinLength(1)),
   password: Schema.String.check(Schema.isMinLength(1)),
+  name: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed(""))),
 });
-export const signIn = Effect.fn("Client.signIn")(function* (input: unknown) {
+const passwordAuthentication = Effect.fn("Client.passwordAuthentication")(function* (
+  input: unknown,
+  create: boolean,
+) {
   const values = yield* Schema.decodeUnknownEffect(credentials)(input).pipe(
     Effect.mapError(() => new ClientError({ message: "Enter your email and password." })),
   );
@@ -18,31 +23,20 @@ export const signIn = Effect.fn("Client.signIn")(function* (input: unknown) {
     (password) =>
       Effect.gen(function* () {
         const result = yield* Effect.tryPromise({
-          try: (signal) =>
-            authClient.signIn.email(
-              { email: values.email, password: Redacted.value(password) },
-              { signal },
-            ),
-          catch: () =>
-            new ClientError({ message: "Unable to sign in. Check your connection and try again." }),
+          try: (signal) => {
+            const fields = { email: values.email, password: Redacted.value(password) };
+            return create
+              ? authClient.signUp.email({ ...fields, name: values.name.trim() }, { signal })
+              : authClient.signIn.email(fields, { signal });
+          },
+          catch: () => new ClientError({ message: "Check your connection and try again." }),
         });
         if (result.error)
           return yield* new ClientError({
             message: result.error.message || "Check your email and password and try again.",
           });
         const next = new URLSearchParams(window.location.search).get("next");
-        const destination = yield* Effect.try({
-          try: () => new URL(next || "/", window.location.origin),
-          catch: () =>
-            new ClientError({ message: "Signed in. Open the workspace from the home page." }),
-        });
-        // Only app pages are valid return destinations. Never return to sign-in or an API.
-        const appPath = /^\/(?:$|starred\/?$|archive\/?$|projects\/[^/]+\/?$|documents\/[^/]+\/?$)/;
-        window.location.replace(
-          destination.origin === window.location.origin && appPath.test(destination.pathname)
-            ? destination.pathname
-            : "/",
-        );
+        window.location.replace(signInDestination(next));
       }),
     (password) =>
       Effect.sync(() => {
@@ -50,6 +44,8 @@ export const signIn = Effect.fn("Client.signIn")(function* (input: unknown) {
       }),
   );
 });
+export const signIn = (input: unknown) => passwordAuthentication(input, false);
+export const signUp = (input: unknown) => passwordAuthentication(input, true);
 export const signOut = Effect.gen(function* () {
   const result = yield* Effect.tryPromise({
     try: (signal) => authClient.signOut({ fetchOptions: { signal } }),

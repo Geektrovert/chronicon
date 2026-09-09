@@ -61,7 +61,7 @@ const main = Effect.gen(function* () {
       message: "Passwords did not match. No account was created. Run the command again.",
     });
   yield* provisionOwner(password);
-  yield* Console.log("Owner account created. You can now sign in. Public signup remains disabled.");
+  yield* Console.log("Owner account created. You can now sign in.");
 }).pipe(
   Effect.scoped,
   Effect.provide(Layer.mergeAll(ownerLayer, BunServices.layer)),

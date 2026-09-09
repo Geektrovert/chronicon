@@ -1,6 +1,6 @@
 # Chronicon
 
-A private library for HTML plans, reports, and references. Publish from the browser or an agent, group documents by project, search their text, and keep every revision at one private URL.
+A private library for HTML plans, reports, and references. Anyone can create an email/password account. Each account has its own private projects, documents and keys. Publish from the browser, CLI or an agent, search documents, and keep every revision at one private URL.
 
 ## Stack
 
@@ -18,9 +18,9 @@ Application workflows use Effect `4.0.0-rc.112`, following the matching [Effect 
 - REST and MCP bind Next.js cache invalidation to the incoming request before entering Effect, then provide it as a request-scoped service. This keeps database continuations from registering invalidation against a render or another request. Do not move this service into the shared runtime layer.
 - Configuration secrets and terminal passwords use `Redacted`. Expected failures have schema-tagged error types. Raw SDK errors, SQL parameters, passwords, and HTML are excluded from application error logs and HTTP responses.
 - Browser actions decode responses from the Effect HttpClient service. `useTask` in `src/client/runtime.ts` cancels reads and subscriptions when their view is hidden or unmounted. `runAction` bridges writes to React Actions, keeping transitions pending until the Effect finishes. Effect scopes own polling listeners, worker listeners, worker termination, and download URLs. Pure filtering, formatting, and rendering remain ordinary functions.
-- Local commands use `BunRuntime` and scoped layers. Owner creation uses `Prompt.hidden`, checks both entries, hashes the password with Better Auth, and disposes the database when the command finishes. It has no HTTP signup equivalent.
+- Local commands use `BunRuntime` and scoped layers. Owner creation uses `Prompt.hidden`, checks both entries, hashes the password with Better Auth, and disposes the database when the command finishes. Public signup uses Better Auth's email/password endpoints.
 
-There is no database schema change for this migration. Existing reports, revisions, accounts, and keys keep their current storage format.
+Run migrations before deploying the signup/CLI changes. They add expiring CLI authorization grants and a project metadata revision. Existing accounts, document revisions and keys retain their ownership.
 
 ## Frontend
 
@@ -101,26 +101,25 @@ bun install --frozen-lockfile
 cp .env.example .env.local
 ```
 
-Set `OWNER_EMAIL` to your email, `BETTER_AUTH_SECRET` to a random secret of at least 32 characters, and `DATABASE_URL` to your personal Postgres connection. The database URL is required in every environment. Hosted database connections verify the TLS certificate and hostname. Leave the Blob token empty to store local uploads in `.chronicon/blobs`. Generate a secret with:
+Set `BETTER_AUTH_SECRET` to a random secret of at least 32 characters and `DATABASE_URL` to your Postgres connection. The database URL is required in every environment. Hosted database connections verify the TLS certificate and hostname. Leave the Blob token empty to store local uploads in `.chronicon/blobs`. Generate a secret with:
 
 ```sh
 bun -e 'console.log(crypto.randomUUID() + crypto.randomUUID())'
 bun run db:migrate
-bun run owner:create
 bun run dev
 ```
 
-Run `bun run owner:create` in your own terminal. It reads the account email from `OWNER_EMAIL`, asks for your password twice with terminal echo disabled, hashes it locally with Better Auth, and writes only the salted hash to the database. Use 12–128 characters. It accepts no password arguments or password environment variables, and never saves or prints your password. Then open the Chronicon URL printed by `bun run dev` and sign in.
+Open the URL printed by `bun run dev` and choose Create an account. Passwords use 12–128 characters and Better Auth's salted scrypt hashing. Signup signs you into a new private workspace. Authentication has database-backed rate limits. Email is an account identifier; email verification and password-recovery delivery are not configured.
 
-After the database and owner setup above, `bun run dev` serves the app at `https://chronicon.localhost`. The command starts or reuses the shared HTTPS proxy on port 443, pins `.localhost` routing to loopback, and assigns Next.js a free internal port. It does not inherit an old proxy port such as 1355 or silently fall back to a URL containing a port number. Other apps share the proxy using distinct names; Git worktrees receive branch-prefixed hostnames. There are no per-app port assignments, DNS configuration files, or certificate paths to maintain.
+After database setup, `bun run dev` serves the app at `https://chronicon.localhost`. The command starts or reuses the shared HTTPS proxy on port 443, pins `.localhost` routing to loopback, and assigns Next.js a free internal port. It does not inherit an old proxy port such as 1355 or silently fall back to a URL containing a port number. Other apps share the proxy using distinct names; Git worktrees receive branch-prefixed hostnames. There are no per-app port assignments, DNS configuration files, or certificate paths to maintain.
 
 On first launch, run the command in an interactive terminal and approve Portless's OS prompts to bind port 443 and trust its local certificate authority. These permissions may be needed again after the proxy stops or the machine restarts. This is an OS requirement on supported macOS/Linux setups, not an application signup or configuration step. Only the proxy is elevated; do not run `sudo bun run dev`. If port 443 belongs to another service, resolve that conflict first; the dev command will not replace that service. Portless supports certificate trust setup on Debian/Ubuntu, Arch, Fedora/RHEL/CentOS, and openSUSE; custom Linux trust stores may need manual setup.
 
-Next.js allows the exact development hostname, and authentication uses Portless's `PORTLESS_URL` in development. Production continues to require `BETTER_AUTH_URL`. Keep your existing `.env.local` when switching to Portless; no credential changes are needed. Use `bunx --no-install portless list` to inspect routes and `bunx --no-install portless doctor` to check the proxy. The Bash launcher in `scripts/dev.sh` finds Node on `PATH`, skipping Bun's runtime override, and uses it explicitly for Portless. Next.js still runs on Bun. Portless's TLS hostname selection requires Node; running the proxy under Bun can serve the wrong certificate even when `portless doctor` passes. A fresh clone still needs its own database, auth secret, and owner account as described above; `bun run dev` never provisions credentials automatically.
+Next.js allows the exact development hostname, and authentication uses Portless's `PORTLESS_URL` in development. Production continues to require `BETTER_AUTH_URL`. Keep your existing `.env.local` when switching to Portless; no credential changes are needed. Use `bunx --no-install portless list` to inspect routes and `bunx --no-install portless doctor` to check the proxy. The Bash launcher in `scripts/dev.sh` finds Node on `PATH`, skipping Bun's runtime override, and uses it explicitly for Portless. Next.js still runs on Bun. Portless's TLS hostname selection requires Node; running the proxy under Bun can serve the wrong certificate even when `portless doctor` passes. A fresh clone still needs its own database and auth secret; `bun run dev` never provisions credentials automatically.
 
 If an older setup already started Portless under Bun, stop the dev command with Ctrl+C, run `bunx --no-install portless proxy stop` in your terminal, then run `bun run dev` again. Stopping the shared proxy briefly interrupts any other apps using it. Reload the browser and check that the connection is secure; never bypass a certificate warning.
 
-Public signup is permanently disabled, including before the owner exists. There is no setup key, signup flag, or one-time production route to remove. The command refuses to alter an existing account or password; user and credential creation happen in one transaction. The email is an account identifier; no email provider or verification message is required. Database administration access authorizes local provisioning.
+For an empty database, optional `bun run owner:create` still provisions the first account from `OWNER_EMAIL` in your own interactive terminal. It refuses to change an existing account or password. `OWNER_EMAIL` is used only by local administration commands, including local-blob migration; it never limits signup or access to an account's own workspace.
 
 Local HTML files live in `.chronicon/blobs`, excluded from Git. Local file storage is disabled in production. Removing the old embedded database integration does not delete existing `.chronicon/` files; the app now reads only the configured Postgres database. Existing hosted accounts need no provisioning or schema migration for this change.
 
@@ -130,16 +129,16 @@ Local HTML files live in `.chronicon/blobs`, excluded from Git. Local file stora
 2. Add **Neon Free** from Storage / Marketplace, using your personal account. Connect its pooled Postgres URL as `DATABASE_URL`.
 3. Create and connect a **private** Vercel Blob store.
 4. Configure the variables below, using your final HTTPS site origin.
-5. On your own computer, set `DATABASE_URL` in private `.env.local` to that hosted database and set `OWNER_EMAIL` to match Vercel. Run `bun run db:migrate`. Reuse the existing owner; run `bun run owner:create` only for an empty database. Only the password hash is sent to the database; the password is entered locally. If reports were published with local file storage, configure the private Blob token locally and run `bun run storage:upload` to copy and verify their revisions without changing database records. Migrations, account creation, and file transfers never run during builds.
-6. Deploy and sign in. Signup stays disabled throughout; no cleanup deployment is needed.
+5. On your own computer, set `DATABASE_URL` in private `.env.local` to that hosted database and run `bun run db:migrate`. Reuse the existing owner; run `bun run owner:create` only for an empty database. Only the password hash is sent to the database; the password is entered locally. If reports were published with local file storage, configure the private Blob token locally and run `bun run storage:upload` to copy and verify their revisions without changing database records. Migrations, account creation, and file transfers never run during builds.
+6. Deploy and sign in or create an account. Every account owns a separate private workspace.
 
-| Variable                | Purpose                                                              |
-| ----------------------- | -------------------------------------------------------------------- |
-| `DATABASE_URL`          | Hosted Postgres connection with provider-configured SSL/pooling      |
-| `BLOB_READ_WRITE_TOKEN` | Server-only token for a **private** Blob store                       |
-| `BETTER_AUTH_URL`       | Canonical HTTPS site origin                                          |
-| `BETTER_AUTH_SECRET`    | Random secret, stable across deployments                             |
-| `OWNER_EMAIL`           | Owner identifier used by the local command and backend access checks |
+| Variable                | Purpose                                                         |
+| ----------------------- | --------------------------------------------------------------- |
+| `DATABASE_URL`          | Hosted Postgres connection with provider-configured SSL/pooling |
+| `BLOB_READ_WRITE_TOKEN` | Server-only token for a **private** Blob store                  |
+| `BETTER_AUTH_URL`       | Canonical HTTPS site origin                                     |
+| `BETTER_AUTH_SECRET`    | Random secret, stable across deployments                        |
+| `OWNER_EMAIL`           | Optional account selector for local administration commands     |
 
 Keep production credentials out of preview deployments unless those previews should access production reports. `vercel.json` selects the [Bun 1.4 runtime](https://vercel.com/docs/functions/runtimes/bun), available in beta on all Vercel plans, including Hobby. Next.js development, build, and start commands also run under Bun. Hosted resources and a live deployment are not created by this repository itself.
 
@@ -251,6 +250,22 @@ without a document toggle or script. The publish tool describes this contract;
 the browser starter includes both palettes. Existing HTML keeps its authored colors
 until republished with both palettes. See [inherited iframe color schemes](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-color-scheme#embedded_elements).
 
+## CLI
+
+`packages/cli` is the independent `@chronicon/cli` npm/JSR package. See its
+[commands and publishing instructions](packages/cli/README.md). Browser authorization
+uses a five-minute single-use code with S256 PKCE and an exact IPv4 loopback callback.
+Approval creates a named 30-day document key. CLI logout revokes only its own key.
+Passwords and session cookies never enter the CLI; project associations contain no credentials.
+
+The CLI uses the existing MCP tools for discovery, document reads and publishing.
+Standalone project creation and metadata updates use the shared REST actions.
+Updates require the project's current `revision` as `expectedRevision`; IDs and slugs
+stay stable. Build the package with `bun run --cwd packages/cli build`.
+
+The Bun workspace explicitly keeps the hoisted dependency layout for Next.js's
+native external packages. Adding the CLI must not silently change that layout.
+
 ## Search and privacy
 
 Authenticated library data is cached by owner and project access. A browser worker builds the fuzzy search index; typing makes no network requests or database queries. Publishing invalidates the library cache. Active, visible tabs refresh once per minute and on focus; polling pauses after two minutes without interaction so an abandoned tab does not keep Neon awake. MCP searches the cached library in server memory. Authentication and publishing still use the database.
@@ -261,7 +276,7 @@ The initial index contains extracted text from all accessible documents. This fi
 
 Text extraction preserves word boundaries between HTML blocks, table cells, and line breaks. To refresh search text for an older report, republish its current HTML and metadata unchanged. This rebuilds its search text without creating a revision or uploading another file.
 
-All report/API reads require a session or agent key. The backend checks the configured owner on session creation, each authenticated app request, and each agent-key request. Changing the configured owner invalidates access from previous-owner sessions and keys. There are no public links. HTML lives in private storage and loads through authenticated routes. Previews use an opaque sandbox origin with inline scripts, without same-origin access, forms, or top-level navigation. Report and project links use a message bridge restricted to app read routes; the parent verifies the sending frame and URL before using Next.js navigation. Section links stay inside the report. External references open in separate tabs without an opener or referrer, outside the preview's sandbox. CSP blocks fetches and external scripts, styles, images, and network frames; self-contained nested srcdoc visuals can render. Use self-contained HTML with inline code and embedded assets. Treat agent HTML as code you authorize: browser self-navigation is not universally restricted by CSP, and the sandbox is not a malware analysis environment.
+All report/API reads require a session or agent key. Every authenticated request resolves its account from the session or key. Project and document access checks enforce that account ID and any project-key scope. Cache keys include the account and authorized projects. Changing `OWNER_EMAIL` does not alter account access. There are no public links. HTML lives in private storage and loads through authenticated routes. Previews use an opaque sandbox origin with inline scripts, without same-origin access, forms, or top-level navigation. Report and project links use a message bridge restricted to app read routes; the parent verifies the sending frame and URL before using Next.js navigation. Section links stay inside the report. External references open in separate tabs without an opener or referrer, outside the preview's sandbox. CSP blocks fetches and external scripts, styles, images, and network frames; self-contained nested srcdoc visuals can render. Use self-contained HTML with inline code and embedded assets. Treat agent HTML as code you authorize: browser self-navigation is not universally restricted by CSP, and the sandbox is not a malware analysis environment.
 
 Each revision preserves immutable HTML. Document metadata describes the latest revision. Old HTML can be viewed or downloaded. Failed database writes attempt to remove unused uploads; abrupt process termination may leave an orphaned private blob.
 
@@ -295,12 +310,12 @@ separate TypeScript 5 and lint-tool dependency tree to the project install.
 
 Eight Doctor advisories remain visible. Two concern default link prefetching: the shared navigation link and brand reuse cached shells. `NavigationLink` also enables full destination prefetching on intent. Four GET-route warnings cannot follow the shared `privateHeaders` in `src/server/http.ts`: every response already uses `Cache-Control: private, no-store`. Library data is cached internally only after authorization. Do not add public/CDN caching to these routes. Another advisory counts API routes and recommends Fluid Compute without checking `vercel.json`; it is already enabled. The remaining warning flags the 22 KB Departure Mono WOFF2 file. It is intentionally self-hosted through `next/font/local`; moving this small font to another storage service would add infrastructure without a meaningful benefit. No Doctor rules are suppressed.
 
-This repository has a strict no-tests policy. Do not add or run automated tests, test frameworks, smoke scripts, or temporary test harnesses. Use code review and manual browser use alongside the checks above. Authenticated browser verification requires an existing owner account; do not create credentials or enable signup just for verification.
+This repository has a strict no-tests policy. Do not add or run automated tests, test frameworks, smoke scripts, or temporary test harnesses. Use code review and manual browser use alongside the checks above. Authenticated browser verification uses an existing account; do not create credentials just for verification.
 
 ## Credentials and open source
 
 The local owner command uses [Better Auth’s password hashing](https://better-auth.com/docs/authentication/email-password#password-hashing) before storing credentials. The database stores a salted scrypt hash. The password stays in the local process during setup; it is never written to source, environment configuration, command arguments, or authentication responses. Later sign-ins send the password to Better Auth over HTTPS for verification against that hash.
 
-`OWNER_EMAIL` is server-only deployment configuration, with an empty placeholder in `.env.example`. The frontend does not contain the configured address or decide who is allowed access. Agent API keys are hashed by Better Auth and shown once at creation. Signing secrets and database/Blob credentials must remain available to the server through private environment configuration; they are separate from user passwords.
+`OWNER_EMAIL` is an optional local administration selector, with an empty placeholder in `.env.example`. Browser and agent authorization use the authenticated account ID. Agent API keys are hashed by Better Auth and shown once at creation. Signing secrets and database/Blob credentials must remain available to the server through private environment configuration; they are separate from user passwords.
 
 Commit `.env.example` with empty placeholders. Keep actual `.env` files, `.chronicon/` databases and reports, `.vercel/` credentials, build artifacts, and key files out of Git. `.vercelignore` also excludes local credentials and report files from CLI source uploads. Configure hosted credentials through Vercel environment variables, never `NEXT_PUBLIC_` variables. Open-sourcing code does not require publishing deployment configuration or data. Before publishing a repository, review both staged files and any existing Git history for secrets.

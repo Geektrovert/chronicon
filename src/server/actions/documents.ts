@@ -7,6 +7,7 @@ import {
   projectSchema,
   revisionSchema,
   revisionHistorySchema,
+  repositoryAssociation,
   type Document,
   type Principal,
   type PublishInput,
@@ -100,7 +101,7 @@ function extractText(html: string) {
   return parts.join("").replace(/\s+/g, " ").trim();
 }
 
-const findDocument = Effect.fn("Library.findDocument")(function* (
+export const findDocument = Effect.fn("Library.findDocument")(function* (
   principal: Principal,
   id: string,
   write = false,
@@ -330,13 +331,7 @@ export const publishDocument = Effect.fn("Library.publish")(
       );
     return {
       ...result,
-      association: {
-        version: 1,
-        server: config.origin,
-        workspaceId: principal.ownerId,
-        projectId: result.project.id,
-        projectSlug: result.project.slug,
-      },
+      association: repositoryAssociation(config.origin, principal.ownerId, result.project),
       url: `${config.origin}/documents/${result.document.id}`,
     };
   },

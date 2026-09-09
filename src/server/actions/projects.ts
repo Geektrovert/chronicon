@@ -1,7 +1,7 @@
 import { PgClient } from "@effect/sql-pg";
 import { Crypto, DateTime, Effect, Option, Schema } from "effect";
 import { SqlSchema } from "effect/unstable/sql";
-import { projectSchema, type Principal, type PublishInput } from "@/lib/model";
+import { projectSchema, type projectUpdate, type Principal, type PublishInput } from "@/lib/model";
 import { databaseError } from "../database";
 import { projectAccess } from "./access";
 import { AppError } from "../errors";
@@ -44,6 +44,7 @@ const insertProject = Effect.fn("Library.insertProject")(function* (
     ownerId: principal.ownerId,
     ...input,
     createdAt: DateTime.formatIso(yield* DateTime.now),
+    revision: 1,
   };
   yield* sql`INSERT INTO project ${sql.insert(project)} ON CONFLICT ("ownerId", slug) DO NOTHING`.pipe(
     databaseError("create project"),
@@ -54,6 +55,31 @@ const insertProject = Effect.fn("Library.insertProject")(function* (
 export const createProject = Effect.fn("Library.createProject")(
   (principal: Principal, input: { slug: string; name: string; description: string }) =>
     insertProject(principal, input),
+  (effect, principal) =>
+    effect.pipe(
+      Effect.tap(() => invalidateLibrary(principal.ownerId)),
+      Effect.uninterruptible,
+    ),
+);
+
+export const updateProject = Effect.fn("Projects.update")(
+  function* (principal: Principal, input: typeof projectUpdate.Type) {
+    const current = yield* findProject(principal, { id: input.id }, true);
+    const sql = yield* PgClient.PgClient;
+    const changed = yield* SqlSchema.findOneOption({
+      Request: Schema.Void,
+      Result: projectSchema,
+      execute:
+        () => sql`UPDATE project SET name = ${input.name}, description = ${input.description ?? current.description}, revision = revision + 1
+        WHERE id = ${input.id} AND "ownerId" = ${principal.ownerId} AND revision = ${input.expectedRevision} RETURNING *`,
+    })(undefined).pipe(databaseError("update project"));
+    if (Option.isNone(changed))
+      return yield* new AppError({
+        status: 409,
+        message: "This project changed. Read it again before updating.",
+      });
+    return changed.value;
+  },
   (effect, principal) =>
     effect.pipe(
       Effect.tap(() => invalidateLibrary(principal.ownerId)),

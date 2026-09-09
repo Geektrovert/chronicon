@@ -2,9 +2,12 @@
   "name": "chronicon",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bash scripts/dev.sh",
-    "build": "bun run lint && next build",
+    "build": "bun run lint && bun run --cwd packages/cli build && next build",
     "start": "next start",
     "lint": "next typegen && oxlint --max-warnings 0",
     "doctor": "bunx vercel-doctor . --offline --yes --verbose",

@@ -27,15 +27,10 @@ const configuration = Effect.gen(function* () {
     databaseUrl.searchParams.delete("uselibpqcompat");
   }
   const production = values.nodeEnv === "production" || !!values.vercel;
-  if (
-    production &&
-    (!Redacted.value(values.blobToken) ||
-      !Redacted.value(values.authSecret) ||
-      !values.ownerEmail.trim())
-  )
+  if (production && (!Redacted.value(values.blobToken) || !Redacted.value(values.authSecret)))
     return yield* new ConfigurationError({
       message:
-        "Configure DATABASE_URL, BLOB_READ_WRITE_TOKEN, BETTER_AUTH_SECRET, and OWNER_EMAIL before starting production.",
+        "Configure DATABASE_URL, BLOB_READ_WRITE_TOKEN, and BETTER_AUTH_SECRET before starting production.",
     });
   const baseUrl = !production && values.portlessUrl ? values.portlessUrl : values.baseUrl;
   const url = yield* Effect.try({

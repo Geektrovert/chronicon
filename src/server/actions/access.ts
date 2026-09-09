@@ -1,7 +1,7 @@
 import { Effect, Option, Schema } from "effect";
 import { Auth, authCall } from "../auth";
 import { AppConfig } from "../config";
-import { findOwnerEmail, isOwnerEmail } from "./owner";
+import { findOwnerEmail } from "./owner";
 import { AppError, deny } from "../errors";
 import type { Principal, Project } from "@/lib/model";
 
@@ -13,7 +13,6 @@ const keyMetadata = Schema.Struct({
 const keyPermissions = Schema.Record(Schema.String, Schema.Array(Schema.String));
 export const authenticate = Effect.fn("Access.authenticate")(function* (headers: Headers) {
   const auth = yield* Auth;
-  const config = yield* AppConfig;
   const bearer = headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   const key = headers.get("x-api-key") || bearer;
   if (key) {
@@ -31,8 +30,7 @@ export const authenticate = Effect.fn("Access.authenticate")(function* (headers:
         message: "This agent key is invalid or expired. Create a new key in Settings.",
       });
     const owner = yield* findOwnerEmail(result.key.referenceId);
-    if (!Option.exists(owner, (owner) => isOwnerEmail(config, owner.email)))
-      return yield* deny("This key no longer belongs to the workspace owner.");
+    if (Option.isNone(owner)) return yield* deny("This key's account no longer exists.");
     const metadata = yield* Schema.decodeUnknownEffect(keyMetadata)(result.key.metadata).pipe(
       Effect.mapError(
         () =>
@@ -49,16 +47,18 @@ export const authenticate = Effect.fn("Access.authenticate")(function* (headers:
       ownerId: result.key.referenceId,
       name: result.key.name || "Agent",
       access: "agent",
+      keyId: result.key.id,
       projectIds: metadata.projectIds,
       canWrite: !!permissions.documents?.includes("write"),
     } satisfies Principal;
   }
   const session = yield* authCall(() => auth.api.getSession({ headers }));
-  if (!session || !isOwnerEmail(config, session.user.email))
+  if (!session)
     return yield* new AppError({ status: 401, message: "Sign in to open this workspace." });
   return {
     ownerId: session.user.id,
     name: session.user.name,
+    email: session.user.email,
     access: "owner",
     projectIds: null,
     canWrite: true,

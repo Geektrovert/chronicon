@@ -6,22 +6,22 @@ import { useState } from "react";
 import { PageHeader } from "./ui/page-header";
 import { Brand } from "./brand";
 import { ArrowRight } from "lucide-react";
-import { signIn } from "@/client/actions/auth";
+import { signIn, signUp } from "@/client/actions/auth";
 import { useTask } from "@/client/runtime";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function SignIn() {
+export function SignIn({ create = false, next = "/" }: { create?: boolean; next?: string }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const run = useTask();
   const form = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "" },
     onSubmit: ({ value }) => {
       if (busy) return;
       setBusy(true);
       setError("");
-      run(signIn({ email: value.email, password: value.password }), {
+      run((create ? signUp : signIn)(value), {
         onError: setError,
         onSettled: () => setBusy(false),
       });
@@ -31,13 +31,32 @@ export function SignIn() {
     <main className="signin-page">
       <Brand />
       <div className="signin-form">
-        <PageHeader title="Sign in" />
+        <PageHeader title={create ? "Create account" : "Sign in"} />
         <Form
           onSubmit={(event) => {
             event.preventDefault();
             void form.handleSubmit();
           }}
         >
+          {create && (
+            <form.Field name="name">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="account-name">Name</FieldLabel>
+                  <Input
+                    id="account-name"
+                    name="name"
+                    autoComplete="name"
+                    required
+                    maxLength={100}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                </Field>
+              )}
+            </form.Field>
+          )}
           <form.Field name="email">
             {(field) => (
               <Field>
@@ -64,7 +83,9 @@ export function SignIn() {
                   id="sign-in-field-2"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={create ? "new-password" : "current-password"}
+                  minLength={create ? 12 : undefined}
+                  maxLength={128}
                   required
                   value={field.state.value}
                   onBlur={field.handleBlur}
@@ -75,10 +96,23 @@ export function SignIn() {
           </form.Field>
           {error && <FieldError>{error}</FieldError>}
           <Button type="submit" disabled={busy} className="w-full">
-            {busy ? "Signing in…" : "Sign in"}
+            {busy
+              ? create
+                ? "Creating account…"
+                : "Signing in…"
+              : create
+                ? "Create account"
+                : "Sign in"}
             <ArrowRight size={16} />
           </Button>
         </Form>
+        <ButtonLink
+          variant="link"
+          className="w-full"
+          href={`${create ? "/sign-in" : "/sign-up"}?next=${encodeURIComponent(next)}`}
+        >
+          {create ? "Already have an account? Sign in" : "Create an account"}
+        </ButtonLink>
       </div>
     </main>
   );
