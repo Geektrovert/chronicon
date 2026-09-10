@@ -4,9 +4,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 export default function NotFound() {
   return (
     <main id="main" className="library-main">
-      <EmptyState title="Page not found" description="This project or document is unavailable.">
+      <EmptyState title="Page not found" description="Check the link or browse your documents.">
         <ButtonLink variant="outline" href="/">
-          All documents
+          Browse all documents
         </ButtonLink>
       </EmptyState>
     </main>

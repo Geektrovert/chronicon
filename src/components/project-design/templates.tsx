@@ -10,25 +10,25 @@ import { FieldDescription, FieldLabel } from "../ui/field";
 const NOTIFICATIONS = [
   {
     id: "transactions",
-    label: "Transaction alerts",
+    label: "Send transaction alerts",
     description: "Deposits, withdrawals, and transfers.",
     defaultChecked: true,
   },
   {
     id: "security",
-    label: "Security alerts",
+    label: "Send security alerts",
     description: "Login attempts and account changes.",
     defaultChecked: true,
   },
   {
     id: "goals",
-    label: "Goal milestones",
+    label: "Send goal updates",
     description: "Updates at 25%, 50%, 75%, and 100%.",
     defaultChecked: false,
   },
   {
     id: "market",
-    label: "Market updates",
+    label: "Send market updates",
     description: "Daily portfolio summary and price alerts.",
     defaultChecked: false,
   },
@@ -46,7 +46,7 @@ export function NotificationSettings() {
     <Card>
       <CardHeader>
         <CardTitle>Notifications</CardTitle>
-        <CardDescription>Choose what you want to be notified about.</CardDescription>
+        <CardDescription>Choose which updates to receive.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="flex items-center gap-3">
@@ -97,9 +97,9 @@ export function EmptyConnectBank() {
           <DesignIcon name="card" />
         </div>
         <div className="space-y-1.5">
-          <CardTitle>{connected ? "Preview connected" : "Connect bank"}</CardTitle>
+          <CardTitle>{connected ? "Bank connected in preview" : "Connect a bank"}</CardTitle>
           <CardDescription>
-            Link your payout method to receive monthly royalty distributions automatically.
+            Connect a bank account to receive monthly royalty payments.
           </CardDescription>
         </div>
         <Button type="button" variant="outline" onClick={() => setConnected(!connected)}>

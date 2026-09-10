@@ -40,13 +40,14 @@ export function serverOrigin(value: string) {
       !(url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
   )
     throw new CliError({
-      message: "Use an HTTPS server origin, or HTTP localhost for development.",
+      message:
+        "Use --server https://HOST with no path, query, or credentials. HTTP is allowed only on localhost.",
     });
   return url.origin;
 }
 
 const readOptional = (file: string) =>
-  attempt("Unable to read local configuration.", () =>
+  attempt("Unable to read local configuration. Check file permissions.", () =>
     readFile(file, "utf8").catch((error: unknown) => {
       if (hasCode(error, "ENOENT")) return undefined;
       throw error;
@@ -68,7 +69,11 @@ export const readAssociation = Effect.gen(function* () {
   if (content === undefined) return undefined;
   const parsed = yield* Effect.try({
     try: () => json(content),
-    catch: () => new CliError({ message: "The repository's chronicon/project.json is invalid." }),
+    catch: () =>
+      new CliError({
+        message:
+          "The repository's chronicon/project.json contains invalid JSON. Repair it before continuing.",
+      }),
   });
   return yield* decode(associationSchema, parsed);
 });
@@ -82,12 +87,13 @@ const sameAssociation = (a: Association, b: Association) =>
 const atomicJson = (file: string, value: unknown, replace: boolean) =>
   Effect.gen(function* () {
     const directory = dirname(file);
-    yield* attempt("Unable to prepare local configuration.", () =>
-      mkdir(directory, { recursive: true, mode: 0o700 }),
+    yield* attempt(
+      "Unable to create the configuration directory. Check directory permissions.",
+      () => mkdir(directory, { recursive: true, mode: 0o700 }),
     );
     const temporary = join(directory, `.${randomUUID()}.tmp`);
     yield* Effect.acquireUseRelease(
-      attempt("Unable to save local configuration.", () =>
+      attempt("Unable to save local configuration. Check disk space and file permissions.", () =>
         writeFile(temporary, JSON.stringify(value, null, 2) + "\n", { mode: 0o600, flag: "wx" }),
       ),
       () =>
@@ -96,8 +102,8 @@ const atomicJson = (file: string, value: unknown, replace: boolean) =>
           catch: (error) =>
             new CliError({
               message: hasCode(error, "EEXIST")
-                ? "Another process linked this repository first."
-                : "Unable to install local configuration.",
+                ? "Another process linked this repository first. Check the project link before using --relink."
+                : "Unable to save local configuration. Check disk space and file permissions.",
               status: hasCode(error, "EEXIST") ? 409 : undefined,
             }),
         }),
@@ -118,7 +124,7 @@ export const saveAssociation = Effect.fn("Cli.saveAssociation")(function* (
   if (current && !relink)
     return yield* new CliError({
       message:
-        "This repository is linked to another project or account. Use project link ID --relink explicitly.",
+        "This repository is linked to another project or account. Run chronicon project link ID --relink to replace its default.",
     });
   yield* atomicJson(file, value, relink).pipe(
     Effect.catchTag("CliError", (error) =>
@@ -142,18 +148,25 @@ export const readCredential = Effect.fn("Cli.readCredential")(function* (server:
   const file = yield* credentialPath(server);
   const content = yield* readOptional(file);
   if (!content) return yield* new CliError({ message: "Run chronicon login first." });
-  const details = yield* attempt("Unable to inspect credential permissions.", () => lstat(file));
+  const details = yield* attempt(
+    "Unable to read saved login permissions. Check file permissions.",
+    () => lstat(file),
+  );
   if (details.isSymbolicLink() || (process.platform !== "win32" && (details.mode & 0o077) !== 0))
     return yield* new CliError({
-      message: "Credentials must be a private regular file with mode 0600.",
+      message: `Keep saved credentials in a regular file with owner-only access. Check ${file} and set permissions to 0600.`,
     });
   const parsed = yield* Effect.try({
     try: () => json(content),
-    catch: () => new CliError({ message: "Saved credentials are unreadable. Run login again." }),
+    catch: () =>
+      new CliError({ message: "Unable to read the saved login. Run chronicon login again." }),
   });
   const value = yield* decode(credentialSchema, parsed);
   if (value.server !== server)
-    return yield* new CliError({ message: "Saved credentials belong to a different server." });
+    return yield* new CliError({
+      message:
+        "The saved login belongs to another server. Run chronicon login with the intended --server.",
+    });
   return value;
 });
 
@@ -162,10 +175,16 @@ export const saveCredential = (value: Credential) =>
     const file = yield* credentialPath(value.server);
     yield* atomicJson(file, value, true);
     if (process.platform !== "win32")
-      yield* attempt("Unable to protect credential directory.", () => chmod(dirname(file), 0o700));
+      yield* attempt(
+        "Unable to restrict access to the login directory. Check directory ownership and permissions.",
+        () => chmod(dirname(file), 0o700),
+      );
   });
 export const removeCredential = (server: string) =>
   Effect.gen(function* () {
     const file = yield* credentialPath(server);
-    yield* attempt("Unable to remove local credentials.", () => rm(file, { force: true }));
+    yield* attempt(
+      "CLI access has ended, but the saved login could not be removed. Check file permissions and run chronicon logout again.",
+      () => rm(file, { force: true }),
+    );
   });

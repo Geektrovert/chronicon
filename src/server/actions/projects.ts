@@ -37,7 +37,7 @@ const insertProject = Effect.fn("Library.insertProject")(function* (
   if (principal.projectIds || !principal.canWrite)
     return yield* new AppError({
       status: 403,
-      message: "A workspace-wide publishing key is required to create projects.",
+      message: "To create projects, use a key with All projects and Read and edit access.",
     });
   const project = {
     id: yield* uuid,

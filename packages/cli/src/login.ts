@@ -56,7 +56,7 @@ export const login = Effect.fn("Cli.login")(function* (server: string, noBrowser
       request.headers.host !== host ||
       !request.url?.startsWith("/callback?")
     ) {
-      response.writeHead(400).end("Invalid callback.");
+      response.writeHead(400).end("This login link is invalid. Run chronicon login again.");
       return;
     }
     const url = new URL(request.url, `http://${host}`);
@@ -65,18 +65,18 @@ export const login = Effect.fn("Cli.login")(function* (server: string, noBrowser
       !/^[A-Za-z0-9_-]{43}$/.test(returned) ||
       !timingSafeEqual(Buffer.from(returned), Buffer.from(state))
     ) {
-      response.writeHead(400).end("Invalid login state.");
+      response.writeHead(400).end("This link belongs to another login. Run chronicon login again.");
       return;
     }
     const code = url.searchParams.get("code");
     const denied = url.searchParams.get("error") === "access_denied";
     if (!denied && (!code || !/^[A-Za-z0-9_-]{43}$/.test(code))) {
-      response.writeHead(400).end("Invalid authorization code.");
+      response.writeHead(400).end("This login link is incomplete. Run chronicon login again.");
       return;
     }
     response.setHeader("Content-Type", "text/html; charset=utf-8");
     response.end(
-      `<!doctype html><meta name="color-scheme" content="light dark"><title>Chronicon CLI</title><p>${denied ? "Authorization cancelled." : "Authorization received. Return to your terminal to finish connecting."}</p>`,
+      `<!doctype html><html lang="en"><meta name="color-scheme" content="light dark"><title>Chronicon CLI</title><h1>${denied ? "Authorization cancelled" : "Authorization received"}</h1><p>${denied ? "Return to your terminal. Run chronicon login when you want to connect." : "Return to your terminal to finish connecting."}</p></html>`,
     );
     if (denied)
       complete(Deferred.fail(received, new CliError({ message: "Authorization cancelled." })));
@@ -87,7 +87,14 @@ export const login = Effect.fn("Cli.login")(function* (server: string, noBrowser
   yield* Effect.acquireRelease(
     Effect.callback<void, CliError>((resume) => {
       listener.once("error", () =>
-        resume(Effect.fail(new CliError({ message: "Unable to open a loopback callback port." }))),
+        resume(
+          Effect.fail(
+            new CliError({
+              message:
+                "Unable to receive the browser login locally. Allow local network connections and run chronicon login again.",
+            }),
+          ),
+        ),
       );
       listener.listen(0, "127.0.0.1", () => resume(Effect.void));
       return Effect.sync(() => {
@@ -103,11 +110,13 @@ export const login = Effect.fn("Cli.login")(function* (server: string, noBrowser
   );
   const address = listener.address();
   if (!address || typeof address === "string")
-    return yield* new CliError({ message: "No loopback callback port was assigned." });
+    return yield* new CliError({
+      message: "Unable to start the local login listener. Run chronicon login again.",
+    });
   const redirectUri = `http://127.0.0.1:${address.port}/callback`;
   const url = new URL("/cli/authorize", server);
   url.search = new URLSearchParams({ redirectUri, state, challenge }).toString();
-  yield* Console.error(`Open this URL to authorize Chronicon:\n${url.href}`);
+  yield* Console.error(`Open this link and choose Authorize CLI:\n${url.href}`);
   if (!noBrowser)
     yield* openBrowser(url.href).pipe(
       Effect.catchTag("CliError", (error) => Console.error(error.message)),
@@ -116,7 +125,7 @@ export const login = Effect.fn("Cli.login")(function* (server: string, noBrowser
     Effect.timeout("5 minutes"),
     Effect.catchTag(
       "TimeoutError",
-      () => new CliError({ message: "Login timed out. Run login again." }),
+      () => new CliError({ message: "Login timed out. Run chronicon login again." }),
     ),
   );
   const issued = yield* http(server, "/api/cli/token", {
@@ -126,7 +135,8 @@ export const login = Effect.fn("Cli.login")(function* (server: string, noBrowser
   const credential = yield* decode(credentialSchema, issued);
   if (credential.server !== server)
     return yield* new CliError({
-      message: "The server returned credentials for a different origin.",
+      message:
+        "The login response belongs to another server. Check --server and run chronicon login again.",
     });
   const previous = yield* readCredential(server).pipe(Effect.orElseSucceed(() => undefined));
   yield* saveCredential(credential);
@@ -134,11 +144,11 @@ export const login = Effect.fn("Cli.login")(function* (server: string, noBrowser
     yield* http(server, "/api/cli/token", { method: "DELETE", key: previous.key }).pipe(
       Effect.catchTag("CliError", () =>
         Console.error(
-          "Connected. The previous CLI key may still be active; revoke it in Settings.",
+          "Connected. The previous CLI key may still be active. Revoke it from Connect an agent in the workspace sidebar.",
         ),
       ),
     );
-  yield* Console.log(`Connected to ${server}. Credentials expire ${credential.expiresAt}.`);
+  yield* Console.log(`Connected to ${server}. Access expires ${credential.expiresAt}.`);
 }, Effect.scoped);
 
 export const logout = Effect.fn("Cli.logout")(function* (credential: Credential) {

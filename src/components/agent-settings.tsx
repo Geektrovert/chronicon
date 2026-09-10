@@ -28,7 +28,9 @@ export function AgentSettings({
       <DialogContent size="wide">
         <DialogHeader>
           <DialogTitle>Connect an agent</DialogTitle>
-          <DialogDescription>Create a key with project access and an expiry.</DialogDescription>
+          <DialogDescription>
+            Choose an agent's projects, permissions, and access duration.
+          </DialogDescription>
         </DialogHeader>
         {open && <SettingsForm projects={projects} />}
       </DialogContent>
@@ -113,7 +115,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
                 <Input
                   id="agent-settings-field-1"
                   name="name"
-                  placeholder="Claude, Codex, or another agent"
+                  placeholder="Codex"
                   required
                   maxLength={60}
                   value={field.state.value}
@@ -154,7 +156,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
                     label="Access"
                     name="access"
                     options={[
-                      { value: "write", label: "Read and publish" },
+                      { value: "write", label: "Read and edit" },
                       { value: "read", label: "Read only" },
                     ]}
 
@@ -195,7 +197,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
         <div className="new-key">
           <div className="success-note">
             <Check size={17} />
-            Key created. Copy this configuration before closing.
+            Key created. Copy this configuration now; the key is shown only once.
           </div>
           <pre className="connection-code">
             <code>{config}</code>
@@ -216,11 +218,11 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
       )}
       {error && <FieldError>{error}</FieldError>}
       <div className="agent-help">
-        <p>Add the generated configuration to your agent’s MCP settings.</p>
+        <p>Add the configuration to your agent's MCP settings.</p>
       </div>
       <section className="key-list">
         <h2>Agent keys</h2>
-        {!keys.length && <p className="muted">No agent keys</p>}
+        {!keys.length && <p className="muted">No agent keys yet. Create one above.</p>}
         {keys.map((key) => (
           <div key={key.id} className="key-row">
             <KeyRound size={17} />
@@ -232,7 +234,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
                       .map((id) => projects.find((p) => p.id === id)?.name || "Project")
                       .join(", ")
                   : "All projects"}{" "}
-                · {key.expiresAt ? `Expires ${formatDate(key.expiresAt)}` : "No expiry"}
+                · {key.expiresAt ? `Expires ${formatDate(key.expiresAt)}` : "Never expires"}
               </p>
             </div>
             <Button

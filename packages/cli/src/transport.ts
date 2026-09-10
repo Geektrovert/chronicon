@@ -13,7 +13,7 @@ export const http = Effect.fn("Cli.http")(function* (
   options: { method?: string; key?: string; body?: unknown } = {},
 ) {
   const response = yield* attempt(
-    "Connection failed. For a write, check the saved result before retrying.",
+    "Connection failed. Check whether your changes were saved before retrying.",
     (signal) =>
       // oxlint-disable-next-line effecttsgo/global-fetch -- Portable HTTP boundary with redirects and automatic write retries disabled.
       fetch(new URL(path, server), {
@@ -30,8 +30,9 @@ export const http = Effect.fn("Cli.http")(function* (
         credentials: "omit",
       }),
   );
-  const data: unknown = yield* attempt("The server returned an unreadable response.", () =>
-    response.json(),
+  const data: unknown = yield* attempt(
+    "Unable to read the server response. Check whether your changes were saved before retrying.",
+    () => response.json(),
   );
   if (!response.ok) {
     const error = Schema.is(remoteError)(data) ? data.error || data.message : undefined;
@@ -65,7 +66,7 @@ export const callTool = Effect.fn("Cli.callTool")(function* (
     client.connect(transport),
   );
   const result = yield* attempt(
-    "The document operation failed. Read its current revision before retrying a write.",
+    "Unable to confirm the operation. Read the current saved revision before retrying an update.",
     (signal) => client.callTool({ name, arguments: input }, { signal }),
   );
   const text = result.content
@@ -76,6 +77,10 @@ export const callTool = Effect.fn("Cli.callTool")(function* (
     return yield* new CliError({ message: text || "Chronicon could not complete the operation." });
   return yield* Effect.try({
     try: () => json(text),
-    catch: () => new CliError({ message: "The MCP response was not readable JSON." }),
+    catch: () =>
+      new CliError({
+        message:
+          "Unable to read the MCP response. Check whether your changes were saved before retrying.",
+      }),
   });
 }, Effect.scoped);

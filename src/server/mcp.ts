@@ -80,7 +80,7 @@ function handler(
         "read_document",
         {
           description:
-            "Read HTML and revision history by document ID, or saved project reference plus document slug. Pass the current revision to upsert_document when updating.",
+            "Read HTML and revision history by document ID, or project reference and document slug. Use the current revision as expectedRevision in upsert_document.",
           inputSchema: standard(
             Schema.Struct({
               id: Schema.optionalKey(Schema.NonEmptyString),
@@ -123,7 +123,7 @@ function handler(
         "upsert_document",
         {
           description:
-            "Create or update self-contained HTML. Use light/dark CSS variables with @media (prefers-color-scheme: dark) and :root { color-scheme: light dark }; previews follow Chronicon's theme automatically. Project: use {id} from the repository association; on first use, {slug,name} creates the project if missing (requires workspace-wide write access). Project creation and publishing are atomic. expectedRevision=0 creates a document; read_document first for updates. Identical retries do not create revisions. Save the returned association in the Git common directory as instructed at initialization.",
+            "Create or update self-contained HTML. Use CSS variables with light defaults, @media (prefers-color-scheme: dark) overrides, and :root { color-scheme: light dark }; previews follow Chronicon's theme. Use project {id} from the saved association, or {slug,name} to create a missing project with workspace-wide write access. Creation and publishing are atomic. expectedRevision=0 creates a document; read_document first for updates. Identical retries add no revision. Save the returned association as instructed at initialization.",
           inputSchema: standard(publishInput),
           annotations: { idempotentHint: true, destructiveHint: false },
         },
@@ -147,7 +147,7 @@ function handler(
         "find_documents",
         {
           description:
-            "Find up to 20 documents, optionally filtered by saved project ID or slug. Omit query to browse recently updated documents; supply query for fuzzy search across titles, projects, tags, summaries and text. Use read_document with project and slug when the document is already known.",
+            "Find up to 20 documents, optionally filtered by project ID or slug. Omit query for recent documents; supply it to search titles, projects, tags, summaries, and text. For a known document, use read_document directly.",
           inputSchema: standard(
             Schema.Struct({
               query: Schema.optionalKey(
@@ -174,7 +174,7 @@ function handler(
         "update_project_design",
         {
           description:
-            "Save theme settings and/or design guidance with the current expectedRevision (0 for defaults). Full markdown may edit guidance outside its generated block; use settings to change tokens. Read and reconcile conflicts before retrying.",
+            "Save settings or design guidance with the current expectedRevision, using 0 before the first save. In full markdown, edit only guidance outside the generated block; change tokens through settings. On conflict, read and merge before retrying.",
           inputSchema: standard(updateDesignInput),
           annotations: { destructiveHint: false },
         },
@@ -200,7 +200,7 @@ const handle = Effect.fn("Mcp.handle")(function* (
     return yield* new AppError({
       status: 401,
       message:
-        "Add an agent API key as an Authorization: Bearer chronicon_… header. Create a key in Settings.",
+        "Send an Authorization: Bearer chronicon_… header. Create the key from Connect an agent in your workspace.",
     });
   const principal = yield* authenticate(request.headers);
   // Bound the body before letting the SDK parse JSON and classify protocol errors.
@@ -213,7 +213,11 @@ const handle = Effect.fn("Mcp.handle")(function* (
   });
   return yield* Effect.tryPromise({
     try: () => handler(principal, config.origin, cache).fetch(boundedRequest),
-    catch: () => new AppError({ status: 400, message: "Invalid MCP request." }),
+    catch: () =>
+      new AppError({
+        status: 400,
+        message: "Invalid MCP request. Check the tool name and input fields.",
+      }),
   });
 });
 export function mcpRoute(request: Request) {

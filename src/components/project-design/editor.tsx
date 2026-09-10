@@ -83,7 +83,7 @@ export function ProjectDesignEditor({
   const [saved, setSaved] = useState(restoredDraft?.base ?? initial);
   const baseline = useRef(saved);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState(restoredDraft ? "Restored your unsaved design." : "");
+  const [message, setMessage] = useState(restoredDraft ? "Unsaved changes restored." : "");
   const [busy, start] = useTransition();
   const [operation, setOperation] = useState<"save" | "reload">("save");
   const [mode, setMode] = useState<PreviewMode | null>(null);
@@ -177,8 +177,8 @@ export function ProjectDesignEditor({
               onClick={() => setShowGuidance(!showGuidance)}
             >
               <FileText />
-              <span className="hidden sm:inline">design.md</span>
-              <span className="sr-only sm:hidden">Project guidance</span>
+              <span className="hidden sm:inline">Design guidance</span>
+              <span className="sr-only sm:hidden">Design guidance</span>
             </Button>
             <form.Subscribe selector={(state) => designChanged(state.values, saved)}>
               {(dirty) => (
@@ -193,7 +193,6 @@ export function ProjectDesignEditor({
           <aside className="design-controls" aria-label="Design system controls">
             <div className="design-controls-heading">
               <span className="text-sm font-medium">Customize</span>
-              <span className="text-xs text-muted-foreground">Base UI</span>
               <Button
                 type="button"
                 variant="ghost"
@@ -243,7 +242,7 @@ export function ProjectDesignEditor({
               </Button>
               <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={reload}>
                 <RotateCcw />
-                {busy && operation === "reload" ? "Loading…" : "Reload saved"}
+                {busy && operation === "reload" ? "Loading…" : "Discard changes"}
               </Button>
               <a
                 href={SOURCE_URL}
@@ -274,7 +273,7 @@ export function ProjectDesignEditor({
               </Button>
               <span className="design-stage-caption text-xs text-muted-foreground">
                 {showGuidance
-                  ? "Project guidance and theme tokens"
+                  ? "Project notes and theme CSS"
                   : "Component previews · sample content"}
               </span>
               <form.Subscribe selector={(state) => designChanged(state.values, saved)}>
@@ -291,7 +290,8 @@ export function ProjectDesignEditor({
             </div>
             {error && (
               <div className="design-status text-destructive" role="alert">
-                {error} Your draft is preserved. Reload saved to discard it.
+                {error} Your changes are still here. Choose Discard changes to load the saved
+                design.
               </div>
             )}
             {message && (
@@ -309,9 +309,9 @@ export function ProjectDesignEditor({
                   <section className="design-guidance-panel" aria-label="Project design document">
                     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h2 className="text-xl font-semibold">design.md</h2>
+                        <h2 className="text-xl font-semibold">Design guidance</h2>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Shared design decisions for people and agents.
+                          Project notes and theme settings for your agents.
                         </p>
                       </div>
                       <ButtonLink
@@ -322,7 +322,7 @@ export function ProjectDesignEditor({
                         prefetch={false}
                       >
                         <Download />
-                        Download saved
+                        Download saved design.md
                       </ButtonLink>
                     </div>
                     <form.Field name="guidance">
@@ -330,8 +330,8 @@ export function ProjectDesignEditor({
                         <Field>
                           <FieldLabel htmlFor="design-guidance">Project guidance</FieldLabel>
                           <FieldDescription id="design-guidance-help">
-                            Markdown notes for layout, writing, accessibility, and project
-                            conventions.
+                            Describe layout, writing, and accessibility choices. These notes are
+                            included in design.md when you save.
                           </FieldDescription>
                           <Textarea
                             id="design-guidance"

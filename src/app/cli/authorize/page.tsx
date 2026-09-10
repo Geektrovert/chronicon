@@ -21,7 +21,7 @@ async function Authorization({ searchParams }: Props) {
   if (!Schema.is(cliAuthorization)(input))
     return (
       <main className="signin-page">
-        <p>This login link is invalid. Run login again in your terminal.</p>
+        <p>This login link is invalid. Run chronicon login again in your terminal.</p>
       </main>
     );
   const principal = await pagePrincipal();

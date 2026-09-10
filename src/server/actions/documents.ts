@@ -119,7 +119,10 @@ export const findDocument = Effect.fn("Library.findDocument")(function* (
   });
   const found = yield* lookupDocument(id).pipe(databaseError("find document"));
   if (Option.isNone(found))
-    return yield* new AppError({ status: 404, message: "This report could not be found." });
+    return yield* new AppError({
+      status: 404,
+      message: "Document not found. Check the document and account.",
+    });
   const project = yield* lookupProjectById(found.value.projectId).pipe(
     databaseError("find document project"),
   );
@@ -156,7 +159,7 @@ export const readDocument = Effect.fn("Library.read")(function* (
   if (Option.isNone(found))
     return yield* new AppError({
       status: 404,
-      message: "This revision could not be found. Open the latest revision.",
+      message: "Revision not found. Open the latest revision.",
     });
   const revision = found.value;
   const result = yield* Effect.all(
@@ -168,7 +171,7 @@ export const readDocument = Effect.fn("Library.read")(function* (
             onNone: () =>
               new AppError({
                 status: 404,
-                message: "The report file is unavailable. Try another revision.",
+                message: "This document's HTML is unavailable. Try another revision.",
               }),
             onSome: Effect.succeed,
           }),
@@ -193,7 +196,11 @@ export const readDocument = Effect.fn("Library.read")(function* (
 export const publishDocument = Effect.fn("Library.publish")(
   function* (principal: Principal, input: PublishInput) {
     if (!principal.canWrite)
-      return yield* new AppError({ status: 403, message: "This agent key has read-only access." });
+      return yield* new AppError({
+        status: 403,
+        message:
+          "This key is read-only. Create a key with Read and edit access from Connect an agent.",
+      });
     const config = yield* AppConfig;
     const sql = yield* PgClient.PgClient;
     const blobs = yield* Storage;
@@ -231,7 +238,7 @@ export const publishDocument = Effect.fn("Library.publish")(
     });
     const bytes = new TextEncoder().encode(input.html).byteLength;
     if (bytes > 2_000_000)
-      return yield* new AppError({ status: 413, message: "Keep each HTML file under 2 MB." });
+      return yield* new AppError({ status: 413, message: "Use an HTML file of 2 MB or less." });
     const text = extractText(input.html);
     const hash = yield* hashJson({
       html: input.html,
@@ -268,7 +275,7 @@ export const publishDocument = Effect.fn("Library.publish")(
           if ((current?.revision ?? 0) !== input.expectedRevision)
             return yield* new AppError({
               status: 409,
-              message: `This report is now at revision ${current?.revision ?? 0}. Reload it before publishing your update.`,
+              message: `This document is now at revision ${current?.revision ?? 0}. Read the latest revision and merge your changes before publishing.`,
             });
           const path = yield* blobs.put(input.html);
           yield* Ref.set(uploaded, path);
@@ -313,7 +320,12 @@ export const publishDocument = Effect.fn("Library.publish")(
       .pipe(
         Effect.catchTag(
           "SqlError",
-          () => new AppError({ status: 500, message: "Unable to publish this report. Try again." }),
+          () =>
+            new AppError({
+              status: 500,
+              message:
+                "Unable to confirm publishing. Read the document's current revision before trying again.",
+            }),
         ),
         Effect.onError(() =>
           Effect.gen(function* () {
@@ -387,6 +399,9 @@ export const readDocumentByReference = Effect.fn("Library.readByReference")(func
   });
   const found = yield* lookup(input.slug).pipe(databaseError("find document by slug"));
   if (Option.isNone(found))
-    return yield* new AppError({ status: 404, message: "This report could not be found." });
+    return yield* new AppError({
+      status: 404,
+      message: "Document not found. Check the document and account.",
+    });
   return yield* readDocument(principal, found.value.id, input.revision);
 });

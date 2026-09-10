@@ -44,7 +44,7 @@ const configuration = Effect.gen(function* () {
     (production && url.protocol !== "https:")
   )
     return yield* new ConfigurationError({
-      message: "Use the canonical HTTPS site URL in production.",
+      message: "Set BETTER_AUTH_URL to your site's HTTPS origin, with no path or query.",
     });
   const ownerEmail = values.ownerEmail.trim().toLowerCase();
   if (ownerEmail) yield* Schema.decodeEffect(ownerEmailSchema)(ownerEmail);

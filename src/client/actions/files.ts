@@ -3,7 +3,7 @@ import { ClientError } from "../errors";
 
 export const readHtmlFile = Effect.fn("Client.readHtmlFile")(function* (file: File) {
   if (file.size > 2_000_000)
-    return yield* new ClientError({ message: "Choose an HTML file smaller than 2 MB." });
+    return yield* new ClientError({ message: "Choose an HTML file of 2 MB or less." });
   const html = yield* Effect.tryPromise({
     try: () => file.text(),
     catch: () => new ClientError({ message: "Unable to read that file. Try choosing it again." }),

@@ -25,11 +25,12 @@ export function CliAuthorization({
       <div className="signin-form space-y-5">
         <PageHeader title="Connect your terminal" />
         <p>
-          Signed in as {account}. The Chronicon CLI can read and publish projects and documents in
-          your account for 30 days. You can revoke access in Settings.
+          Signed in as {account}. Authorize the CLI to read and edit projects, documents, and design
+          systems in this account for 30 days.
         </p>
         <p className="text-sm text-muted-foreground">
-          Approve only if you started this login in your terminal.
+          Continue only if you started this login. Revoke access anytime from Connect an agent in
+          the workspace sidebar.
         </p>
         {error && <FieldError>{error}</FieldError>}
         <div className="flex gap-2">
@@ -44,7 +45,7 @@ export function CliAuthorization({
               );
             }}
           >
-            {busy ? "Connecting…" : "Authorize CLI"}
+            {busy ? "Authorizing…" : "Authorize CLI"}
           </Button>
           <Button
             variant="outline"

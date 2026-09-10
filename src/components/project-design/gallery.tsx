@@ -20,7 +20,7 @@ function ContributionHistory() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Contribution History</CardTitle>
+        <CardTitle>Contribution history</CardTitle>
         <CardDescription>Last 6 months of activity</CardDescription>
       </CardHeader>
       <CardContent>
@@ -67,17 +67,17 @@ function ContributionHistory() {
       </CardContent>
       <CardFooter>
         <Button type="button" className="w-full" onClick={() => setDetail(!detail)}>
-          {detail ? "Hide Report" : "View Full Report"}
+          {detail ? "Hide total" : "Show total"}
         </Button>
       </CardFooter>
     </Card>
   );
 }
 const currencies = [
-  { value: "usd", label: "USD · United States Dollar" },
+  { value: "usd", label: "USD · US dollar" },
   { value: "eur", label: "EUR · Euro" },
-  { value: "gbp", label: "GBP · British Pound" },
-  { value: "jpy", label: "JPY · Japanese Yen" },
+  { value: "gbp", label: "GBP · British pound" },
+  { value: "jpy", label: "JPY · Japanese yen" },
 ];
 function PayoutThreshold() {
   const id = useId();
@@ -90,10 +90,8 @@ function PayoutThreshold() {
   return (
     <Card>
       <CardHeader className="relative pe-14">
-        <CardTitle>Payout Threshold</CardTitle>
-        <CardDescription>
-          Set the minimum balance required before a payout is triggered.
-        </CardDescription>
+        <CardTitle>Payout threshold</CardTitle>
+        <CardDescription>Choose the minimum balance for a payout.</CardDescription>
         <Button
           type="button"
           variant="ghost"
@@ -112,7 +110,7 @@ function PayoutThreshold() {
         <form.Field name="currency">
           {(field) => (
             <Field>
-              <FieldLabel htmlFor={`${id}-currency`}>Preferred Currency</FieldLabel>
+              <FieldLabel htmlFor={`${id}-currency`}>Currency</FieldLabel>
               <Select
                 items={currencies}
                 value={field.state.value}
@@ -146,7 +144,7 @@ function PayoutThreshold() {
           {(field) => (
             <Field>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <FieldLabel htmlFor={`${id}-amount`}>Minimum Payout Amount</FieldLabel>
+                <FieldLabel htmlFor={`${id}-amount`}>Minimum payout</FieldLabel>
                 <form.Subscribe selector={(state) => state.values.currency}>
                   {(currency) => (
                     <span className="text-2xl font-semibold tabular-nums">
@@ -172,8 +170,8 @@ function PayoutThreshold() {
                 }}
               />
               <div className="flex justify-between">
-                <FieldDescription>50 (MIN)</FieldDescription>
-                <FieldDescription>10,000 (MAX)</FieldDescription>
+                <FieldDescription>Minimum: 50</FieldDescription>
+                <FieldDescription>Maximum: 10,000</FieldDescription>
               </div>
             </Field>
           )}
@@ -189,7 +187,7 @@ function PayoutThreshold() {
                   field.handleChange(event.target.value);
                   setSaved(false);
                 }}
-                placeholder="Add any notes for this payout configuration…"
+                placeholder="Hold payouts until the invoice is paid"
                 rows={4}
               />
             </Field>
@@ -198,7 +196,7 @@ function PayoutThreshold() {
       </CardContent>
       <CardFooter>
         <Button type="button" className="w-full" onClick={() => void form.handleSubmit()}>
-          {saved ? "Saved in preview" : "Save Threshold"}
+          {saved ? "Saved in preview" : "Save threshold"}
         </Button>
       </CardFooter>
     </Card>
@@ -208,7 +206,7 @@ function SavingsTargets() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Savings Targets</CardTitle>
+        <CardTitle>Savings targets</CardTitle>
         <CardDescription>Active milestones for 2024</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -225,7 +223,7 @@ function SavingsTargets() {
         ))}
       </CardContent>
       <CardFooter>
-        <CardDescription>You have not met your targets for this year.</CardDescription>
+        <CardDescription>Keep contributing to reach your targets.</CardDescription>
       </CardFooter>
     </Card>
   );
@@ -238,15 +236,15 @@ function DistributeTrack() {
         <div className="gallery-icon-tile">
           <DesignIcon name="plus" className="size-6" />
         </div>
-        <CardTitle>Distribute Track</CardTitle>
+        <CardTitle>Distribute a track</CardTitle>
         <CardDescription>
-          Upload your first master to start reaching listeners on Spotify, Apple Music, and more.
+          Upload a track to release it on Spotify, Apple Music, and other music services.
         </CardDescription>
         <Button type="button" variant="outline" onClick={() => setCreating(!creating)}>
-          {creating ? "Reset preview" : "Create Release"}
+          {creating ? "Reset preview" : "Create release"}
         </Button>
         {creating && (
-          <output className="text-muted-foreground">Your sample release is ready to edit.</output>
+          <output className="text-muted-foreground">Sample release created in this preview.</output>
         )}
       </CardContent>
     </Card>
@@ -256,9 +254,9 @@ function ClaimableBalance() {
   return (
     <Card>
       <CardHeader>
-        <CardDescription>Claimable Balance</CardDescription>
+        <CardDescription>Available balance</CardDescription>
         <div className="gallery-heading text-5xl font-semibold tabular-nums">$0.00</div>
-        <span className="mt-1 w-fit rounded-full border px-2 py-0.5 text-xs">Pending Setup</span>
+        <span className="mt-1 w-fit rounded-full border px-2 py-0.5 text-xs">Setup needed</span>
       </CardHeader>
       <CardContent>
         <div className="gallery-inset gap-4">
@@ -277,16 +275,16 @@ function ClaimableBalance() {
   );
 }
 const transactions: { name: string; category: string; amount: string; icon: DesignIconName }[] = [
-  { name: "Blue Bottle Coffee", category: "Food & Drink", amount: "−$6.50", icon: "coffee" },
+  { name: "Blue Bottle Coffee", category: "Food and drink", amount: "−$6.50", icon: "coffee" },
   { name: "Whole Foods Market", category: "Groceries", amount: "−$142.30", icon: "cart" },
   { name: "Uber Technologies", category: "Transport", amount: "−$24.10", icon: "car" },
-  { name: "Netflix Subscription", category: "Entertainment", amount: "−$19.99", icon: "tv" },
+  { name: "Netflix subscription", category: "Entertainment", amount: "−$19.99", icon: "tv" },
 ];
 function RecentTransactions() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Transactions</CardTitle>
+        <CardTitle>Recent transactions</CardTitle>
         <CardDescription>Your latest account activity.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -319,7 +317,7 @@ function MenuPreview() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Workspace Menu</CardTitle>
+        <CardTitle>Workspace menu</CardTitle>
         <CardDescription>Menu color and selection accent</CardDescription>
       </CardHeader>
       <CardContent>

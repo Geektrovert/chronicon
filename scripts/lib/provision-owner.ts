@@ -14,7 +14,7 @@ export const configuredOwnerEmail = Effect.gen(function* () {
     Effect.mapError(
       () =>
         new OwnerSetupError({
-          message: "Set a valid OWNER_EMAIL in your private environment first.",
+          message: "Set OWNER_EMAIL to a valid email address in .env.local.",
         }),
     ),
   );
@@ -24,7 +24,8 @@ export const requireEmptyWorkspace = Effect.gen(function* () {
   const users = yield* sql`SELECT id FROM "user" LIMIT 1`.pipe(databaseError("check owner"));
   if (users.length)
     return yield* new OwnerSetupError({
-      message: "An account already exists. No account or password was changed.",
+      message:
+        "An account already exists. Sign in through the browser or choose Create account to add another. No account or password was changed.",
     });
 });
 

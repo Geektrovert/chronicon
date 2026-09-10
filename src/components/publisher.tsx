@@ -1,7 +1,7 @@
 "use client";
 import { Form, FieldGroup } from "./ui/form";
 import { useForm, useStore } from "@tanstack/react-form";
-import { Field, FieldLabel, FieldError } from "./ui/field";
+import { Field, FieldLabel, FieldError, FieldDescription } from "./ui/field";
 import { ViewModeControl } from "./ui/view-mode-control";
 import { SelectField } from "./ui/select-field";
 import { startTransition, useState, useTransition } from "react";
@@ -22,7 +22,7 @@ const starter = `<!doctype html>
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Untitled report</title>
+<title>Untitled document</title>
 <style>
   :root { color-scheme: light dark; --background: oklch(0.997 0 0); --foreground: oklch(0.205 0 0); }
   @media (prefers-color-scheme: dark) {
@@ -32,8 +32,8 @@ const starter = `<!doctype html>
     font: 17px/1.7 system-ui; color: var(--foreground); background: var(--background); }
   h1 { font-size: 40px; line-height: 1.2; letter-spacing: -.04em; }
 </style>
-<h1>Untitled report</h1>
-<p>Report content.</p>
+<h1>Untitled document</h1>
+<p>Add your document content here.</p>
 </html>`;
 
 export function Publisher({
@@ -125,10 +125,10 @@ export function Publisher({
     >
       <DialogContent placement="right" size="editor" showCloseButton={!busy}>
         <DialogHeader>
-          <DialogTitle>{initial ? "Publish a revision" : "Publish a document"}</DialogTitle>
+          <DialogTitle>{initial ? "Publish revision" : "Publish document"}</DialogTitle>
           <DialogDescription>
             {initial
-              ? "Your previous revision will stay in the history."
+              ? "Earlier revisions stay available."
               : "Upload a self-contained HTML file or paste its source."}
           </DialogDescription>
         </DialogHeader>
@@ -146,7 +146,7 @@ export function Publisher({
                   <Input
                     id="publisher-field-1"
                     className="font-sans"
-                    placeholder="What is this about?"
+                    placeholder="Implementation plan"
                     maxLength={160}
                     required
 
@@ -180,10 +180,11 @@ export function Publisher({
             <form.Field name="slug">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="publisher-field-3">Slug</FieldLabel>
+                  <FieldLabel htmlFor="publisher-field-3">Short name</FieldLabel>
                   <Input
                     id="publisher-field-3"
                     name="slug"
+                    aria-describedby="document-slug-hint"
                     readOnly={!!initial}
                     pattern="[a-z0-9]+(-[a-z0-9]+)*"
                     maxLength={80}
@@ -193,6 +194,10 @@ export function Publisher({
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.target.value)}
                   />
+                  <FieldDescription id="document-slug-hint">
+                    Agents use this name to find the document. Use lowercase words separated by
+                    hyphens.
+                  </FieldDescription>
                 </Field>
               )}
             </form.Field>
@@ -223,12 +228,14 @@ export function Publisher({
             <form.Field name="summary">
               {(field) => (
                 <Field className="span-two">
-                  <FieldLabel htmlFor="publisher-field-5">Summary</FieldLabel>
+                  <FieldLabel htmlFor="publisher-field-5">
+                    Summary <span className="muted">Optional</span>
+                  </FieldLabel>
                   <Input
                     id="publisher-field-5"
                     className="font-sans"
                     name="summary"
-                    placeholder="A sentence to help you find it later"
+                    placeholder="Scope and milestones for the website redesign"
                     maxLength={500}
 
                     value={field.state.value}
@@ -272,7 +279,7 @@ export function Publisher({
           <div className="publish-editor">
             {preview ? (
               <ReportPreview
-                title="Report preview"
+                title="Document preview"
                 html={html}
                 onNavigate={() => onOpenChange(false)}
               />
@@ -281,7 +288,9 @@ export function Publisher({
             )}
           </div>
           <div className="publish-footer">
-            <p className="hint">Self-contained HTML. Network resources are restricted.</p>
+            <p className="hint">
+              HTML up to 2 MB. Include styles, scripts, and images in the file.
+            </p>
             <Button type="submit" disabled={busy}>
               {busy ? "Publishing…" : initial ? "Publish revision" : "Publish document"}
             </Button>

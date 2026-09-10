@@ -175,7 +175,7 @@ export function WorkspaceSidebar({
                 )}
               </SidebarAction>
               <SidebarAction
-                label="New document"
+                label={library.projects.length ? "Publish document" : "Create project"}
                 shortcut={formatBinding(bindings.document)}
                 onClick={publish}
               >

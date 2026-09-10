@@ -179,15 +179,15 @@ export function DesignCustomizer({
       </div>
       <div className="design-picker-group">
         <Picker
-          label="Heading"
+          label="Heading font"
           value={value.fontHeading}
           disabled={disabled}
-          options={[{ value: "inherit", label: "Inherit font" }, ...FONT_OPTIONS]}
+          options={[{ value: "inherit", label: "Same as body" }, ...FONT_OPTIONS]}
           icon={<Type aria-hidden="true" />}
           onChange={(fontHeading) => onChange({ ...value, fontHeading })}
         />
         <Picker
-          label="Font"
+          label="Body font"
           value={value.font}
           disabled={disabled}
           options={FONT_OPTIONS}
@@ -205,7 +205,7 @@ export function DesignCustomizer({
           onChange={(iconLibrary) => onChange({ ...value, iconLibrary })}
         />
         <Picker
-          label="Radius"
+          label="Corner radius"
           value={value.radius}
           disabled={disabled}
           options={RADII.map((radius) => ({ value: radius.name, label: radius.label }))}
@@ -238,7 +238,7 @@ export function DesignCustomizer({
       </div>
       <div className="design-picker-group">
         <Picker
-          label="Direction"
+          label="Text direction"
           value={value.rtl ? "rtl" : "ltr"}
           disabled={disabled}
           options={[

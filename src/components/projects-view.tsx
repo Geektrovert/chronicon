@@ -94,7 +94,7 @@ export function ProjectsView() {
       ) : (
         <EmptyState
           icon={<Folder />}
-          title={phrase ? "No matching projects" : "Create your first project"}
+          title={phrase ? `No projects match "${query.trim()}"` : "Create your first project"}
           description={
             phrase
               ? "Try another name or clear your search."

@@ -103,7 +103,7 @@ export function LibraryView({
               onValueChange={setSort}
               options={[
                 { value: "updated", label: "Last updated" },
-                { value: "title", label: "Name" },
+                { value: "title", label: "Title" },
               ]}
             />
           </label>
@@ -123,8 +123,9 @@ export function LibraryView({
       )}
       <div className="list-caption">
         <output>
-          {visible.length} {visible.length === 1 ? "document" : "documents"}
-          {query.trim() ? ` matching “${query}”` : ""}
+          {query.trim()
+            ? `${visible.length} ${visible.length === 1 ? "document" : "documents"} matching "${query.trim()}"`
+            : `${visible.length} ${visible.length === 1 ? "document" : "documents"}`}
         </output>
         <Button variant="ghost" size="sm" onClick={refresh} disabled={refreshing}>
           {refreshing ? "Refreshing…" : "Refresh"}

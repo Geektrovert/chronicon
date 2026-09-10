@@ -77,7 +77,7 @@ export function DocumentToolbar({
           >
             <SelectTrigger
               variant="toolbar"
-              aria-label={`Choose revision, v${revision?.value ?? document.revision}${Number(revision?.value ?? document.revision) === document.revision ? ", latest" : ", historical"}`}
+              aria-label={`Choose revision, version ${revision?.value ?? document.revision}${Number(revision?.value ?? document.revision) === document.revision ? ", latest" : ", earlier revision"}`}
               title="Choose revision"
             >
               <SelectValue>v{revision?.value ?? document.revision}</SelectValue>

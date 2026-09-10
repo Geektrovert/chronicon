@@ -54,8 +54,8 @@ export function KeyboardSettings({
         <DialogHeader>
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>
-            Click a binding, then press your shortcut. Saved in this browser. Escape cancels
-            recording.
+            Select a shortcut, then press the new keys. Escape cancels. Choose Save shortcuts to
+            apply changes in this browser.
           </DialogDescription>
         </DialogHeader>
         <Form
@@ -126,7 +126,7 @@ export function KeyboardSettings({
               Reset to defaults
             </Button>
             <Button type="submit" disabled={busy || !!recording}>
-              Save shortcuts
+              {busy ? "Saving…" : "Save shortcuts"}
             </Button>
           </div>
         </Form>

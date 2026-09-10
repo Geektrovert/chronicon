@@ -32,7 +32,8 @@ export const loadKeybindings = Effect.gen(function* () {
   return bindings;
 }).pipe(
   Effect.mapError(
-    () => new ClientError({ message: "Saved shortcuts could not be loaded. Defaults are active." }),
+    () =>
+      new ClientError({ message: "Unable to load saved shortcuts. Default shortcuts are active." }),
   ),
 );
 export const saveKeybindings = (bindings: Keybindings) =>
@@ -40,13 +41,18 @@ export const saveKeybindings = (bindings: Keybindings) =>
     const error = bindingError(bindings);
     if (error) return yield* new ClientError({ message: error });
     const raw = yield* Schema.encodeEffect(codec)(bindings).pipe(
-      Effect.mapError(() => new ClientError({ message: "Unable to encode shortcuts." })),
+      Effect.mapError(
+        () =>
+          new ClientError({
+            message: "Unable to save shortcuts. Reset to defaults and try again.",
+          }),
+      ),
     );
     yield* Effect.try({
       try: () => localStorage.setItem(storageKey, raw),
       catch: () =>
         new ClientError({
-          message: "Shortcuts could not be saved. Allow browser storage and try again.",
+          message: "Unable to save shortcuts. Allow site storage in your browser and try again.",
         }),
     });
   });

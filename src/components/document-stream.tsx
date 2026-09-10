@@ -21,7 +21,7 @@ function PendingDocument({ document, project }: { document: Document; project: P
         </p>
       )}
       <div className="report-surface" aria-busy="true">
-        <LoadingState>Loading HTML…</LoadingState>
+        <LoadingState>Loading document…</LoadingState>
       </div>
     </main>
   );

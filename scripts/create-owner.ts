@@ -49,10 +49,11 @@ const main = Effect.gen(function* () {
   const config = yield* AppConfig;
   const target = yield* Effect.try({
     try: () => new URL(Redacted.value(config.databaseUrl)).hostname,
-    catch: () => new OwnerSetupError({ message: "Check DATABASE_URL." }),
+    catch: () =>
+      new OwnerSetupError({ message: "Set DATABASE_URL to a valid Postgres connection URL." }),
   });
-  yield* Console.log(`Create owner: ${email}\nDatabase: ${target}`);
-  yield* Console.log("Your password stays hidden. Only its salted hash is stored in the database.");
+  yield* Console.log(`Create account: ${email}\nDatabase: ${target}`);
+  yield* Console.log("Your password is hidden while you type. The database stores only its hash.");
   yield* requireEmptyWorkspace;
   const password = yield* hiddenPassword("Password (12–128 characters):");
   const confirmation = yield* hiddenPassword("Confirm password:");
@@ -61,7 +62,7 @@ const main = Effect.gen(function* () {
       message: "Passwords did not match. No account was created. Run the command again.",
     });
   yield* provisionOwner(password);
-  yield* Console.log("Owner account created. You can now sign in.");
+  yield* Console.log("Account created. You can now sign in.");
 }).pipe(
   Effect.scoped,
   Effect.provide(Layer.mergeAll(ownerLayer, BunServices.layer)),
@@ -78,7 +79,7 @@ const main = Effect.gen(function* () {
     Console.error(
       Schema.is(OwnerSetupError)(error)
         ? error.message
-        : "Owner setup failed. Check your database configuration and run bun run db:migrate first.",
+        : "Account setup failed. Check DATABASE_URL and run bun run db:migrate before trying again.",
     ).pipe(
       Effect.tap(() =>
         Effect.sync(() => {

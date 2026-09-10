@@ -22,7 +22,10 @@ export const loadSidebarLayout = Effect.try({
           : sidebarSizes.default,
     };
   },
-  catch: () => new ClientError({ message: "Sidebar preference could not be loaded." }),
+  catch: () =>
+    new ClientError({
+      message: "Unable to load the saved sidebar layout. Allow site storage in your browser.",
+    }),
 });
 
 export const saveSidebarLayout = ({ collapsed, width }: SidebarLayout) =>
@@ -31,7 +34,10 @@ export const saveSidebarLayout = ({ collapsed, width }: SidebarLayout) =>
       localStorage.setItem(collapsedStorageKey, String(collapsed));
       localStorage.setItem(widthStorageKey, String(width));
     },
-    catch: () => new ClientError({ message: "Sidebar preference could not be saved." }),
+    catch: () =>
+      new ClientError({
+        message: "Unable to save the sidebar layout. Allow site storage in your browser.",
+      }),
   });
 
 export const watchSidebarTime = (onTick: (now: DateTime.Utc) => void) =>

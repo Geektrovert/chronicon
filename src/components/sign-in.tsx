@@ -1,7 +1,7 @@
 "use client";
 import { Form } from "./ui/form";
 import { useForm } from "@tanstack/react-form";
-import { Field, FieldLabel, FieldError } from "./ui/field";
+import { Field, FieldLabel, FieldError, FieldDescription } from "./ui/field";
 import { useState } from "react";
 import { PageHeader } from "./ui/page-header";
 import { Brand } from "./brand";
@@ -88,11 +88,15 @@ export function SignIn({ create = false, next = "/" }: { create?: boolean; next?
                   autoComplete={create ? "new-password" : "current-password"}
                   minLength={create ? 12 : undefined}
                   maxLength={128}
+                  aria-describedby={create ? "password-hint" : undefined}
                   required
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
+                {create && (
+                  <FieldDescription id="password-hint">Use 12 to 128 characters.</FieldDescription>
+                )}
               </Field>
             )}
           </form.Field>
@@ -107,7 +111,7 @@ export function SignIn({ create = false, next = "/" }: { create?: boolean; next?
           className="w-full"
           href={`${create ? "/sign-in" : "/sign-up"}?next=${encodeURIComponent(next)}`}
         >
-          {create ? "Already have an account? Sign in" : "Create an account"}
+          {create ? "Sign in to an existing account" : "Create account"}
         </ButtonLink>
       </div>
     </main>

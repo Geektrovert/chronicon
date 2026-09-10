@@ -66,7 +66,7 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
   if (Option.isNone(grant))
     return yield* new AppError({
       status: 400,
-      message: "This login has expired or was already used. Run login again.",
+      message: "This login link has expired or was already used. Run chronicon login again.",
     });
   // Consume the grant before issuing a key so retries cannot create duplicate credentials.
   const key = yield* authCall(() =>
@@ -91,7 +91,10 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
 
 export const revokeCli = Effect.fn("Cli.revoke")(function* (principal: Principal) {
   if (principal.access !== "agent" || !principal.keyId)
-    return yield* new AppError({ status: 403, message: "Use the CLI credential to sign out." });
+    return yield* new AppError({
+      status: 403,
+      message: "Use chronicon logout to revoke the current CLI key.",
+    });
   const sql = yield* SqlClient.SqlClient;
   // API keys use Better Auth's database storage, without a secondary key cache.
   yield* sql`DELETE FROM apikey WHERE id = ${principal.keyId} AND "referenceId" = ${principal.ownerId}`.pipe(

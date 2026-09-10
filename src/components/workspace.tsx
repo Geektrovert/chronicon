@@ -409,10 +409,11 @@ export function Workspace({
               if (!open) setQuery("");
             }}
             title={commandGlobal ? "Search workspace" : "Search project"}
-            description="Find projects, documents, and project features."
+            description="Find documents, projects, and design systems."
           >
             <Command shouldFilter={false}>
               <CommandInput
+                aria-label={commandGlobal ? "Search workspace" : "Search project"}
                 placeholder={
                   commandGlobal
                     ? "Search documents and projects…"
@@ -422,16 +423,21 @@ export function Workspace({
                 onValueChange={setQuery}
               />
               <CommandList>
-                <CommandEmpty>
+                <CommandEmpty className="space-y-2 px-4">
                   {searchError ? (
                     <>
-                      {searchError}
+                      <p className="break-words">{searchError}</p>
                       <Button variant="ghost" onClick={retrySearch}>
                         Try again
                       </Button>
                     </>
                   ) : searchReady ? (
-                    "No matching documents"
+                    <>
+                      <p className="break-words">No results for "{query.trim()}".</p>
+                      <Button variant="ghost" onClick={() => setQuery("")}>
+                        Clear search
+                      </Button>
+                    </>
                   ) : (
                     "Preparing search…"
                   )}
@@ -467,24 +473,26 @@ export function Workspace({
                     ))}
                   </CommandGroup>
                 )}
-                <CommandGroup heading={query ? "Documents" : "Recently updated"}>
-                  {commandResults.slice(0, 30).map((doc) => (
-                    <CommandItem
-                      key={doc.id}
-                      value={doc.id}
-                      onSelect={() => navigate(`/documents/${doc.id}`)}
-                    >
-                      <FileText size={17} />
-                      <span className="min-w-0 flex-1">
-                        <span className="content-title">{doc.title}</span>
-                        <small className="block text-muted-foreground">
-                          {library.projects.find((p) => p.id === doc.projectId)?.name}
-                        </small>
-                      </span>
-                      <span className="text-xs text-muted-foreground">v{doc.revision}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                {commandResults.length > 0 && (
+                  <CommandGroup heading={query ? "Documents" : "Recently updated"}>
+                    {commandResults.slice(0, 30).map((doc) => (
+                      <CommandItem
+                        key={doc.id}
+                        value={doc.id}
+                        onSelect={() => navigate(`/documents/${doc.id}`)}
+                      >
+                        <FileText size={17} />
+                        <span className="min-w-0 flex-1">
+                          <span className="content-title">{doc.title}</span>
+                          <small className="block text-muted-foreground">
+                            {library.projects.find((p) => p.id === doc.projectId)?.name}
+                          </small>
+                        </span>
+                        <span className="text-xs text-muted-foreground">v{doc.revision}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
               </CommandList>
             </Command>
             <div className="command-footer">

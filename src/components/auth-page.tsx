@@ -22,7 +22,7 @@ async function AccountForm({ searchParams, create }: AuthPageProps) {
 
 export function AuthPage(props: AuthPageProps) {
   return (
-    <Suspense fallback={<LoadingState>Opening account…</LoadingState>}>
+    <Suspense fallback={<LoadingState>Loading account form…</LoadingState>}>
       <AccountForm {...props} />
     </Suspense>
   );

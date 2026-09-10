@@ -27,16 +27,21 @@ export const authenticate = Effect.fn("Access.authenticate")(function* (headers:
     if (!result.valid || !result.key)
       return yield* new AppError({
         status: 401,
-        message: "This agent key is invalid or expired. Create a new key in Settings.",
+        message:
+          "This agent key is invalid or expired. Create a new key from Connect an agent in your workspace.",
       });
     const owner = yield* findOwnerEmail(result.key.referenceId);
-    if (Option.isNone(owner)) return yield* deny("This key's account no longer exists.");
+    if (Option.isNone(owner))
+      return yield* deny(
+        "This key's account no longer exists. Sign in with an active account and create a new key.",
+      );
     const metadata = yield* Schema.decodeUnknownEffect(keyMetadata)(result.key.metadata).pipe(
       Effect.mapError(
         () =>
           new AppError({
             status: 403,
-            message: "This key has no project access. Create a scoped key in Settings.",
+            message:
+              "This key has no project access. Create a new key for this project from Connect an agent.",
           }),
       ),
     );
@@ -70,15 +75,25 @@ export const projectAccess = Effect.fn("Access.project")(function* (
   write = false,
 ) {
   if (!project || project.ownerId !== principal.ownerId)
-    return yield* new AppError({ status: 404, message: "This project could not be found." });
+    return yield* new AppError({
+      status: 404,
+      message: "Project not found. Check the project and account.",
+    });
   if (principal.projectIds && !principal.projectIds.includes(project.id))
-    return yield* deny("This agent key cannot access this project.");
-  if (write && !principal.canWrite) return yield* deny("This agent key has read-only access.");
+    return yield* deny(
+      "This key cannot access the project. Choose an allowed project or create a new key from Connect an agent.",
+    );
+  if (write && !principal.canWrite)
+    return yield* deny(
+      "This key is read-only. Create a key with Read and edit access from Connect an agent.",
+    );
   return project;
 });
 export const ownerAccess = Effect.fn("Access.owner")(function* (principal: Principal) {
   if (principal.access !== "owner")
-    return yield* deny("Open Settings while signed in to manage this workspace.");
+    return yield* deny(
+      "Sign in through the browser to manage keys, stars, and archived documents.",
+    );
 });
 export const sameOrigin = Effect.fn("Access.sameOrigin")(function* (request: Request) {
   if (request.headers.has("authorization") || request.headers.has("x-api-key")) return;

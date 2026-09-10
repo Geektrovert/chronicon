@@ -17,36 +17,60 @@ import { callTool, http } from "./transport.ts";
 
 const help = `Chronicon CLI
 
-  login [--no-browser]                  Authorize in your default browser
-  logout                               Revoke this CLI key and remove it locally
-  whoami                               Show the connected account
-  project list                         List accessible projects and revisions
-  project create SLUG --name NAME       Create/reuse a project and link this repository
-  project link ID [--relink]            Save this repository's default project
+Publish documents and manage project designs from your terminal.
+Usage: chronicon COMMAND [options]
+
+Account
+  login [--no-browser]                  Authorize the CLI in your browser
+  logout                                Revoke this terminal's key and remove its saved login
+  whoami                                Show the signed-in account
+
+Projects
+  project list                          List projects and their revisions
+  project create SLUG --name NAME       Create or reuse a project and link this repository
+  project link ID [--relink]            Choose this repository's default project
   project update --name NAME --expected-revision N [--description TEXT]
+
+Documents
   docs list [--query TEXT]              Browse or search documents
   docs read SLUG [--revision N]         Read HTML and revision history
-  docs read --id ID [--revision N]      Read without a repository association
+  docs read --id ID [--revision N]      Read a document by ID
   docs upsert SLUG --file FILE --title TITLE --expected-revision N
-  design read [--json]                 Read the project's design.md (JSON includes settings)
+
+Design systems
+  design read [--json]                  Print design.md; use --json for settings and revision
   design update --file design.md --expected-revision N
-  design update --input FILE           Save settings/guidance from a JSON object
-  call TOOL --input FILE               Call any MCP tool with a JSON object
+  design update --input FILE            Save settings or guidance from JSON
+
+Agent tools
+  call TOOL --input FILE                Run any MCP tool with JSON input
 
 Options: --server ORIGIN, --project ID, --summary TEXT, --kind plan|report|reference,
          --tags tag1,tag2, --relink, --json, --help
 
-Output is JSON for data commands. Credentials never appear in output.
-Project configuration is shared across Git worktrees. Updates replace full document
-metadata; read first and retain the fields you need. Revision conflicts require reconciliation.
-HTML: light/dark CSS variables, @media (prefers-color-scheme: dark), color-scheme: light dark.
+SLUG is a short name such as implementation-plan.
+Use --expected-revision 0 for new documents. Read before updating: each update
+replaces all HTML and metadata. If the revision changed, read and merge before saving.
+Data commands print JSON; design read prints Markdown unless --json is supplied.
+Use light/dark CSS variables, @media (prefers-color-scheme: dark), and
+:root { color-scheme: light dark } so HTML previews follow the site's appearance.
 `;
 
-const readInputFile = Effect.fn("Cli.readInputFile")(function* (file: string, limit = 3_000_000) {
-  const info = yield* attempt("Unable to read the input file.", () => stat(file));
+const readInputFile = Effect.fn("Cli.readInputFile")(function* (
+  file: string,
+  limit: number = 3_000_000,
+) {
+  const info = yield* attempt(
+    "Unable to read the input file. Check its path and permissions.",
+    () => stat(file),
+  );
   if (!info.isFile() || info.size > limit)
-    return yield* new CliError({ message: `Use a regular input file under ${limit} bytes.` });
-  return yield* attempt("Unable to read the input file.", () => readFile(file, "utf8"));
+    return yield* new CliError({
+      message: `Use a regular file of ${limit.toLocaleString("en")} bytes or less.`,
+    });
+  return yield* attempt("Unable to read the input file. Check its path and permissions.", () =>
+    readFile(file, "utf8"),
+  );
 });
 
 function required(value: string | undefined, flag: string) {
@@ -91,7 +115,7 @@ function reference(saved: Association | undefined, credential: Credential, expli
   if (saved.server !== credential.server || saved.workspaceId !== credential.workspaceId)
     throw new CliError({
       message:
-        "This repository belongs to another server or account. Use project link ID --relink explicitly.",
+        "This repository is linked to another server or account. Run chronicon project link ID --relink to replace its default.",
     });
   return { id: saved.projectId };
 }
@@ -151,7 +175,8 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
       ),
     catch: () =>
       new CliError({
-        message: "Use a valid HTTPS server origin, or HTTP localhost for development.",
+        message:
+          "Use --server https://HOST with no path, query, or credentials. HTTP is allowed only on localhost.",
       }),
   });
   if (command === "login") return yield* login(server, !!values["no-browser"]);
@@ -170,7 +195,10 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
         (project) => project.id === selected || project.slug === selected,
       );
       if (!project)
-        return yield* new CliError({ message: "That project is not accessible to this account." });
+        return yield* new CliError({
+          message:
+            "This account cannot access that project. Run chronicon project list to choose one.",
+        });
       const association: Association = {
         version: 1,
         server,

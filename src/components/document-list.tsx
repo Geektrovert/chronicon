@@ -28,13 +28,15 @@ export function DocumentList({
       <EmptyState
         icon={<FileText size={24} />}
         title={
-          query || filtered
-            ? "No matching documents"
-            : section === "starred"
-              ? "No starred documents"
-              : section === "archived"
-                ? "No archived documents"
-                : "No documents yet"
+          query.trim()
+            ? `No documents match "${query.trim()}"`
+            : filtered
+              ? "No documents match these filters"
+              : section === "starred"
+                ? "No starred documents"
+                : section === "archived"
+                  ? "No archived documents"
+                  : "No documents yet"
         }
         description={
           query || filtered
@@ -42,10 +44,10 @@ export function DocumentList({
             : section === "starred"
               ? "Star a document to find it here."
               : section === "archived"
-                ? "Archived documents will appear here."
+                ? "Archive documents you want to keep but no longer need in your main list."
                 : projects.length
-                  ? "Publish an HTML file."
-                  : "Create a project to publish HTML files."
+                  ? "Choose Publish document to add your first HTML file."
+                  : "Choose Create project to start organizing your documents."
         }
       >
         {(query || filtered) && (

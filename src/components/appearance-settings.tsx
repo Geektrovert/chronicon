@@ -41,7 +41,7 @@ export function AppearanceSettings() {
         </SelectContent>
       </Select>
       <FieldDescription id="theme-description">
-        Saved in this browser. System follows your device’s appearance.
+        Saved in this browser. System follows your device's appearance.
       </FieldDescription>
     </Field>
   );

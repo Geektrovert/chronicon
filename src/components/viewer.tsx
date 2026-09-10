@@ -88,7 +88,7 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
                 run(
                   copyText(
                     window.location.href,
-                    "Copy the address from your browser to share this private link.",
+                    "Unable to copy. Copy the private link from your browser's address bar.",
                   ),
                   {
                     onSuccess: () => setCopied(true),
@@ -120,7 +120,7 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
               }
             >
               {expanded ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
-              {expanded ? "Exit fullscreen" : "Expand report"}
+              {expanded ? "Exit fullscreen" : "Enter fullscreen"}
             </DropdownMenuItem>
           </>
         }

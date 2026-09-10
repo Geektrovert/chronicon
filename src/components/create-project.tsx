@@ -58,9 +58,9 @@ export function CreateProject({
     >
       <DialogContent showCloseButton={!busy}>
         <DialogHeader>
-          <DialogTitle>Create a project</DialogTitle>
+          <DialogTitle>Create project</DialogTitle>
           <DialogDescription className="sr-only">
-            Create a project for your documents.
+            Keep related documents and their design system together.
           </DialogDescription>
         </DialogHeader>
         <Form
@@ -88,7 +88,7 @@ export function CreateProject({
           <form.Field name="slug">
             {(field) => (
               <Field>
-                <FieldLabel htmlFor="create-project-field-2">Project slug</FieldLabel>
+                <FieldLabel htmlFor="create-project-field-2">Short name</FieldLabel>
                 <Input
                   id="create-project-field-2"
                   name="slug"
@@ -101,7 +101,7 @@ export function CreateProject({
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
                 <FieldDescription id="project-slug-hint">
-                  Agents use this name when publishing into the project.
+                  Used in links and agent commands. Use lowercase words separated by hyphens.
                 </FieldDescription>
               </Field>
             )}
@@ -115,7 +115,7 @@ export function CreateProject({
                 <Textarea
                   id="create-project-field-3"
                   name="description"
-                  placeholder="What belongs here?"
+                  placeholder="Plans and references for the website redesign"
                   maxLength={400}
                   value={field.state.value}
                   onBlur={field.handleBlur}

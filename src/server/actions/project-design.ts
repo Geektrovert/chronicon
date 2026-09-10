@@ -40,7 +40,7 @@ const conflict = () =>
   new AppError({
     status: 409,
     message:
-      "This design changed. Read the latest revision and reconcile your changes before saving.",
+      "This design changed. Compare the latest saved design with your draft before saving again.",
   });
 
 export const readProjectDesign = Effect.fn("Design.read")(function* (
@@ -72,7 +72,7 @@ export const updateProjectDesign = Effect.fn("Design.update")(function* (
     return yield* new AppError({
       status: 400,
       message:
-        "Keep project guidance under 64,000 characters and outside generated design markers.",
+        "Use 64,000 characters or fewer for guidance. Keep it outside the generated design.md block.",
     });
   const settings = input.settings ?? current.settings;
   const changedSettings = Struct.keys(settings).some(
