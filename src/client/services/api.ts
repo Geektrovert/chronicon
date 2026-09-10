@@ -1,8 +1,8 @@
 import { Context, Effect, Exit, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http";
 import type { HttpMethod } from "effect/unstable/http/HttpMethod";
-import { capture, requestContext, requestSpan, telemetryRoute, wideLog } from "../telemetry";
-import { ActionTelemetry } from "../observe-action";
+import { capture, requestSpan, telemetryRoute, wideLog } from "../telemetry";
+import { prepareRequestTelemetry } from "./request-telemetry";
 
 class ApiError extends Schema.TaggedError<ApiError>()("ApiError", {
   operation: Schema.Literals(["request", "response"]),
@@ -18,20 +18,15 @@ const makeApi = Effect.gen(function* () {
     const started = performance.now();
     const startedAt = performance.timeOrigin + started;
     const route = telemetryRoute(new URL(input.url).pathname);
-    const correlation = requestContext(route !== "/api/library");
-    const action = yield* ActionTelemetry;
-    const fields = {
-      request_id: correlation.requestId,
-      trace_id: correlation.traceId,
-      span_id: correlation.spanId,
+    const { headers, fields, action } = yield* prepareRequestTelemetry({
       method: input.method ?? "GET",
       route,
-    };
-    if (action) Object.assign(action, fields);
+      sampled: route !== "/api/library",
+    });
     let request = HttpClientRequest.make(input.method ?? "GET")(input.url).pipe(
       HttpClientRequest.acceptJson,
       HttpClientRequest.setHeader("Cache-Control", "no-store"),
-      HttpClientRequest.setHeaders(correlation.headers),
+      HttpClientRequest.setHeaders(headers),
     );
     if (input.body !== undefined)
       request = request.pipe(HttpClientRequest.bodyJsonUnsafe(input.body));

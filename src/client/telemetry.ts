@@ -2,6 +2,7 @@
 
 import { Effect } from "effect";
 import posthog, { type CaptureResult, type CaptureLogOptions } from "posthog-js";
+import { posthogProxyPrefix, posthogSdkPaths, posthogTracePath } from "@/lib/posthog";
 
 // Next replaces these public values in the browser bundle.
 /* oxlint-disable effecttsgo/process-env */
@@ -14,16 +15,6 @@ const release = process.env.NEXT_PUBLIC_APP_RELEASE ?? "development";
 const uiHost = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.posthog.com";
 /* oxlint-enable effecttsgo/process-env */
 
-const proxy = "/api/cairn-v7q";
-const rewrites = [
-  ["/i/v0/e/", "/p1/"],
-  ["/e/", "/p2/"],
-  ["/s/", "/p3/"],
-  ["/flags/", "/p4/"],
-  ["/array/", "/p5/"],
-  ["/static/", "/p6/"],
-  ["/i/v1/logs", "/p7"],
-] as const;
 let initialized = false;
 let authenticated = false;
 let lastPage = "";
@@ -291,15 +282,15 @@ export function initializeTelemetry() {
   if (initialized || !enabled || !projectKey) return;
   bestEffort(() => {
     posthog.init(projectKey, {
-      api_host: proxy,
+      api_host: posthogProxyPrefix,
       ui_host: uiHost,
       defaults: "2026-08-30",
       rewriteRequestPath(url) {
-        const path = url.pathname.startsWith(proxy)
-          ? url.pathname.slice(proxy.length)
+        const path = url.pathname.startsWith(posthogProxyPrefix)
+          ? url.pathname.slice(posthogProxyPrefix.length)
           : url.pathname;
-        const rewrite = rewrites.find(([source]) => path.startsWith(source));
-        if (rewrite) url.pathname = proxy + rewrite[1] + path.slice(rewrite[0].length);
+        const rewrite = posthogSdkPaths.find(([source]) => path.startsWith(source));
+        if (rewrite) url.pathname = posthogProxyPrefix + rewrite[1] + path.slice(rewrite[0].length);
         return url;
       },
       persistence: "localStorage",
@@ -464,7 +455,7 @@ export function requestSpan(
     void Effect.runPromise(
       Effect.tryPromise(() =>
         // oxlint-disable-next-line effecttsgo/global-fetch-in-effect -- Native keepalive lets the browser finish the bounded OTLP export during navigation.
-        fetch(`${proxy}/p8`, {
+        fetch(posthogProxyPrefix + posthogTracePath[1], {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body,

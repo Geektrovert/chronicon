@@ -1,13 +1,7 @@
-import { Cause, Context, Effect, Exit, Option, Result, Schema } from "effect";
+import { Cause, Effect, Exit, Option, Result, Schema } from "effect";
 import { ClientError } from "./errors";
 import { capture, requestSpan, wideLog, type TelemetryProperties } from "./telemetry";
-
-export const ActionTelemetry = Context.Reference<TelemetryProperties | undefined>(
-  "chronicon/ActionTelemetry",
-  {
-    defaultValue: () => undefined,
-  },
-);
+import { ActionTelemetry } from "./services/request-telemetry";
 
 export const observeAction =
   (operation: string, properties: TelemetryProperties = {}) =>

@@ -1,14 +1,13 @@
 import type { Instrumentation } from "next";
-import { Cause, Effect, Exit, Layer, Scope, Tracer } from "effect";
+import { Cause, Effect, Tracer } from "effect";
 import { trace } from "@opentelemetry/api";
 import {
   captureServerException,
   logWideEvent,
   makeRequestTelemetry,
-  requestObservabilityLayer,
   safeFailure,
 } from "./observability";
-import { flushNextTelemetry } from "./next-telemetry";
+import { createTelemetrySession } from "./services/telemetry";
 
 // This path must work when the application runtime itself failed to initialize.
 // oxlint-disable-next-line effecttsgo/async-function -- Framework error hook explicitly awaits bounded telemetry delivery.
@@ -50,11 +49,9 @@ export const reportRequestError: Instrumentation.onRequestError = async (
     route_type: context.routeType,
   };
   captureServerException(state, error, failure.error_type, attributes);
-  const scope = Scope.makeUnsafe("parallel");
+  const session = createTelemetrySession(state);
   try {
-    const services = await Effect.runPromise(
-      Layer.buildWithScope(requestObservabilityLayer(state), scope),
-    );
+    const services = await session.build();
     const log = logWideEvent(state, "chronicon_server_error", attributes);
     await Effect.runPromise(
       (state.parent ? log.pipe(Effect.withParentSpan(state.parent)) : log).pipe(
@@ -64,12 +61,6 @@ export const reportRequestError: Instrumentation.onRequestError = async (
   } catch {
     // Reporting cannot replace the original framework error.
   } finally {
-    await Promise.allSettled([
-      Effect.runPromise(
-        Scope.close(scope, Exit.void).pipe(Effect.interruptible, Effect.timeoutOption("4 seconds")),
-      ),
-      state.posthog?.shutdown(3500),
-      flushNextTelemetry(),
-    ]);
+    await session.drain();
   }
 };
