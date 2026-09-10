@@ -2,5 +2,4 @@
 bun = true
 
 [install]
-# Preserve the app's dependency layout when adding the CLI workspace.
 linker = "hoisted"

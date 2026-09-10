@@ -26,7 +26,7 @@ export function signInDestination(next: string | null) {
   const url = new URL(next, "https://chronicon.invalid");
   if (url.origin !== "https://chronicon.invalid") return "/";
   if (url.pathname === "/cli/authorize") return url.pathname + url.search;
-  return /^\/(?:$|starred\/?$|archive\/?$|settings(?:\/appearance)?\/?$|projects\/[^/]+(?:\/design)?\/?$|documents\/[^/]+\/?$)/.test(
+  return /^\/(?:$|starred\/?$|archive\/?$|settings(?:\/appearance)?\/?$|projects(?:\/[^/]+(?:\/design)?)?\/?$|documents\/[^/]+\/?$)/.test(
     url.pathname,
   )
     ? url.pathname + url.hash

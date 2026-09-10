@@ -47,20 +47,20 @@ function Picker<T extends string>({
   disabled: boolean;
   icon?: ReactNode;
 }) {
-  const current = options.find((option) => option.value === value);
+  const current = options.find((option) => option.value === value)!;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={<Button variant="outline" />}
         disabled={disabled}
         className="design-picker"
-        aria-label={`${label}: ${current?.label || value}`}
+        aria-label={`${label}: ${current.label}`}
       >
         <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
           <span className="text-xs font-normal text-muted-foreground">{label}</span>
-          <span className="max-w-full truncate text-sm font-medium">{current?.label || value}</span>
+          <span className="max-w-full truncate text-sm font-medium">{current.label}</span>
         </span>
-        {current?.swatch ? (
+        {current.swatch ? (
           <span
             aria-hidden="true"
             className="size-4 shrink-0 rounded-full border"
@@ -155,9 +155,8 @@ export function DesignCustomizer({
           value={value.baseColor}
           disabled={disabled}
           options={BASE_COLORS.map((value) => ({
+            ...colors.find((color) => color.value === value)!,
             value,
-            label: colors.find((color) => color.value === value)!.label,
-            swatch: colors.find((color) => color.value === value)!.swatch,
           }))}
           onChange={(baseColor) => onChange(changeBaseColor(value, baseColor))}
         />

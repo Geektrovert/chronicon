@@ -42,7 +42,6 @@ export const FONT_OPTIONS = [
 export function fontFamily(font: DesignSettings["font"]) {
   return FONT_OPTIONS.find((option) => option.value === font)!.fontFamily;
 }
-export const baseColors = THEMES.filter((theme) => BASE_COLORS.some((name) => name === theme.name));
 export function getThemesForBaseColor(baseColor: string) {
   return THEMES.filter(
     (theme) => theme.name === baseColor || !BASE_COLORS.some((name) => name === theme.name),
@@ -59,17 +58,15 @@ export function changeBaseColor(
   };
 }
 export function buildTokens(config: DesignSettings) {
-  const baseColor = THEMES.find((theme) => theme.name === config.baseColor);
-  const theme = THEMES.find((theme) => theme.name === config.theme);
-  const chart = THEMES.find((theme) => theme.name === config.chartColor);
-  // Settings are validated at every transport boundary, and pickers use this catalog.
-  if (!baseColor || !theme || !chart) throw new Error("Unknown design palette.");
+  const baseColor = THEMES.find((theme) => theme.name === config.baseColor)!;
+  const theme = THEMES.find((theme) => theme.name === config.theme)!;
+  const chart = THEMES.find((theme) => theme.name === config.chartColor)!;
   const light = { ...baseColor.cssVars.light, ...theme.cssVars.light };
   const dark = { ...baseColor.cssVars.dark, ...theme.cssVars.dark };
   for (let i = 1; i <= 5; i++) {
     const key = `chart-${i}`;
-    if (chart.cssVars.light[key]) light[key] = chart.cssVars.light[key];
-    if (chart.cssVars.dark[key]) dark[key] = chart.cssVars.dark[key];
+    light[key] = chart.cssVars.light[key];
+    dark[key] = chart.cssVars.dark[key];
   }
   if (config.menuAccent === "bold") {
     light.accent = light.primary;
@@ -77,14 +74,13 @@ export function buildTokens(config: DesignSettings) {
     dark.accent = dark.primary;
     dark["accent-foreground"] = dark["primary-foreground"];
   }
-  const radius = RADII.find((radius) => radius.name === config.radius);
-  light.radius = radius?.value || light.radius || "0.625rem";
+  const radius = RADII.find((radius) => radius.name === config.radius)!;
+  light.radius = radius.value || light.radius;
   dark.radius = light.radius;
   light["font-sans"] = dark["font-sans"] = fontFamily(config.font);
   light["font-heading"] = dark["font-heading"] = fontFamily(
     config.fontHeading === "inherit" ? config.font : config.fontHeading,
   );
-  // Menus have their own paired tokens, including inversion and translucency.
   for (const [mode, tokens] of [
     ["light", light],
     ["dark", dark],

@@ -74,7 +74,6 @@ export const readAssociation = Effect.gen(function* () {
 });
 
 const sameAssociation = (a: Association, b: Association) =>
-  a.version === b.version &&
   a.server === b.server &&
   a.workspaceId === b.workspaceId &&
   a.projectId === b.projectId &&

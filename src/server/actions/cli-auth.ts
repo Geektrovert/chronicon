@@ -56,7 +56,6 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
   const config = yield* AppConfig;
   const codeHash = yield* digest(input.code);
   const challenge = yield* digest(input.verifier);
-  // Consume only a matching, unexpired grant. A code is never redeemable twice.
   const grant = yield* SqlSchema.findOneOption({
     Request: Schema.Void,
     Result: Schema.Struct({ userId: Schema.String }),
@@ -69,8 +68,7 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
       status: 400,
       message: "This login has expired or was already used. Run login again.",
     });
-  // Issuance follows consumption. On an ambiguous response, start a fresh login;
-  // never retry key creation. Named keys remain visible and revocable in Settings.
+  // Consume the grant before issuing a key so retries cannot create duplicate credentials.
   const key = yield* authCall(() =>
     auth.api.createApiKey({
       body: {
@@ -96,7 +94,6 @@ export const revokeCli = Effect.fn("Cli.revoke")(function* (principal: Principal
     return yield* new AppError({ status: 403, message: "Use the CLI credential to sign out." });
   const sql = yield* SqlClient.SqlClient;
   // API keys use Better Auth's database storage, without a secondary key cache.
-  // A bearer may revoke only itself, never a client-supplied key ID.
   yield* sql`DELETE FROM apikey WHERE id = ${principal.keyId} AND "referenceId" = ${principal.ownerId}`.pipe(
     databaseError("revoke CLI key"),
   );

@@ -24,7 +24,6 @@ const program = run(process.argv.slice(2)).pipe(
     );
   }),
 );
-// The executable is the Promise boundary. Effects own resources and cancellation.
 void Effect.runPromise(program, { signal: controller.signal }).catch(() => {
   if (!controller.signal.aborted)
     process.stderr.write(

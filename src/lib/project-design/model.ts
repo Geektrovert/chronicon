@@ -50,7 +50,7 @@ export const FONT_NAMES = [
 export const fontName = Schema.Literals(FONT_NAMES);
 export const menuAccent = Schema.Literals(["subtle", "bold"]);
 export const designSettings = Schema.Struct({
-  // Defaults keep designs and API clients created by the first studio readable.
+  // Defaults keep older saved designs and API clients compatible.
   style: Schema.Literals(STYLE_NAMES).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed("nova" as const)),
   ),

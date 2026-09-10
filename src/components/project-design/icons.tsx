@@ -1,5 +1,4 @@
 "use client";
-import { createContext, use } from "react";
 import {
   Coffee,
   ShoppingCart,
@@ -61,9 +60,7 @@ import {
   Car01Icon,
   Tv01Icon,
 } from "@hugeicons/core-free-icons";
-import type { DesignSettings } from "@/lib/project-design/model";
-
-export const DesignIconLibrary = createContext<DesignSettings["iconLibrary"]>("lucide");
+import { useGallery } from "./gallery-context";
 const lucide = {
   coffee: Coffee,
   cart: ShoppingCart,
@@ -132,7 +129,7 @@ export function DesignIcon({
   name: DesignIconName;
   className?: string;
 }) {
-  const library = use(DesignIconLibrary);
+  const library = useGallery().settings.iconLibrary;
   if (library === "hugeicons")
     return (
       <HugeiconsIcon

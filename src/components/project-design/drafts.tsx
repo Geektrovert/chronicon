@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, use, useEffect, useState, type ReactNode } from "react";
+import { Struct } from "effect";
 import type { ProjectDesign, DesignSettings } from "@/lib/project-design/model";
 
 type DesignValues = { settings: DesignSettings; guidance: string };
@@ -10,9 +11,7 @@ const DraftsContext = createContext<Map<string, DesignDraft> | null>(null);
 export function designChanged(values: DesignValues, saved: ProjectDesign) {
   return (
     values.guidance !== saved.guidance ||
-    Object.entries(values.settings).some(
-      ([key, value]) => Reflect.get(saved.settings, key) !== value,
-    )
+    Struct.keys(values.settings).some((key) => saved.settings[key] !== values.settings[key])
   );
 }
 

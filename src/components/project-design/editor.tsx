@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useTheme } from "next-themes";
-import { Effect, Random, Result } from "effect";
+import { Effect, Random, Result, Struct } from "effect";
 import {
   Download,
   Shuffle,
@@ -166,11 +166,7 @@ export function ProjectDesignEditor({
         }}
       >
         <header className="design-studio-header">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex min-w-0 flex-col">
-              <h1 className="text-sm font-semibold">Design system</h1>
-            </div>
-          </div>
+          <h1 className="min-w-0 text-sm font-semibold">Design system</h1>
           <div className="flex items-center gap-2">
             <AppearanceControl mode={previewMode} onChange={setMode} />
             <Button
@@ -305,8 +301,8 @@ export function ProjectDesignEditor({
             )}
             <form.Field name="settings">
               {(field) => {
-                const unchanged = Object.entries(field.state.value).every(
-                  ([key, value]) => Reflect.get(saved.settings, key) === value,
+                const unchanged = Struct.keys(field.state.value).every(
+                  (key) => saved.settings[key] === field.state.value[key],
                 );
                 const tokens = unchanged ? saved.tokens : buildTokens(field.state.value);
                 return showGuidance ? (

@@ -20,8 +20,6 @@ Application workflows use Effect `4.0.0-rc.112`, following the matching [Effect 
 - Browser actions decode responses from the Effect HttpClient service. `useTask` in `src/client/runtime.ts` cancels reads and subscriptions when their view is hidden or unmounted. `runAction` bridges writes to React Actions, keeping transitions pending until the Effect finishes. Effect scopes own polling listeners, worker listeners, worker termination, and download URLs. Pure filtering, formatting, and rendering remain ordinary functions.
 - Local commands use `BunRuntime` and scoped layers. Owner creation uses `Prompt.hidden`, checks both entries, hashes the password with Better Auth, and disposes the database when the command finishes. Public signup uses Better Auth's email/password endpoints.
 
-Run migrations before deploying the signup/CLI changes. They add expiring CLI authorization grants and a project metadata revision. Existing accounts, document revisions and keys retain their ownership.
-
 ## Frontend
 
 The interface uses shared Base UI shadcn controls and TanStack Form. Departure Mono
@@ -241,7 +239,7 @@ REST keeps `POST /api/documents` as the same upsert workflow and input schema. T
 browser also publishes by project ID. It returns the document, project, association,
 creation/retry flags, and viewer URL. Existing UI routes (`GET /api/library`,
 `POST /api/projects`, `GET /api/documents/:id?revision=1`) remain available; MCP exposes
-only the four tools above. Agents cannot manage keys or change archive/star preferences.
+the tools listed above. Agents cannot manage keys or change archive/star preferences.
 Limits: 2 MB HTML and 3 MB serialized JSON per request.
 
 Documents follow the site's selected appearance through the iframe's inherited
@@ -265,8 +263,7 @@ Standalone project creation and metadata updates use the shared REST actions.
 Updates require the project's current `revision` as `expectedRevision`; IDs and slugs
 stay stable. Build the package with `bun run --cwd packages/cli build`.
 
-The Bun workspace explicitly keeps the hoisted dependency layout for Next.js's
-native external packages. Adding the CLI must not silently change that layout.
+The Bun workspace uses hoisted dependencies for Next.js's native external packages.
 
 ## Project design systems
 
@@ -282,7 +279,7 @@ workspace. Save persists them; **Reload saved** discards the local draft. Closin
 or reloading the workspace warns when drafts remain. Drafts retain their original
 revision, so returning to an edit cannot overwrite a newer save without reconciliation.
 
-The configurator adapts the actual
+The configurator adapts the
 [shadcn/create source](https://github.com/shadcn-ui/ui/tree/3ba91b1cc83e1bbe4ab35a422ff2a694849c5048/apps/v4/app/%28app%29/%28create%29/components)
 and Base UI preview templates. A compact control rail sits beside a large component
 gallery. The twelve controls cover all eight upstream styles, seven base colors,

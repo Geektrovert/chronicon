@@ -1,5 +1,5 @@
 import { PgClient } from "@effect/sql-pg";
-import { DateTime, Effect, Option, Schema } from "effect";
+import { DateTime, Effect, Option, Schema, Struct } from "effect";
 import { SqlSchema } from "effect/unstable/sql";
 import type { Principal } from "@/lib/model";
 import { buildTokens, SOURCE_REVISION } from "@/lib/project-design/config";
@@ -75,8 +75,8 @@ export const updateProjectDesign = Effect.fn("Design.update")(function* (
         "Keep project guidance under 64,000 characters and outside generated design markers.",
     });
   const settings = input.settings ?? current.settings;
-  const changedSettings = Object.entries(settings).some(
-    ([key, value]) => Reflect.get(current.settings, key) !== value,
+  const changedSettings = Struct.keys(settings).some(
+    (key) => current.settings[key] !== settings[key],
   );
   // Preserve resolved tokens on notes-only writes, including after catalog upgrades.
   const record = {

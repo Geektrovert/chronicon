@@ -76,7 +76,7 @@ export const documentPageHeader = cache(async (id: string) => {
   const document = workspace.library.documents.find((document) => document.id === id);
   const project = workspace.library.projects.find((project) => project.id === document?.projectId);
   if (document && project) return { document, project };
-  // A discovery cache miss is not authoritative evidence that a document is absent.
+  // External publishers can add documents before the library cache refreshes.
   const principal = await requirePageOwner(`/documents/${id}`);
   const current = await runtime.runPromise(
     findDocument(principal, id).pipe(

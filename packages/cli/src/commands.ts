@@ -42,10 +42,7 @@ metadata; read first and retain the fields you need. Revision conflicts require 
 HTML: light/dark CSS variables, @media (prefers-color-scheme: dark), color-scheme: light dark.
 `;
 
-export const readInputFile = Effect.fn("Cli.readInputFile")(function* (
-  file: string,
-  limit = 3_000_000,
-) {
+const readInputFile = Effect.fn("Cli.readInputFile")(function* (file: string, limit = 3_000_000) {
   const info = yield* attempt("Unable to read the input file.", () => stat(file));
   if (!info.isFile() || info.size > limit)
     return yield* new CliError({ message: `Use a regular input file under ${limit} bytes.` });
@@ -75,6 +72,15 @@ const projectSchema = Schema.Struct({
 });
 const objectSchema = Schema.Record(Schema.String, Schema.Unknown);
 const withAssociation = Schema.Struct({ association: associationSchema });
+
+const readJsonInputFile = Effect.fn("Cli.readJsonInputFile")(function* (file: string) {
+  const content = yield* readInputFile(file);
+  const parsed = yield* Effect.try({
+    try: () => json(content),
+    catch: () => new CliError({ message: "The input file must contain a JSON object." }),
+  });
+  return yield* decode(objectSchema, parsed);
+});
 
 function reference(saved: Association | undefined, credential: Credential, explicit?: string) {
   if (explicit) return { id: explicit };
@@ -274,15 +280,8 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
         return yield* new CliError({
           message: "Use --file for Markdown or --input for JSON, not both.",
         });
-      const jsonContent = values.input ? yield* readInputFile(values.input) : "";
       const input = values.input
-        ? yield* decode(
-            objectSchema,
-            yield* Effect.try({
-              try: () => json(jsonContent),
-              catch: () => new CliError({ message: "The input file must contain a JSON object." }),
-            }),
-          )
+        ? yield* readJsonInputFile(values.input)
         : { markdown: yield* readInputFile(required(values.file, "--file or --input"), 100_000) };
       return yield* print(
         yield* call("update_project_design", {
@@ -297,12 +296,7 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
   }
   if (command === "call") {
     const tool = required(action, "a tool name");
-    const content = yield* readInputFile(required(values.input, "--input"));
-    const parsed = yield* Effect.try({
-      try: () => json(content),
-      catch: () => new CliError({ message: "The input file must contain a JSON object." }),
-    });
-    const input = { ...(yield* decode(objectSchema, parsed)) };
+    const input = { ...(yield* readJsonInputFile(required(values.input, "--input"))) };
     if (
       [
         "read_document",

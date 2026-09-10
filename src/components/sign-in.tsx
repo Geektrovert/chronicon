@@ -12,6 +12,8 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function SignIn({ create = false, next = "/" }: { create?: boolean; next?: string }) {
+  const title = create ? "Create account" : "Sign in";
+  const busyTitle = create ? "Creating account…" : "Signing in…";
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const run = useTask();
@@ -31,7 +33,7 @@ export function SignIn({ create = false, next = "/" }: { create?: boolean; next?
     <main className="signin-page">
       <Brand />
       <div className="signin-form">
-        <PageHeader title={create ? "Create account" : "Sign in"} />
+        <PageHeader title={title} />
         <Form
           onSubmit={(event) => {
             event.preventDefault();
@@ -96,13 +98,7 @@ export function SignIn({ create = false, next = "/" }: { create?: boolean; next?
           </form.Field>
           {error && <FieldError>{error}</FieldError>}
           <Button type="submit" disabled={busy} className="w-full">
-            {busy
-              ? create
-                ? "Creating account…"
-                : "Signing in…"
-              : create
-                ? "Create account"
-                : "Sign in"}
+            {busy ? busyTitle : title}
             <ArrowRight size={16} />
           </Button>
         </Form>

@@ -1,6 +1,5 @@
 "use client";
-// Adapted from shadcn/ui preview-02 NotificationSettings and EmptyConnectBank
-// (MIT). Unique IDs and demo-only state keep side-by-side previews independent.
+// Adapted from shadcn/ui preview-02 NotificationSettings and EmptyConnectBank (MIT).
 import { useId, useState } from "react";
 import { DesignIcon } from "./icons";
 import { Button } from "../ui/button";
