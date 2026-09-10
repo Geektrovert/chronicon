@@ -270,7 +270,19 @@ native external packages. Adding the CLI must not silently change that layout.
 
 ## Project design systems
 
-Open a project and choose **Design system**. The configurator adapts the actual
+Open **Projects** in the sidebar to browse projects or jump directly to their
+documents and design systems. Each project keeps a shared header with **Documents**
+and **Design system** links, including while reading a document. Workspace search
+also finds projects and the current project's features. Add new project destinations
+to `src/components/project-navigation.tsx` so the header, directory, and search stay
+consistent.
+
+Unsaved design changes stay in memory while navigating within the signed-in
+workspace. Save persists them; **Reload saved** discards the local draft. Closing
+or reloading the workspace warns when drafts remain. Drafts retain their original
+revision, so returning to an edit cannot overwrite a newer save without reconciliation.
+
+The configurator adapts the actual
 [shadcn/create source](https://github.com/shadcn-ui/ui/tree/3ba91b1cc83e1bbe4ab35a422ff2a694849c5048/apps/v4/app/%28app%29/%28create%29/components)
 and Base UI preview templates. A compact control rail sits beside a large component
 gallery. The twelve controls cover all eight upstream styles, seven base colors,

@@ -123,7 +123,8 @@
   color: var(--foreground);
 }
 .workspace-sidebar .sidebar-search,
-.workspace-sidebar .sidebar-project-trigger {
+.workspace-sidebar .sidebar-project-trigger,
+.workspace-sidebar .sidebar-projects-link {
   flex: 1;
   min-width: 0;
   padding-inline: 10px;
@@ -137,6 +138,10 @@
   text-overflow: ellipsis;
   text-align: start;
   white-space: nowrap;
+}
+.workspace-sidebar .sidebar-projects-link {
+  flex: none;
+  min-height: var(--control-height);
 }
 .sidebar-shortcut {
   font-size: 10px;
@@ -271,6 +276,7 @@
 }
 .workspace-sidebar[data-collapsed="true"] .sidebar-search,
 .workspace-sidebar[data-collapsed="true"] .sidebar-project-trigger,
+.workspace-sidebar[data-collapsed="true"] .sidebar-projects-link,
 .workspace-sidebar[data-collapsed="true"] .sidebar-library-link {
   flex: none;
   width: 40px;

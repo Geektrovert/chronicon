@@ -1,4 +1,5 @@
 "use client";
+import { useRef, type RefObject } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "./input";
 import { InputGroup, InputGroupAddon } from "./input-group";
@@ -10,19 +11,24 @@ export function SearchField({
   placeholder,
   value,
   onValueChange,
+  inputRef,
 }: {
   id: string;
   label: string;
   placeholder: string;
   value: string;
   onValueChange: (value: string) => void;
+  inputRef?: RefObject<HTMLInputElement | null>;
 }) {
+  const ownRef = useRef<HTMLInputElement>(null);
+  const input = inputRef ?? ownRef;
   return (
     <InputGroup>
       <InputGroupAddon>
         <Search aria-hidden="true" />
       </InputGroupAddon>
       <Input
+        ref={input}
         id={id}
         aria-label={label}
         placeholder={placeholder}
@@ -38,7 +44,10 @@ export function SearchField({
             variant="ghost"
             size="icon-sm"
             aria-label="Clear search"
-            onClick={() => onValueChange("")}
+            onClick={() => {
+              onValueChange("");
+              input.current?.focus();
+            }}
           >
             <X />
           </Button>

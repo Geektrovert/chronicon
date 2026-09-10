@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
-import { Plus, Palette } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { Document } from "@/lib/model";
 import { DocumentList } from "./document-list";
 import { useWorkspace } from "./workspace";
-import { Button, ButtonLink } from "./ui/button";
+import { Button } from "./ui/button";
 import { Toolbar } from "./ui/toolbar";
 import { SearchField } from "./ui/search-field";
 import { SelectField } from "./ui/select-field";
@@ -54,14 +54,20 @@ export function LibraryView({
   }
   return (
     <main id="main" className="library-main">
-      <h1 className="sr-only">
-        {project?.name ||
-          (section === "starred"
-            ? "Starred documents"
-            : section === "archived"
-              ? "Archive"
-              : "All documents")}
-      </h1>
+      <header className="page-heading">
+        <div>
+          <h1>
+            {project
+              ? "Documents"
+              : section === "starred"
+                ? "Starred documents"
+                : section === "archived"
+                  ? "Archive"
+                  : "All documents"}
+          </h1>
+          {project?.description && <p>{project.description}</p>}
+        </div>
+      </header>
       <Toolbar className="library-toolbar">
         <div className="search-field">
           <SearchField
@@ -120,12 +126,6 @@ export function LibraryView({
           {visible.length} {visible.length === 1 ? "document" : "documents"}
           {query.trim() ? ` matching “${query}”` : ""}
         </output>
-        {project && (
-          <ButtonLink href={`/projects/${project.slug}/design`} variant="ghost" size="sm">
-            <Palette />
-            Design system
-          </ButtonLink>
-        )}
         <Button variant="ghost" size="sm" onClick={refresh} disabled={refreshing}>
           {refreshing ? "Refreshing…" : "Refresh"}
         </Button>

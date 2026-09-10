@@ -4,7 +4,6 @@ import { useForm } from "@tanstack/react-form";
 import { useTheme } from "next-themes";
 import { Effect, Random, Result } from "effect";
 import {
-  ArrowLeft,
   Download,
   Shuffle,
   RotateCcw,
@@ -33,6 +32,7 @@ import { Form } from "../ui/form";
 import { Textarea } from "../ui/textarea";
 import { DesignCustomizer } from "./customizer";
 import { DesignPreview, type PreviewMode } from "./preview";
+import { designChanged, useDesignDrafts } from "./drafts";
 import "./studio.css";
 
 function randomItem<T>(items: readonly T[]) {
@@ -78,9 +78,12 @@ export function ProjectDesignEditor({
   initial: ProjectDesign;
 }) {
   const { resolvedTheme } = useTheme();
-  const [saved, setSaved] = useState(initial);
+  const drafts = useDesignDrafts();
+  const [restoredDraft, setRestoredDraft] = useState(() => drafts.get(project.id));
+  const [saved, setSaved] = useState(restoredDraft?.base ?? initial);
+  const baseline = useRef(saved);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(restoredDraft ? "Restored your unsaved design." : "");
   const [busy, start] = useTransition();
   const [operation, setOperation] = useState<"save" | "reload">("save");
   const [mode, setMode] = useState<PreviewMode | null>(null);
@@ -96,7 +99,7 @@ export function ProjectDesignEditor({
   }, [controlsOpen]);
   const previewMode = mode ?? (resolvedTheme === "dark" ? "dark" : "light");
   const form = useForm({
-    defaultValues: { settings: saved.settings, guidance: saved.guidance },
+    defaultValues: restoredDraft?.values ?? { settings: saved.settings, guidance: saved.guidance },
     onSubmit: ({ value }) => {
       if (busy) return;
       setOperation("save");
@@ -110,6 +113,9 @@ export function ProjectDesignEditor({
             setError(result.failure);
             return;
           }
+          baseline.current = result.success;
+          drafts.delete(project.id);
+          setRestoredDraft(undefined);
           setSaved(result.success);
           form.reset({ settings: result.success.settings, guidance: result.success.guidance });
           setMessage(`Saved revision ${result.success.revision}.`);
@@ -117,6 +123,19 @@ export function ProjectDesignEditor({
       );
     },
   });
+  useEffect(() => {
+    const rememberDraft = () => {
+      const values = form.store.state.values;
+      if (designChanged(values, baseline.current)) {
+        drafts.set(project.id, { base: baseline.current, values });
+      } else {
+        drafts.delete(project.id);
+      }
+    };
+    rememberDraft();
+    const subscription = form.store.subscribe(rememberDraft);
+    return () => subscription.unsubscribe();
+  }, [drafts, form, project.id]);
   function reload() {
     setOperation("reload");
     setError("");
@@ -127,6 +146,9 @@ export function ProjectDesignEditor({
           setError(result.failure);
           return;
         }
+        baseline.current = result.success;
+        drafts.delete(project.id);
+        setRestoredDraft(undefined);
         setSaved(result.success);
         form.reset({ settings: result.success.settings, guidance: result.success.guidance });
         setMessage("Loaded saved design.");
@@ -145,17 +167,8 @@ export function ProjectDesignEditor({
       >
         <header className="design-studio-header">
           <div className="flex min-w-0 items-center gap-3">
-            <ButtonLink
-              href={`/projects/${project.slug}`}
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Back to ${project.name}`}
-            >
-              <ArrowLeft />
-            </ButtonLink>
             <div className="flex min-w-0 flex-col">
-              <h1 className="text-sm font-semibold">Design studio</h1>
-              <span className="truncate text-xs text-muted-foreground">{project.name}</span>
+              <h1 className="text-sm font-semibold">Design system</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -171,7 +184,7 @@ export function ProjectDesignEditor({
               <span className="hidden sm:inline">design.md</span>
               <span className="sr-only sm:hidden">Project guidance</span>
             </Button>
-            <form.Subscribe selector={(state) => state.isDirty}>
+            <form.Subscribe selector={(state) => designChanged(state.values, saved)}>
               {(dirty) => (
                 <Button type="submit" size="sm" disabled={busy || (!dirty && saved.revision > 0)}>
                   {busy && operation === "save" ? "Saving…" : "Save design"}
@@ -268,7 +281,7 @@ export function ProjectDesignEditor({
                   ? "Project guidance and theme tokens"
                   : "Component previews · sample content"}
               </span>
-              <form.Subscribe selector={(state) => state.isDirty}>
+              <form.Subscribe selector={(state) => designChanged(state.values, saved)}>
                 {(dirty) => (
                   <span className="ms-auto shrink-0 text-xs text-muted-foreground">
                     {dirty

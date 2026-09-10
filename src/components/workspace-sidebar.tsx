@@ -9,6 +9,7 @@ import {
   FileText,
   Folder,
   FolderPlus,
+  Folders,
   Keyboard,
   LogOut,
   PanelLeftClose,
@@ -79,17 +80,21 @@ export function WorkspaceSidebar({
   const [signingOut, setSigningOut] = useState(false);
   const [now, setNow] = useState<DateTime.Utc>();
   const activeDocument = library.documents.find((doc) => pathname === `/documents/${doc.id}`);
-  const collectionPath = pathname.replace(/^(\/projects\/[^/]+)\/design\/?$/, "$1");
+  const collectionPath = pathname.match(/^\/projects\/[^/]+/)?.[0] ?? pathname;
+  const documentProject = library.projects.find((item) => item.id === activeDocument?.projectId);
   const [scope, setScope] = useState({
     pathname,
     collection: pathname.startsWith("/documents/")
       ? activeDocument?.archived
         ? "/archive"
-        : "/"
+        : documentProject
+          ? `/projects/${documentProject.slug}`
+          : "/"
       : collectionPath,
     limit: 40,
   });
   const project = library.projects.find((item) => scope.collection === `/projects/${item.slug}`);
+  const currentProject = documentProject ?? project;
 
   // Keep the originating collection while opening its documents. Direct links
   // and Back navigation outside that collection return to an appropriate list.
@@ -154,7 +159,7 @@ export function WorkspaceSidebar({
             </div>
             <div className="sidebar-control-row">
               <SidebarAction
-                label="Search documents"
+                label="Search workspace"
                 shortcut={formatBinding(bindings.search)}
                 variant="navigation"
                 size="default"
@@ -177,10 +182,30 @@ export function WorkspaceSidebar({
                 <SquarePen />
               </SidebarAction>
             </div>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <ButtonLink
+                    href="/projects"
+                    variant="navigation"
+                    className="sidebar-projects-link"
+                    aria-label="Projects"
+                    aria-current={
+                      pathname === "/projects" ? "page" : currentProject ? "location" : undefined
+                    }
+                    onNavigate={close}
+                  />
+                }
+              >
+                <Folders aria-hidden="true" />
+                <span className="sidebar-control-label">Projects</span>
+              </TooltipTrigger>
+              <TooltipContent>Projects</TooltipContent>
+            </Tooltip>
             <div className="sidebar-control-row">
               <Select
                 items={projectOptions}
-                value={project?.id ?? "all"}
+                value={currentProject?.id ?? "all"}
                 onValueChange={(value) => {
                   if (!value) return;
                   const selected = projectsById.get(value);
@@ -194,7 +219,7 @@ export function WorkspaceSidebar({
                   variant="navigation"
                   className="sidebar-project-trigger"
                   aria-label="Choose project"
-                  title={compact ? (project?.name ?? "All projects") : undefined}
+                  title={compact ? (currentProject?.name ?? "All projects") : undefined}
                 >
                   <Folder aria-hidden="true" />
                   <SelectValue className="sidebar-control-label" />
@@ -222,7 +247,7 @@ export function WorkspaceSidebar({
             <nav className="sidebar-library-nav" aria-label="Library">
               {[
                 {
-                  href: project ? `/projects/${project.slug}` : "/",
+                  href: "/",
                   label: "All documents",
                   short: "All",
                   icon: FileText,

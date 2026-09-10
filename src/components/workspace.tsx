@@ -23,7 +23,7 @@ import {
 } from "react";
 import { Result } from "effect";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { FileText, Menu } from "lucide-react";
+import { FileText, Folder, Folders, Menu } from "lucide-react";
 import type { Document, Library } from "@/lib/model";
 import { runAction, useTask } from "@/client/runtime";
 import { loadLibrary, updateReport } from "@/client/actions/library";
@@ -45,6 +45,9 @@ import { Publisher } from "./publisher";
 import { AgentSettings } from "./agent-settings";
 import { WorkspaceSidebar } from "./workspace-sidebar";
 import { SidebarFrame } from "./ui/sidebar";
+import { ProjectNavigation, projectSections, projectSectionHref } from "./project-navigation";
+import { DesignDraftsProvider } from "./project-design/drafts";
+import "./project-navigation.css";
 
 const noPendingDocuments: ReadonlyArray<string> = [];
 
@@ -73,6 +76,7 @@ const WorkspaceContext = createContext<{
   error: string;
   refresh: () => void;
   publish: () => void;
+  createProject: () => void;
   documentChanged: (document: Document) => void;
   updateDocument: (
     document: Document,
@@ -99,7 +103,6 @@ export function Workspace({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const designStudio = pathname.startsWith("/projects/") && pathname.endsWith("/design");
   const params = useParams<{ slug?: string; id?: string }>();
   const run = useTask();
   const [confirmedLibrary, setLibrary] = useState(initialLibrary);
@@ -296,27 +299,57 @@ export function Workspace({
     setQuery("");
     setCommandOpen(true);
   }
+  function navigate(href: string) {
+    setCommandOpen(false);
+    setQuery("");
+    router.push(href);
+  }
+  const navigationItems = [
+    { href: "/projects", label: "Projects", description: "Browse projects", icon: Folders },
+    ...(project
+      ? projectSections.map((section) => ({
+          href: projectSectionHref(project, section),
+          label: section.label,
+          description: project.name,
+          icon: section.icon,
+        }))
+      : []),
+  ].filter((item) =>
+    `${item.label} ${item.description}`
+      .toLocaleLowerCase()
+      .includes(query.trim().toLocaleLowerCase()),
+  );
+  const matchingProjects = commandGlobal
+    ? library.projects.filter(
+        (item) =>
+          item.id !== projectId &&
+          `${item.name} ${item.slug}`
+            .toLocaleLowerCase()
+            .includes(query.trim().toLocaleLowerCase()),
+      )
+    : [];
   return (
-    <WorkspaceContext
-      value={{
-        library: optimistic.library,
-        query: commandOpen ? "" : query,
-        setQuery,
-        search,
-        error,
-        refresh,
-        publish,
-        documentChanged,
-        updateDocument,
-        pendingDocuments: optimistic.pendingDocuments,
-        refreshing,
-      }}
-    >
-      <SidebarFrame layout={sidebarLayout}>
-        <a className="skip-link" href="#main">
-          Skip to content
-        </a>
-        {!designStudio && (
+    <DesignDraftsProvider>
+      <WorkspaceContext
+        value={{
+          library: optimistic.library,
+          query: commandOpen ? "" : query,
+          setQuery,
+          search,
+          error,
+          refresh,
+          publish,
+          createProject: () => setProjectOpen(true),
+          documentChanged,
+          updateDocument,
+          pendingDocuments: optimistic.pendingDocuments,
+          refreshing,
+        }}
+      >
+        <SidebarFrame layout={sidebarLayout}>
+          <a className="skip-link" href="#main">
+            Skip to content
+          </a>
           <WorkspaceSidebar
             bindings={bindings}
             keyboardSettings={() => {
@@ -347,128 +380,161 @@ export function Workspace({
             }}
             close={() => setMobileOpen(false)}
           />
-        )}
-        <div className={designStudio ? "workspace-body design-workspace-body" : "workspace-body"}>
-          {!designStudio && (
-            <header className="topbar">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="mobile-menu"
-                aria-label="Open navigation"
-                onClick={() => setMobileOpen(true)}
-              >
-                <Menu size={19} />
-              </Button>
-            </header>
-          )}
-          {children}
-        </div>
-        <CommandDialog
-          open={commandOpen}
-          onOpenChange={(open) => {
-            setCommandOpen(open);
-            if (!open) setQuery("");
-          }}
-          title={commandGlobal ? "Search workspace" : "Search project"}
-          description="Search by title, content, or project."
-        >
-          <Command shouldFilter={false}>
-            <CommandInput
-              placeholder={
-                commandGlobal
-                  ? "Search all documents…"
-                  : `Search ${project?.name || "this project"}…`
-              }
-              value={query}
-              onValueChange={setQuery}
-            />
-            <CommandList>
-              <CommandEmpty>
-                {searchError ? (
-                  <>
-                    {searchError}
-                    <Button variant="ghost" onClick={retrySearch}>
-                      Try again
-                    </Button>
-                  </>
-                ) : searchReady ? (
-                  "No matching documents"
-                ) : (
-                  "Preparing search…"
-                )}
-              </CommandEmpty>
-              <CommandGroup heading={query ? "Documents" : "Recently updated"}>
-                {commandResults.slice(0, 30).map((doc) => (
-                  <CommandItem
-                    key={doc.id}
-                    value={doc.id}
-                    onSelect={() => {
-                      setCommandOpen(false);
-                      setQuery("");
-                      router.push(`/documents/${doc.id}`);
-                    }}
-                  >
-                    <FileText size={17} />
-                    <span className="min-w-0 flex-1">
-                      <span className="content-title">{doc.title}</span>
-                      <small className="block text-muted-foreground">
-                        {library.projects.find((p) => p.id === doc.projectId)?.name}
-                      </small>
-                    </span>
-                    <span className="text-xs text-muted-foreground">v{doc.revision}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-          <div className="command-footer">
-            <span>↑ ↓ Navigate</span>
-            <span>↵ Open</span>
-            {projectId && (
-              <Button variant="ghost" size="sm" onClick={() => setCommandGlobal(!commandGlobal)}>
-                {commandGlobal ? "Search this project" : "Search everywhere"}
-              </Button>
+          <div className={project ? "workspace-body project-workspace" : "workspace-body"}>
+            {project ? (
+              <ProjectNavigation
+                project={project}
+                pathname={pathname}
+                openNavigation={() => setMobileOpen(true)}
+              />
+            ) : (
+              <header className="topbar">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="mobile-menu"
+                  aria-label="Open navigation"
+                  onClick={() => setMobileOpen(true)}
+                >
+                  <Menu size={19} />
+                </Button>
+              </header>
             )}
+            {children}
           </div>
-        </CommandDialog>
-        <CreateProject
-          open={projectOpen}
-          onOpenChange={setProjectOpen}
-          onCreated={(p) => {
-            setLibrary((old) => ({
-              ...old,
-              projects: old.projects.some((item) => item.id === p.id)
-                ? old.projects
-                : [...old.projects, p],
-            }));
-            router.push(`/projects/${p.slug}`);
-          }}
-        />
-        <Publisher
-          key={projectId || "all-projects"}
-          open={publishOpen}
-          onOpenChange={setPublishOpen}
-          projects={library.projects}
-          projectId={projectId}
-          onPublished={(document) => {
-            documentChanged(document);
-            router.push(`/documents/${document.id}`);
-          }}
-        />
-        {keyboardOpen && (
-          <KeyboardSettings
-            bindings={bindings}
-            onSaved={setBindings}
-            onClose={() => setKeyboardOpen(false)}
+          <CommandDialog
+            open={commandOpen}
+            onOpenChange={(open) => {
+              setCommandOpen(open);
+              if (!open) setQuery("");
+            }}
+            title={commandGlobal ? "Search workspace" : "Search project"}
+            description="Find projects, documents, and project features."
+          >
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder={
+                  commandGlobal
+                    ? "Search documents and projects…"
+                    : `Search ${project?.name || "this project"}…`
+                }
+                value={query}
+                onValueChange={setQuery}
+              />
+              <CommandList>
+                <CommandEmpty>
+                  {searchError ? (
+                    <>
+                      {searchError}
+                      <Button variant="ghost" onClick={retrySearch}>
+                        Try again
+                      </Button>
+                    </>
+                  ) : searchReady ? (
+                    "No matching documents"
+                  ) : (
+                    "Preparing search…"
+                  )}
+                </CommandEmpty>
+                {navigationItems.length > 0 && (
+                  <CommandGroup heading="Navigation">
+                    {navigationItems.map((item) => (
+                      <CommandItem
+                        key={item.href}
+                        value={`navigate:${item.href}`}
+                        onSelect={() => navigate(item.href)}
+                      >
+                        <item.icon size={17} />
+                        <span className="flex-1">{item.label}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {item.description}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+                {matchingProjects.length > 0 && (
+                  <CommandGroup heading="Projects">
+                    {matchingProjects.slice(0, 8).map((item) => (
+                      <CommandItem
+                        key={item.id}
+                        value={`project:${item.id}`}
+                        onSelect={() => navigate(`/projects/${item.slug}`)}
+                      >
+                        <Folder size={17} />
+                        <span className="truncate">{item.name}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+                <CommandGroup heading={query ? "Documents" : "Recently updated"}>
+                  {commandResults.slice(0, 30).map((doc) => (
+                    <CommandItem
+                      key={doc.id}
+                      value={doc.id}
+                      onSelect={() => navigate(`/documents/${doc.id}`)}
+                    >
+                      <FileText size={17} />
+                      <span className="min-w-0 flex-1">
+                        <span className="content-title">{doc.title}</span>
+                        <small className="block text-muted-foreground">
+                          {library.projects.find((p) => p.id === doc.projectId)?.name}
+                        </small>
+                      </span>
+                      <span className="text-xs text-muted-foreground">v{doc.revision}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+            <div className="command-footer">
+              <span>↑ ↓ Navigate</span>
+              <span>↵ Open</span>
+              {projectId && (
+                <Button variant="ghost" size="sm" onClick={() => setCommandGlobal(!commandGlobal)}>
+                  {commandGlobal ? "Search this project" : "Search everywhere"}
+                </Button>
+              )}
+            </div>
+          </CommandDialog>
+          <CreateProject
+            open={projectOpen}
+            onOpenChange={setProjectOpen}
+            onCreated={(p) => {
+              setLibrary((old) => ({
+                ...old,
+                projects: old.projects.some((item) => item.id === p.id)
+                  ? old.projects
+                  : [...old.projects, p],
+              }));
+              router.push(`/projects/${p.slug}`);
+            }}
           />
-        )}
-        <AgentSettings
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          projects={library.projects}
-        />
-      </SidebarFrame>
-    </WorkspaceContext>
+          <Publisher
+            key={projectId || "all-projects"}
+            open={publishOpen}
+            onOpenChange={setPublishOpen}
+            projects={library.projects}
+            projectId={projectId}
+            onPublished={(document) => {
+              documentChanged(document);
+              router.push(`/documents/${document.id}`);
+            }}
+          />
+          {keyboardOpen && (
+            <KeyboardSettings
+              bindings={bindings}
+              onSaved={setBindings}
+              onClose={() => setKeyboardOpen(false)}
+            />
+          )}
+          <AgentSettings
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            projects={library.projects}
+          />
+        </SidebarFrame>
+      </WorkspaceContext>
+    </DesignDraftsProvider>
   );
 }
