@@ -4,7 +4,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { Field, FieldLabel, FieldError, FieldDescription } from "./ui/field";
 import { ViewModeControl } from "./ui/view-mode-control";
 import { SelectField } from "./ui/select-field";
-import { startTransition, useState, useTransition } from "react";
+import { startTransition, useEffect, useState, useTransition } from "react";
 import { Result } from "effect";
 import { Upload } from "lucide-react";
 import type { Document, Project } from "@/lib/model";
@@ -12,6 +12,7 @@ import { slugify } from "@/lib/model";
 import { publishReport } from "@/client/actions/library";
 import { readHtmlFile } from "@/client/actions/files";
 import { runAction, useTask } from "@/client/runtime";
+import { capture } from "@/client/telemetry";
 import { ReportPreview } from "./report-preview";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -55,11 +56,16 @@ export function Publisher({
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState("");
   const [busy, submit] = useTransition();
+  const revisionPublish = initial !== undefined;
+  useEffect(() => {
+    if (open) capture("publisher_opened", { revision_publish: revisionPublish });
+  }, [open, revisionPublish]);
   const form = useForm({
     defaultValues: {
       title: initial?.document.title ?? "",
       project:
-        projects.find((p) => p.id === (initial?.document.projectId || projectId))?.id ||
+        initial?.document.projectId ||
+        projects.find((p) => p.id === projectId)?.id ||
         projects[0]?.id ||
         "",
       slug: initial?.document.slug ?? "",
@@ -157,26 +163,28 @@ export function Publisher({
                 </Field>
               )}
             </form.Field>
-            <form.Field name="project">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="publisher-select-1">Project</FieldLabel>
-                  <SelectField
-                    onBlur={field.handleBlur}
-                    id="publisher-select-1"
-                    label="Project"
-                    name="project"
-                    readOnly={!!initial}
-                    options={projects
-                      .filter((p) => !initial || p.id === initial.document.projectId)
-                      .map((p) => ({ value: p.id, label: p.name }))}
+            {(!initial || projects.length > 0) && (
+              <form.Field name="project">
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor="publisher-select-1">Project</FieldLabel>
+                    <SelectField
+                      onBlur={field.handleBlur}
+                      id="publisher-select-1"
+                      label="Project"
+                      name="project"
+                      readOnly={!!initial}
+                      options={projects
+                        .filter((p) => !initial || p.id === initial.document.projectId)
+                        .map((p) => ({ value: p.id, label: p.name }))}
 
-                    value={field.state.value}
-                    onValueChange={field.handleChange}
-                  />
-                </Field>
-              )}
-            </form.Field>
+                      value={field.state.value}
+                      onValueChange={field.handleChange}
+                    />
+                  </Field>
+                )}
+              </form.Field>
+            )}
             <form.Field name="slug">
               {(field) => (
                 <Field>

@@ -9,6 +9,8 @@ const configuration = Effect.gen(function* () {
     databaseUrl: Config.redacted("DATABASE_URL"),
     blobToken: optionalSecret("BLOB_READ_WRITE_TOKEN"),
     authSecret: optionalSecret("BETTER_AUTH_SECRET"),
+    resendApiKey: optionalSecret("RESEND_API_KEY"),
+    resendFromEmail: Config.string("RESEND_FROM_EMAIL").pipe(Config.withDefault("")),
     ownerEmail: Config.string("OWNER_EMAIL").pipe(Config.withDefault("")),
     baseUrl: Config.string("BETTER_AUTH_URL").pipe(Config.withDefault("http://localhost:3000")),
     portlessUrl: Config.string("PORTLESS_URL").pipe(Config.withDefault("")),
@@ -52,6 +54,11 @@ const configuration = Effect.gen(function* () {
     return yield* new ConfigurationError({
       message: "BETTER_AUTH_SECRET must have at least 32 characters.",
     });
+  const resendFromEmail = values.resendFromEmail.trim();
+  if (resendFromEmail && /[\r\n]/.test(resendFromEmail))
+    return yield* new ConfigurationError({
+      message: "RESEND_FROM_EMAIL must be one sender address.",
+    });
   return {
     ...values,
     baseUrl,
@@ -59,6 +66,7 @@ const configuration = Effect.gen(function* () {
     production,
     origin: url.origin,
     ownerEmail,
+    resendFromEmail,
   };
 }).pipe(
   Effect.mapError(

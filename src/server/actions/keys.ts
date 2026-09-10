@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { Auth, authCall } from "../auth";
-import { SqlClient } from "effect/unstable/sql";
-import { databaseError } from "../database";
 import { ownerAccess } from "./access";
+import { findProject } from "./projects";
 import { AppError } from "../errors";
 import type { keyInput, Principal } from "@/lib/model";
+import { recordOperation } from "../observability";
 
 export const listKeys = Effect.fn("Keys.list")(function* (principal: Principal, headers: Headers) {
   yield* ownerAccess(principal);
@@ -27,16 +27,22 @@ export const createKey = Effect.fn("Keys.create")(function* (
   input: typeof keyInput.Type,
 ) {
   yield* ownerAccess(principal);
-  const sql = yield* SqlClient.SqlClient;
   const auth = yield* Auth;
+  let organizationId = principal.organizationId;
   if (input.projectIds) {
-    const ids = input.projectIds;
-    const projects = ids.length
-      ? yield* sql`SELECT id FROM project WHERE "ownerId" = ${principal.ownerId}
-          AND ${sql.in("id", ids)}`.pipe(databaseError("validate key projects"))
-      : [];
-    if (!projects.length || projects.length !== new Set(ids).size)
-      return yield* new AppError({ status: 400, message: "Select one of your projects." });
+    const ids = [...new Set(input.projectIds)];
+    if (!ids.length)
+      return yield* new AppError({ status: 400, message: "Select a project you can access." });
+    const projects = yield* Effect.forEach(ids, (id) =>
+      findProject(principal, { id }, input.write),
+    );
+    const organizations = new Set(projects.map((project) => project.organizationId));
+    if (organizations.size !== 1)
+      return yield* new AppError({
+        status: 400,
+        message: "Select projects from one team for each agent key.",
+      });
+    organizationId = projects[0]!.organizationId;
   }
   const created = yield* authCall(() =>
     auth.api.createApiKey({
@@ -45,10 +51,16 @@ export const createKey = Effect.fn("Keys.create")(function* (
         name: input.name,
         expiresIn: input.days * 86400,
         permissions: { documents: input.write ? ["read", "write"] : ["read"] },
-        metadata: { projectIds: input.projectIds },
+        metadata: { projectIds: input.projectIds, organizationId },
       },
     }),
   );
+  yield* recordOperation("chronicon_agent_key_created", {
+    write_access: input.write,
+    project_scope_count: input.projectIds?.length ?? 0,
+    all_projects: input.projectIds === null,
+    expires_in_days: input.days,
+  });
   return { key: created.key };
 });
 export const revokeKey = Effect.fn("Keys.revoke")(function* (
@@ -59,5 +71,6 @@ export const revokeKey = Effect.fn("Keys.revoke")(function* (
   yield* ownerAccess(principal);
   const auth = yield* Auth;
   yield* authCall(() => auth.api.deleteApiKey({ headers, body: { keyId } }));
+  yield* recordOperation("chronicon_agent_key_revoked");
   return { success: true };
 });

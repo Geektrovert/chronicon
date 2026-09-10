@@ -1,5 +1,6 @@
 import { Effect, Stream } from "effect";
 import { ClientError } from "../errors";
+import { observeAction } from "../observe-action";
 
 export const readHtmlFile = Effect.fn("Client.readHtmlFile")(function* (file: File) {
   if (file.size > 2_000_000)
@@ -7,7 +8,7 @@ export const readHtmlFile = Effect.fn("Client.readHtmlFile")(function* (file: Fi
   const html = yield* Effect.tryPromise({
     try: () => file.text(),
     catch: () => new ClientError({ message: "Unable to read that file. Try choosing it again." }),
-  });
+  }).pipe(observeAction("html_import", { file_bytes: file.size }));
   const parsed = new DOMParser().parseFromString(html, "text/html");
   return { html, title: parsed.title || file.name.replace(/\.html?$/i, "").replace(/[-_]/g, " ") };
 });
@@ -57,5 +58,5 @@ export const downloadHtml = Effect.fn("Client.downloadHtml")(function* (
         yield* Effect.sleep("1 second");
       }),
     (url) => Effect.sync(() => URL.revokeObjectURL(url)),
-  );
+  ).pipe(observeAction("document_download"));
 });

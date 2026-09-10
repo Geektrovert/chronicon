@@ -1,29 +1,12 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { Context, Effect } from "effect";
-import { cacheLife, cacheTag, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { loadLibrary } from "./actions/library";
-import { runtime } from "./runtime";
 import type { Principal } from "@/lib/model";
-import { AppError } from "./errors";
 
-// Only stable authorization identifiers enter the Next cache key, never tokens or names.
-// oxlint-disable-next-line effecttsgo/async-function -- Next requires an async function for "use cache".
-async function cachedLibrary(ownerId: string, projectIds: ReadonlyArray<string> | null) {
-  "use cache";
-  cacheLife({ stale: 300, revalidate: 300, expire: 600 });
-  cacheTag(`library:${ownerId}`);
-  return runtime.runPromise(loadLibrary({ ownerId, projectIds }));
-}
-// Call after authenticate on every request, including cache hits.
+// Re-read grants on every request. Cached authorized snapshots can outlive revocation.
 export const readCachedLibrary = Effect.fn("Cache.readLibrary")((principal: Principal) =>
-  Effect.tryPromise({
-    try: () =>
-      cachedLibrary(
-        principal.ownerId,
-        principal.projectIds ? [...principal.projectIds].sort() : null,
-      ),
-    catch: () => new AppError({ status: 500, message: "Unable to load the library. Try again." }),
-  }),
+  loadLibrary(principal),
 );
 export class LibraryInvalidation extends Context.Service<
   LibraryInvalidation,

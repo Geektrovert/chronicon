@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { revealPreviewFragment, watchPreviewNavigation } from "@/client/actions/preview";
 import { useTask } from "@/client/runtime";
 import { previewHTML } from "@/lib/preview";
+import { capture } from "@/client/telemetry";
 
 export function ReportPreview({
   html,
@@ -21,6 +22,7 @@ export function ReportPreview({
     if (!frame.current) return;
     return run(
       watchPreviewNavigation(frame.current, (href) => {
+        capture("document_preview_navigation");
         const url = new URL(href, window.location.origin);
         if (url.pathname === window.location.pathname && frame.current)
           run(revealPreviewFragment(frame.current, url.hash));

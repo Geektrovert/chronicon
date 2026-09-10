@@ -62,6 +62,15 @@ export const provisionOwner = Effect.fn("Owner.provision")(function* (
       VALUES (${accountId}, ${id}, 'credential', ${id}, ${passwordHash}, ${now}, ${now})`.pipe(
         databaseError("create credential"),
       );
+      const organizationId = `default_${id}`;
+      yield* sql`INSERT INTO organization (id, name, slug, "createdAt")
+        VALUES (${organizationId}, 'Owner''s team', ${`team-${id}`}, ${now})`.pipe(
+        databaseError("create owner team"),
+      );
+      yield* sql`INSERT INTO member (id, "organizationId", "userId", role, "createdAt")
+        VALUES (${`default_member_${id}`}, ${organizationId}, ${id}, 'owner', ${now})`.pipe(
+        databaseError("create team owner"),
+      );
       return { id, email };
     }),
   );

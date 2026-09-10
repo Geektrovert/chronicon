@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import { ClientError } from "../errors";
 import { bindingError, defaultBindings, type Keybindings } from "@/lib/keybindings";
+import { observeAction } from "../observe-action";
 const storageKey = "chronicon.keybindings.v1";
 const codec = Schema.fromJsonString(
   Schema.Struct({
@@ -55,4 +56,4 @@ export const saveKeybindings = (bindings: Keybindings) =>
           message: "Unable to save shortcuts. Allow site storage in your browser and try again.",
         }),
     });
-  });
+  }).pipe(observeAction("keyboard_settings_save"));

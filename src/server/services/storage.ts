@@ -34,6 +34,10 @@ export class Storage extends Context.Service<
         return paths.join(".chronicon", "blobs", path);
       });
       const store = Effect.fn("Storage.put")(function* (html: string) {
+        yield* Effect.annotateCurrentSpan({
+          "storage.provider": token ? "vercel_blob" : "filesystem",
+          "storage.operation": "put",
+        });
         const path = `documents/${yield* uuid}.html`;
         if (token)
           yield* io("upload", (abortSignal) =>
@@ -57,6 +61,10 @@ export class Storage extends Context.Service<
         return path;
       });
       const read = Effect.fn("Storage.read")(function* (path: string) {
+        yield* Effect.annotateCurrentSpan({
+          "storage.provider": token ? "vercel_blob" : "filesystem",
+          "storage.operation": "read",
+        });
         if (!token) {
           const file = yield* localPath(path);
           return yield* fs.readFileString(file).pipe(
@@ -71,6 +79,10 @@ export class Storage extends Context.Service<
         return Option.some(yield* io("read response", () => new Response(blob.stream).text()));
       });
       const remove = Effect.fn("Storage.remove")(function* (path: string) {
+        yield* Effect.annotateCurrentSpan({
+          "storage.provider": token ? "vercel_blob" : "filesystem",
+          "storage.operation": "delete",
+        });
         if (token) yield* io("delete", (abortSignal) => del(path, { token, abortSignal }));
         else {
           const file = yield* localPath(path);

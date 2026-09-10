@@ -1,4 +1,5 @@
 import { PgClient } from "@effect/sql-pg";
+import { recordOperation } from "../observability";
 import { Crypto, DateTime, Effect, Option, Ref, Schema } from "effect";
 import { SqlSchema } from "effect/unstable/sql";
 import { parseDocument } from "htmlparser2";
@@ -14,8 +15,8 @@ import {
 } from "@/lib/model";
 import { AppConfig } from "../config";
 import { databaseError } from "../database";
-import { projectAccess, ownerAccess } from "./access";
-import { AppError } from "../errors";
+import { documentAccess, projectAccess, projectRole, ownerAccess } from "./access";
+import { AppError, DatabaseError } from "../errors";
 import { Storage } from "../services/storage";
 import { hashJson } from "../services/hash";
 import { invalidateLibrary } from "../cache";
@@ -101,7 +102,7 @@ function extractText(html: string) {
   return parts.join("").replace(/\s+/g, " ").trim();
 }
 
-export const findDocument = Effect.fn("Library.findDocument")(function* (
+export const findDocumentContext = Effect.fn("Library.findDocumentContext")(function* (
   principal: Principal,
   id: string,
   write = false,
@@ -110,7 +111,8 @@ export const findDocument = Effect.fn("Library.findDocument")(function* (
   const lookupDocument = SqlSchema.findOneOption({
     Request: Schema.String,
     Result: documentSchema,
-    execute: (id) => sql`SELECT * FROM document WHERE id = ${id}`,
+    execute: (id) =>
+      sql`SELECT d.*, EXISTS(SELECT 1 FROM document_star s WHERE s."documentId" = d.id AND s."userId" = ${principal.ownerId}) AS starred FROM document d WHERE d.id = ${id}`,
   });
   const lookupProjectById = SqlSchema.findOneOption({
     Request: Schema.String,
@@ -126,10 +128,25 @@ export const findDocument = Effect.fn("Library.findDocument")(function* (
   const project = yield* lookupProjectById(found.value.projectId).pipe(
     databaseError("find document project"),
   );
+  if (Option.isNone(project))
+    return yield* new AppError({
+      status: 404,
+      message: "Document not found. Check the document and account.",
+    });
   return {
-    document: found.value,
-    project: yield* projectAccess(principal, Option.getOrUndefined(project), write),
+    document: yield* documentAccess(principal, found.value, project.value, write),
+    project: project.value,
   };
+});
+
+export const findDocument = Effect.fn("Library.findDocument")(function* (
+  principal: Principal,
+  id: string,
+  write = false,
+) {
+  const { document, project } = yield* findDocumentContext(principal, id, write);
+  const role = yield* projectRole(principal, project);
+  return { document, project: role ? { ...project, accessRole: role } : null };
 });
 
 export const readDocument = Effect.fn("Library.read")(function* (
@@ -151,7 +168,7 @@ export const readDocument = Effect.fn("Library.read")(function* (
     execute: (id) =>
       sql`SELECT id, version, bytes, author, "createdAt" FROM revision WHERE "documentId" = ${id} ORDER BY version DESC`,
   });
-  const { document, project } = yield* findDocument(principal, id);
+  const { document } = yield* findDocument(principal, id);
   const found = yield* lookupRevision({
     documentId: id,
     version: version ?? document.revision,
@@ -180,9 +197,18 @@ export const readDocument = Effect.fn("Library.read")(function* (
     },
     { concurrency: "unbounded" },
   );
+  // A download can outlast a permission change. Recheck before returning HTML
+  // and use the current parent visibility to preserve document-only access.
+  const current = yield* findDocument(principal, id);
   return {
-    document,
-    project,
+    document: {
+      ...document,
+      accessRole: current.document.accessRole,
+      visibility: current.document.visibility,
+      starred: current.document.starred,
+      archived: current.document.archived,
+    },
+    project: current.project,
     ...result,
     revision: {
       version: revision.version,
@@ -210,7 +236,7 @@ export const publishDocument = Effect.fn("Library.publish")(
       Request: Schema.Struct({ projectId: Schema.String, slug: Schema.String }),
       Result: documentSchema,
       execute: ({ projectId, slug }) =>
-        sql`SELECT * FROM document WHERE "projectId" = ${projectId} AND slug = ${slug}`,
+        sql`SELECT d.*, EXISTS(SELECT 1 FROM document_star s WHERE s."documentId" = d.id AND s."userId" = ${principal.ownerId}) AS starred FROM document d WHERE d."projectId" = ${projectId} AND d.slug = ${slug}`,
     });
     const saveDocument = SqlSchema.findOne({
       Request: Schema.Struct({
@@ -252,25 +278,39 @@ export const publishDocument = Effect.fn("Library.publish")(
     const result = yield* sql
       .withTransaction(
         Effect.gen(function* () {
-          const project = yield* resolvePublishProject(
+          const target = yield* resolvePublishProject(
             principal,
             input.project,
             input.expectedRevision,
           );
           // Serializes revisions, including concurrent creation of a new document slug.
-          yield* sql`SELECT id FROM project WHERE id = ${project.id} FOR UPDATE`.pipe(
+          yield* sql`SELECT id FROM project WHERE id = ${target.id} FOR UPDATE`.pipe(
             databaseError("lock project"),
+          );
+          // Ownership can change while this request waits for the project lock.
+          const project = yield* resolvePublishProject(
+            principal,
+            { id: target.id },
+            input.expectedRevision,
           );
           const found = yield* lookupCurrent({ projectId: project.id, slug: input.slug }).pipe(
             databaseError("find current revision"),
           );
           const current = Option.getOrUndefined(found);
+          const role = current
+            ? (yield* documentAccess(principal, current, project, true)).accessRole
+            : (yield* projectAccess(principal, project, true)).accessRole;
           if (current?.hash === hash) {
             if (current.text !== text)
               yield* sql`UPDATE document SET text = ${text} WHERE id = ${current.id}`.pipe(
                 databaseError("refresh searchable text"),
               );
-            return { project, document: { ...current, text }, created: false, unchanged: true };
+            return {
+              project,
+              document: { ...current, text, accessRole: role },
+              created: false,
+              unchanged: true,
+            };
           }
           if ((current?.revision ?? 0) !== input.expectedRevision)
             return yield* new AppError({
@@ -283,6 +323,7 @@ export const publishDocument = Effect.fn("Library.publish")(
           const document: Document = {
             id: current?.id ?? (yield* uuid),
             projectId: project.id,
+            visibility: current?.visibility ?? "private",
             slug: input.slug,
             title: input.title,
             summary: input.summary,
@@ -314,7 +355,12 @@ export const publishDocument = Effect.fn("Library.publish")(
           );
           // Effect's commit failures are defects. Once commit starts, its outcome may be unknown.
           yield* Ref.set(committing, true);
-          return { project, document: saved, created: !current, unchanged: false };
+          return {
+            project,
+            document: { ...saved, starred: current?.starred ?? false, accessRole: role },
+            created: !current,
+            unchanged: false,
+          };
         }),
       )
       .pipe(
@@ -341,15 +387,28 @@ export const publishDocument = Effect.fn("Library.publish")(
         ),
         Effect.uninterruptible,
       );
+    const projectPermission = yield* projectRole(principal, result.project);
     return {
       ...result,
-      association: repositoryAssociation(config.origin, principal.ownerId, result.project),
+      project: projectPermission ? { ...result.project, accessRole: projectPermission } : null,
+      association: projectPermission
+        ? repositoryAssociation(config.origin, principal.ownerId, result.project)
+        : null,
       url: `${config.origin}/documents/${result.document.id}`,
     };
   },
   (effect, principal) =>
     effect.pipe(
       Effect.tap(() => invalidateLibrary(principal.ownerId)),
+      Effect.tap((result) =>
+        recordOperation("chronicon_document_published", {
+          document_id: result.document.id,
+          project_id: result.document.projectId,
+          revision: result.document.revision,
+          created: result.created,
+          unchanged: result.unchanged,
+        }),
+      ),
       Effect.uninterruptible,
     ),
 );
@@ -357,23 +416,48 @@ export const publishDocument = Effect.fn("Library.publish")(
 export const updateDocument = Effect.fn("Library.update")(
   function* (principal: Principal, id: string, patch: { starred?: boolean; archived?: boolean }) {
     const sql = yield* PgClient.PgClient;
-    const patchDocument = SqlSchema.findOne({
-      Request: Schema.Struct({
-        id: Schema.String,
-        starred: Schema.optionalKey(Schema.Boolean),
-        archived: Schema.optionalKey(Schema.Boolean),
-      }),
-      Result: documentSchema,
-      execute: ({ id, ...patch }) =>
-        sql`UPDATE document SET ${sql.update(patch)} WHERE id = ${id} RETURNING *`,
-    });
     yield* ownerAccess(principal);
-    yield* findDocument(principal, id, true);
-    return yield* patchDocument({ id, ...patch }).pipe(databaseError("update document flags"));
+    return yield* sql
+      .withTransaction(
+        Effect.gen(function* () {
+          yield* sql`SELECT p.id FROM project p JOIN document d ON d."projectId" = p.id WHERE d.id = ${id} FOR UPDATE OF p`.pipe(
+            databaseError("lock document project"),
+          );
+          yield* findDocumentContext(principal, id, patch.archived !== undefined);
+          if (patch.starred === true)
+            yield* sql`INSERT INTO document_star ("documentId", "userId") VALUES (${id}, ${principal.ownerId}) ON CONFLICT DO NOTHING`.pipe(
+              databaseError("star document"),
+            );
+          else if (patch.starred === false)
+            yield* sql`DELETE FROM document_star WHERE "documentId" = ${id} AND "userId" = ${principal.ownerId}`.pipe(
+              databaseError("unstar document"),
+            );
+          if (patch.archived !== undefined)
+            yield* sql`UPDATE document SET archived = ${patch.archived} WHERE id = ${id}`.pipe(
+              databaseError("archive document"),
+            );
+          const { document } = yield* findDocumentContext(principal, id);
+          return document;
+        }),
+      )
+      .pipe(
+        Effect.catchTag(
+          "SqlError",
+          () => new DatabaseError({ operation: "update document flags" }),
+        ),
+      );
   },
   (effect, principal) =>
     effect.pipe(
       Effect.tap(() => invalidateLibrary(principal.ownerId)),
+      Effect.tap((result) =>
+        recordOperation("chronicon_document_updated", {
+          document_id: result.id,
+          project_id: result.projectId,
+          starred: result.starred,
+          archived: result.archived,
+        }),
+      ),
       Effect.uninterruptible,
     ),
 );

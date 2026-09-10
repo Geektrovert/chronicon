@@ -1,6 +1,8 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Exit, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/unstable/http";
 import type { HttpMethod } from "effect/unstable/http/HttpMethod";
+import { capture, requestContext, requestSpan, telemetryRoute, wideLog } from "../telemetry";
+import { ActionTelemetry } from "../observe-action";
 
 class ApiError extends Schema.TaggedError<ApiError>()("ApiError", {
   operation: Schema.Literals(["request", "response"]),
@@ -13,19 +15,55 @@ const makeApi = Effect.gen(function* () {
     method?: HttpMethod;
     body?: unknown;
   }) {
+    const started = performance.now();
+    const startedAt = performance.timeOrigin + started;
+    const route = telemetryRoute(new URL(input.url).pathname);
+    const correlation = requestContext(route !== "/api/library");
+    const action = yield* ActionTelemetry;
+    const fields = {
+      request_id: correlation.requestId,
+      trace_id: correlation.traceId,
+      span_id: correlation.spanId,
+      method: input.method ?? "GET",
+      route,
+    };
+    if (action) Object.assign(action, fields);
     let request = HttpClientRequest.make(input.method ?? "GET")(input.url).pipe(
       HttpClientRequest.acceptJson,
       HttpClientRequest.setHeader("Cache-Control", "no-store"),
+      HttpClientRequest.setHeaders(correlation.headers),
     );
     if (input.body !== undefined)
       request = request.pipe(HttpClientRequest.bodyJsonUnsafe(input.body));
-    const response = yield* client
-      .execute(request)
-      .pipe(Effect.mapError(() => new ApiError({ operation: "request" })));
-    const body = yield* response.json.pipe(
-      Effect.mapError(() => new ApiError({ operation: "response" })),
+    const exit = yield* Effect.exit(
+      Effect.gen(function* () {
+        const response = yield* client
+          .execute(request)
+          .pipe(Effect.mapError(() => new ApiError({ operation: "request" })));
+        const body = yield* response.json.pipe(
+          Effect.mapError(() => new ApiError({ operation: "response" })),
+        );
+        return { status: response.status, body };
+      }),
     );
-    return { status: response.status, body };
+    const status = Exit.isSuccess(exit) ? exit.value.status : undefined;
+    const failed = status === undefined || status >= 400;
+    yield* Effect.sync(() => {
+      const durationMs = performance.now() - started;
+      const completion = {
+        ...fields,
+        status,
+        duration_ms: Math.round(durationMs),
+        outcome: failed ? "failure" : "success",
+      };
+      if (route !== "/api/library") requestSpan(completion, startedAt, durationMs);
+      if (action) action.request_span_recorded = true;
+      // Library polling is represented by server logs, not repeated browser journey events.
+      if (failed || fields.route !== "/api/library")
+        wideLog("request", completion, failed ? "warn" : "info");
+      if (failed) capture("request_failed", completion);
+    });
+    return Exit.isSuccess(exit) ? exit.value : yield* Effect.failCause(exit.cause);
   });
   return { request };
 });

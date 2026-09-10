@@ -27,6 +27,7 @@ import { formatRelativeDate, formatTimestamp } from "@/lib/date";
 import { formatBinding, type Keybindings } from "@/lib/keybindings";
 import type { Library } from "@/lib/model";
 import { Brand } from "./brand";
+import { TeamSwitcher } from "./team-settings";
 import { Button, ButtonLink } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import {
@@ -88,12 +89,14 @@ export function WorkspaceSidebar({
       ? activeDocument?.archived
         ? "/archive"
         : documentProject
-          ? `/projects/${documentProject.slug}`
+          ? `/projects/${documentProject.id}`
           : "/"
       : collectionPath,
     limit: 40,
   });
-  const project = library.projects.find((item) => scope.collection === `/projects/${item.slug}`);
+  const project =
+    library.projects.find((item) => scope.collection === `/projects/${item.id}`) ??
+    library.projects.find((item) => scope.collection === `/projects/${item.slug}`);
   const currentProject = documentProject ?? project;
 
   // Keep the originating collection while opening its documents. Direct links
@@ -157,6 +160,7 @@ export function WorkspaceSidebar({
               </SidebarAction>
               <Brand onNavigate={close} />
             </div>
+            <TeamSwitcher compact={compact} />
             <div className="sidebar-control-row">
               <SidebarAction
                 label="Search workspace"
@@ -209,7 +213,7 @@ export function WorkspaceSidebar({
                 onValueChange={(value) => {
                   if (!value) return;
                   const selected = projectsById.get(value);
-                  const href = selected ? `/projects/${selected.slug}` : "/";
+                  const href = selected ? `/projects/${selected.id}` : "/";
                   setScope({ pathname, collection: href, limit: 40 });
                   close();
                   startTransition(() => router.push(href));
@@ -307,7 +311,7 @@ export function WorkspaceSidebar({
                   <span className="sidebar-document-meta">
                     <Folder className="size-3.5" aria-hidden="true" />
                     <span className="sidebar-document-project">
-                      {projectsById.get(document.projectId)?.name}
+                      {projectsById.get(document.projectId)?.name ?? "Shared document"}
                     </span>
                     {document.starred && (
                       <Star className="size-3 fill-current" aria-label="Starred" />

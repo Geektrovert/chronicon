@@ -1,9 +1,10 @@
 import { Cause, Effect, Exit, Option, Schema, Stream } from "effect";
 import { connection } from "next/server";
 import { unstable_rethrow } from "next/navigation";
-import { AppError, DatabaseError, StorageError } from "./errors";
+import { AppError } from "./errors";
 import { LibraryInvalidation, requestLibraryInvalidation } from "./cache";
-import { runtime, type AppServices } from "./runtime";
+import { type AppServices } from "./runtime";
+import { runObservedRequest, telemetryResponseHeaders } from "./request-telemetry";
 
 export const privateHeaders = {
   "Cache-Control": "private, no-store",
@@ -15,16 +16,10 @@ export function failure(cause: Cause.Cause<unknown>) {
   if (Option.isSome(error) && Schema.is(AppError)(error.value))
     return { status: error.value.status, message: error.value.message };
   if (Cause.hasInterruptsOnly(cause)) return { status: 499, message: "Request cancelled." };
-  Effect.runSync(
-    Effect.logError(
-      "Chronicon request failed.",
-      Option.isSome(error) &&
-        (Schema.is(DatabaseError)(error.value) || Schema.is(StorageError)(error.value))
-        ? { error: error.value._tag, operation: error.value.operation }
-        : { error: "UnexpectedError" },
-    ),
-  );
-  return { status: 500, message: "Unable to complete the request. Try again." };
+  return {
+    status: 500,
+    message: "Unable to confirm the result. Refresh to check for changes before trying again.",
+  };
 }
 // oxlint-disable-next-line effecttsgo/async-function -- Next's connection() must run before entering the Effect runtime.
 export async function route<A, E>(
@@ -35,15 +30,24 @@ export async function route<A, E>(
   const scoped = program.pipe(
     Effect.provideService(LibraryInvalidation, requestLibraryInvalidation()),
   );
-  return runtime.runPromiseExit(scoped, { signal: request.signal }).then((exit) => {
-    if (Exit.isSuccess(exit))
-      return exit.value instanceof Response
-        ? exit.value
-        : Response.json(exit.value, { headers: privateHeaders });
+  return runObservedRequest(
+    request.headers,
+    request.method,
+    new URL(request.url).pathname,
+    scoped,
+    { signal: request.signal },
+  ).then(({ exit, state }) => {
+    if (Exit.isSuccess(exit)) {
+      const response =
+        exit.value instanceof Response
+          ? exit.value
+          : Response.json(exit.value, { headers: privateHeaders });
+      return telemetryResponseHeaders(response, state, privateHeaders);
+    }
     const error = failure(exit.cause);
-    return Response.json(
-      { error: error.message },
-      { status: error.status, headers: privateHeaders },
+    return telemetryResponseHeaders(
+      Response.json({ error: error.message }, { status: error.status, headers: privateHeaders }),
+      state,
     );
   });
 }

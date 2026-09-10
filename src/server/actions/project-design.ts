@@ -11,8 +11,9 @@ import {
   type updateDesignInput,
 } from "@/lib/project-design/model";
 import { databaseError } from "../database";
-import { AppError } from "../errors";
+import { AppError, DatabaseError } from "../errors";
 import { findProject } from "./projects";
+import { recordOperation } from "../observability";
 
 const readRecord = Effect.fn("Design.readRecord")(function* (projectId: string) {
   const sql = yield* PgClient.PgClient;
@@ -51,57 +52,79 @@ export const readProjectDesign = Effect.fn("Design.read")(function* (
   return detail(yield* readRecord(project.id));
 });
 
-export const updateProjectDesign = Effect.fn("Design.update")(function* (
-  principal: Principal,
-  input: typeof updateDesignInput.Type,
-) {
-  const project = yield* findProject(principal, input.project, true);
-  const current = yield* readRecord(project.id);
-  if (current.revision !== input.expectedRevision) return yield* conflict();
-  const guidance =
-    input.markdown === undefined
-      ? (input.guidance ?? current.guidance)
-      : guidanceFromMarkdown(input.markdown, current);
-  if (guidance === undefined)
-    return yield* new AppError({
-      status: 400,
-      message:
-        "Keep the generated design.md block intact. Edit guidance outside it, and use the settings field to change the theme.",
-    });
-  if (guidance.length > 64_000 || guidance.includes("<!-- chronicon:design:"))
-    return yield* new AppError({
-      status: 400,
-      message:
-        "Use 64,000 characters or fewer for guidance. Keep it outside the generated design.md block.",
-    });
-  const settings = input.settings ?? current.settings;
-  const changedSettings = Struct.keys(settings).some(
-    (key) => current.settings[key] !== settings[key],
-  );
-  // Preserve resolved tokens on notes-only writes, including after catalog upgrades.
-  const record = {
-    projectId: project.id,
-    revision: current.revision + 1,
-    settings,
-    tokens: changedSettings || current.revision === 0 ? buildTokens(settings) : current.tokens,
-    guidance,
-    sourceRevision:
-      changedSettings || current.revision === 0 ? SOURCE_REVISION : current.sourceRevision,
-    updatedAt: DateTime.formatIso(yield* DateTime.now),
-  };
-  const sql = yield* PgClient.PgClient;
-  const saved = yield* SqlSchema.findOneOption({
-    Request: Schema.Void,
-    Result: designRecord,
-    execute: () =>
-      current.revision === 0
-        ? sql`INSERT INTO project_design ("projectId", revision, settings, tokens, guidance, "sourceRevision", "updatedAt")
+export const updateProjectDesign = Effect.fn("Design.update")(
+  function* (principal: Principal, input: typeof updateDesignInput.Type) {
+    const sql = yield* PgClient.PgClient;
+    const target = yield* findProject(principal, input.project);
+    return yield* sql
+      .withTransaction(
+        Effect.gen(function* () {
+          yield* sql`SELECT id FROM project WHERE id = ${target.id} FOR UPDATE`.pipe(
+            databaseError("lock project design"),
+          );
+          const project = yield* findProject(principal, { id: target.id }, true);
+          const current = yield* readRecord(project.id);
+          if (current.revision !== input.expectedRevision) return yield* conflict();
+          const guidance =
+            input.markdown === undefined
+              ? (input.guidance ?? current.guidance)
+              : guidanceFromMarkdown(input.markdown, current);
+          if (guidance === undefined)
+            return yield* new AppError({
+              status: 400,
+              message:
+                "Keep the generated design.md block intact. Edit guidance outside it, and use the settings field to change the theme.",
+            });
+          if (guidance.length > 64_000 || guidance.includes("<!-- chronicon:design:"))
+            return yield* new AppError({
+              status: 400,
+              message:
+                "Use 64,000 characters or fewer for guidance. Keep it outside the generated design.md block.",
+            });
+          const settings = input.settings ?? current.settings;
+          const changedSettings = Struct.keys(settings).some(
+            (key) => current.settings[key] !== settings[key],
+          );
+          // Preserve resolved tokens on notes-only writes, including after catalog upgrades.
+          const record = {
+            projectId: project.id,
+            revision: current.revision + 1,
+            settings,
+            tokens:
+              changedSettings || current.revision === 0 ? buildTokens(settings) : current.tokens,
+            guidance,
+            sourceRevision:
+              changedSettings || current.revision === 0 ? SOURCE_REVISION : current.sourceRevision,
+            updatedAt: DateTime.formatIso(yield* DateTime.now),
+          };
+          const saved = yield* SqlSchema.findOneOption({
+            Request: Schema.Void,
+            Result: designRecord,
+            execute: () =>
+              current.revision === 0
+                ? sql`INSERT INTO project_design ("projectId", revision, settings, tokens, guidance, "sourceRevision", "updatedAt")
           VALUES (${record.projectId}, ${record.revision}, ${sql.json(record.settings)}, ${sql.json(record.tokens)}, ${record.guidance}, ${record.sourceRevision}, ${record.updatedAt})
           ON CONFLICT ("projectId") DO NOTHING RETURNING *`
-        : sql`UPDATE project_design SET revision = ${record.revision}, settings = ${sql.json(record.settings)}, tokens = ${sql.json(record.tokens)},
+                : sql`UPDATE project_design SET revision = ${record.revision}, settings = ${sql.json(record.settings)}, tokens = ${sql.json(record.tokens)},
           guidance = ${record.guidance}, "sourceRevision" = ${record.sourceRevision}, "updatedAt" = ${record.updatedAt}
           WHERE "projectId" = ${project.id} AND revision = ${input.expectedRevision} RETURNING *`,
-  })(undefined).pipe(databaseError("save project design"));
-  if (Option.isNone(saved)) return yield* conflict();
-  return detail(saved.value);
-}, Effect.uninterruptible);
+          })(undefined).pipe(databaseError("save project design"));
+          if (Option.isNone(saved)) return yield* conflict();
+          return detail(saved.value);
+        }),
+      )
+      .pipe(
+        Effect.catchTag("SqlError", () => new DatabaseError({ operation: "save project design" })),
+      );
+  },
+  (effect) =>
+    effect.pipe(
+      Effect.tap((result) =>
+        recordOperation("chronicon_project_design_saved", {
+          project_id: result.projectId,
+          revision: result.revision,
+        }),
+      ),
+      Effect.uninterruptible,
+    ),
+);

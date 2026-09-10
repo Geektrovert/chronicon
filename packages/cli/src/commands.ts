@@ -88,6 +88,9 @@ function revision(value: string | undefined, flag: string, minimum: number) {
 const projectSchema = Schema.Struct({
   id: Schema.String,
   ownerId: Schema.String,
+  organizationId: Schema.String,
+  visibility: Schema.Literals(["private", "public"]),
+  accessRole: Schema.optionalKey(Schema.Literals(["full_access", "edit", "view"])),
   slug: Schema.String,
   name: Schema.String,
   description: Schema.String,
@@ -95,7 +98,7 @@ const projectSchema = Schema.Struct({
   revision: Schema.Int,
 });
 const objectSchema = Schema.Record(Schema.String, Schema.Unknown);
-const withAssociation = Schema.Struct({ association: associationSchema });
+const withAssociation = Schema.Struct({ association: Schema.NullOr(associationSchema) });
 
 const readJsonInputFile = Effect.fn("Cli.readJsonInputFile")(function* (file: string) {
   const content = yield* readInputFile(file);
@@ -123,7 +126,7 @@ function reference(saved: Association | undefined, credential: Credential, expli
 const print = (value: unknown) => Console.log(JSON.stringify(value, null, 2));
 const persistPublished = (result: unknown, saved: Association | undefined, relink: boolean) =>
   Effect.gen(function* () {
-    if (!Schema.is(withAssociation)(result) || (saved && !relink)) return;
+    if (!Schema.is(withAssociation)(result) || (saved && !relink) || !result.association) return;
     yield* saveAssociation(result.association, relink).pipe(
       Effect.mapError(
         (error) =>
@@ -191,9 +194,14 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
     if (action === "link") {
       const selected = required(subject, "a project ID");
       const projects = yield* decode(Schema.Array(projectSchema), yield* call("list_projects", {}));
-      const project = projects.find(
-        (project) => project.id === selected || project.slug === selected,
-      );
+      const exact = projects.find((project) => project.id === selected);
+      const matches = exact ? [exact] : projects.filter((project) => project.slug === selected);
+      if (matches.length > 1)
+        return yield* new CliError({
+          message:
+            "Several teams have this project slug. Use the project ID from chronicon project list.",
+        });
+      const project = matches[0];
       if (!project)
         return yield* new CliError({
           message:

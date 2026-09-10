@@ -26,6 +26,7 @@ import { buildTokens, SOURCE_URL } from "@/lib/project-design/config";
 import { designCSS } from "@/lib/project-design/markdown";
 import { loadProjectDesign, saveProjectDesign } from "@/client/actions/project-design";
 import { runAction } from "@/client/runtime";
+import { capture } from "@/client/telemetry";
 import { Button, ButtonLink } from "../ui/button";
 import { Field, FieldDescription, FieldLabel } from "../ui/field";
 import { Form } from "../ui/form";
@@ -33,6 +34,7 @@ import { Textarea } from "../ui/textarea";
 import { DesignCustomizer } from "./customizer";
 import { DesignPreview, type PreviewMode } from "./preview";
 import { designChanged, useDesignDrafts } from "./drafts";
+import { useWorkspace } from "../workspace";
 import "./studio.css";
 
 function randomItem<T>(items: readonly T[]) {
@@ -78,6 +80,9 @@ export function ProjectDesignEditor({
   initial: ProjectDesign;
 }) {
   const { resolvedTheme } = useTheme();
+  const { library } = useWorkspace();
+  const role = library.projects.find((item) => item.id === project.id)?.accessRole;
+  const canEdit = role === "edit" || role === "full_access";
   const drafts = useDesignDrafts();
   const [restoredDraft, setRestoredDraft] = useState(() => drafts.get(project.id));
   const [saved, setSaved] = useState(restoredDraft?.base ?? initial);
@@ -93,6 +98,9 @@ export function ProjectDesignEditor({
   const doneButton = useRef<HTMLButtonElement>(null);
   const previousControlsOpen = useRef(controlsOpen);
   useEffect(() => {
+    capture("project_design_opened", { project_id: project.id });
+  }, [project.id]);
+  useEffect(() => {
     if (previousControlsOpen.current === controlsOpen) return;
     previousControlsOpen.current = controlsOpen;
     (controlsOpen ? doneButton : customizeButton).current?.focus();
@@ -101,7 +109,7 @@ export function ProjectDesignEditor({
   const form = useForm({
     defaultValues: restoredDraft?.values ?? { settings: saved.settings, guidance: saved.guidance },
     onSubmit: ({ value }) => {
-      if (busy) return;
+      if (busy || !canEdit) return;
       setOperation("save");
       setError("");
       setMessage("");
@@ -137,6 +145,7 @@ export function ProjectDesignEditor({
     return () => subscription.unsubscribe();
   }, [drafts, form, project.id]);
   function reload() {
+    capture("project_design_discard_started", { project_id: project.id });
     setOperation("reload");
     setError("");
     setMessage("");
@@ -182,7 +191,11 @@ export function ProjectDesignEditor({
             </Button>
             <form.Subscribe selector={(state) => designChanged(state.values, saved)}>
               {(dirty) => (
-                <Button type="submit" size="sm" disabled={busy || (!dirty && saved.revision > 0)}>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!canEdit || busy || (!dirty && saved.revision > 0)}
+                >
                   {busy && operation === "save" ? "Saving…" : "Save design"}
                 </Button>
               )}
@@ -210,7 +223,7 @@ export function ProjectDesignEditor({
                   <DesignCustomizer
                     value={field.state.value}
                     onChange={field.handleChange}
-                    disabled={busy}
+                    disabled={busy || !canEdit}
                   />
                 )}
               </form.Field>
@@ -220,8 +233,9 @@ export function ProjectDesignEditor({
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={busy}
+                disabled={busy || !canEdit}
                 onClick={() => {
+                  capture("project_design_shuffle", { project_id: project.id });
                   const baseColor = randomItem(BASE_COLORS);
                   const theme = randomItem([baseColor, ...ACCENT_COLORS]);
                   form.setFieldValue("settings", {
@@ -341,7 +355,7 @@ export function ProjectDesignEditor({
                             value={guidance.state.value}
                             onBlur={guidance.handleBlur}
                             onChange={(event) => guidance.handleChange(event.target.value)}
-                            disabled={busy}
+                            disabled={busy || !canEdit}
                             className="font-mono text-sm"
                           />
                         </Field>

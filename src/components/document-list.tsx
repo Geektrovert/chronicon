@@ -23,6 +23,8 @@ export function DocumentList({
   toggleStar: (document: Document) => void;
   pendingDocuments: ReadonlyArray<string>;
 }) {
+  const projectsById = new Map(projects.map((project) => [project.id, project]));
+  const pendingIds = new Set(pendingDocuments);
   if (!documents.length)
     return (
       <EmptyState
@@ -76,7 +78,7 @@ export function DocumentList({
               {doc.summary || `${doc.slug}.html`}
             </p>
             <div className="document-meta">
-              <span>{projects.find((p) => p.id === doc.projectId)?.name}</span>
+              <span>{projectsById.get(doc.projectId)?.name ?? "Shared document"}</span>
               <span className="meta-dot">·</span>
               <span>{doc.kind}</span>
               {doc.tags.slice(0, 2).map((tag) => (
@@ -93,7 +95,7 @@ export function DocumentList({
               className={`star-button ${doc.starred ? "is-starred" : ""}`}
               aria-label={`${doc.starred ? "Unstar" : "Star"} ${doc.title}`}
               aria-pressed={doc.starred}
-              disabled={pendingDocuments.includes(doc.id)}
+              disabled={pendingIds.has(doc.id)}
               onClick={() => toggleStar(doc)}
             >
               <Star size={16} fill={doc.starred ? "currentColor" : "none"} />

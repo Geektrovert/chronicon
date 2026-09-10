@@ -3,10 +3,11 @@ import { Context, Effect, Layer, Redacted } from "effect";
 import { Pool } from "pg";
 import { AppConfig } from "./config";
 import { DatabaseError } from "./errors";
+import { logOperationalError } from "./observability";
 
 // pg removes failed idle connections. Keep its event out of the uncaught-error path.
 function onPoolError() {
-  Effect.runSync(Effect.logError("An idle database connection closed."));
+  logOperationalError("An idle database connection closed.");
 }
 
 export class DatabasePool extends Context.Service<DatabasePool, Pool>()("chronicon/DatabasePool") {

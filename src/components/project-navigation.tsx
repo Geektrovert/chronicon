@@ -3,6 +3,7 @@
 import { ChevronRight, FileText, Menu, Palette } from "lucide-react";
 import type { Project } from "@/lib/model";
 import { Button, ButtonLink } from "./ui/button";
+import { SharingButton } from "./sharing-dialog";
 
 // Project destinations share labels and routes across the header, directory,
 // and command search. Add future project features here with their own route.
@@ -12,7 +13,7 @@ export const projectSections = [
 ] as const;
 
 export function projectSectionHref(project: Project, section: (typeof projectSections)[number]) {
-  return `/projects/${project.slug}${section.path}`;
+  return `/projects/${project.id}${section.path}`;
 }
 
 export function ProjectNavigation({
@@ -43,13 +44,17 @@ export function ProjectNavigation({
         <span className="project-name" title={project.name}>
           {project.name}
         </span>
+        <div className="ml-auto">
+          <SharingButton type="project" id={project.id} name={project.name} />
+        </div>
       </div>
       <nav className="project-sections" aria-label={`${project.name} navigation`}>
         {projectSections.map((section) => {
           const href = projectSectionHref(project, section);
-          const exact = pathname === href;
+          const legacyHref = `/projects/${project.slug}${section.path}`;
+          const exact = pathname === href || pathname === legacyHref;
           const within = section.path
-            ? pathname.startsWith(`${href}/`)
+            ? pathname.startsWith(`${href}/`) || pathname.startsWith(`${legacyHref}/`)
             : pathname.startsWith("/documents/");
           return (
             <ButtonLink

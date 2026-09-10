@@ -21,7 +21,8 @@ import { AppError } from "./errors";
 import { readDesignInput, updateDesignInput } from "@/lib/project-design/model";
 import { readProjectDesign, updateProjectDesign } from "./actions/project-design";
 import { failure, privateHeaders, readBody } from "./http";
-import { runtime, type AppServices } from "./runtime";
+import { type AppServices } from "./runtime";
+import { runObservedRequest, runObservedTool, telemetryResponseHeaders } from "./request-telemetry";
 
 function standard<S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
@@ -43,19 +44,22 @@ function handler(
   cache: ReturnType<typeof requestLibraryInvalidation>,
 ) {
   function tool<A, E>(
+    name: string,
     program: Effect.Effect<A, E, AppServices | LibraryInvalidation>,
     signal: AbortSignal,
   ) {
-    return runtime
-      .runPromiseExit(program.pipe(Effect.provideService(LibraryInvalidation, cache)), { signal })
-      .then((exit) =>
-        Exit.isSuccess(exit)
-          ? { content: [{ type: "text" as const, text: JSON.stringify(exit.value) }] }
-          : {
-              isError: true,
-              content: [{ type: "text" as const, text: failure(exit.cause).message }],
-            },
-      );
+    return runObservedTool(
+      name,
+      program.pipe(Effect.provideService(LibraryInvalidation, cache)),
+      signal,
+    ).then((exit) =>
+      Exit.isSuccess(exit)
+        ? { content: [{ type: "text" as const, text: JSON.stringify(exit.value) }] }
+        : {
+            isError: true,
+            content: [{ type: "text" as const, text: failure(exit.cause).message }],
+          },
+    );
   }
   return createMcpHandler(
     () => {
@@ -72,6 +76,7 @@ function handler(
         },
         (_input, ctx) =>
           tool(
+            "list_projects",
             readCachedLibrary(principal).pipe(Effect.map((library) => library.projects)),
             ctx.mcpReq.signal,
           ),
@@ -99,6 +104,7 @@ function handler(
         },
         (input, ctx) =>
           tool(
+            "read_document",
             Effect.gen(function* () {
               if (input.id)
                 return yield* readDocumentByReference(principal, {
@@ -129,6 +135,7 @@ function handler(
         },
         (input, ctx) =>
           tool(
+            "upsert_document",
             Effect.gen(function* () {
               const result = yield* publishDocument(principal, input);
               return {
@@ -158,7 +165,7 @@ function handler(
           ),
           annotations: { readOnlyHint: true },
         },
-        (input, ctx) => tool(findDocuments(principal, input), ctx.mcpReq.signal),
+        (input, ctx) => tool("find_documents", findDocuments(principal, input), ctx.mcpReq.signal),
       );
       server.registerTool(
         "read_project_design",
@@ -168,7 +175,8 @@ function handler(
           inputSchema: standard(readDesignInput),
           annotations: { readOnlyHint: true },
         },
-        (input, ctx) => tool(readProjectDesign(principal, input), ctx.mcpReq.signal),
+        (input, ctx) =>
+          tool("read_project_design", readProjectDesign(principal, input), ctx.mcpReq.signal),
       );
       server.registerTool(
         "update_project_design",
@@ -178,7 +186,8 @@ function handler(
           inputSchema: standard(updateDesignInput),
           annotations: { destructiveHint: false },
         },
-        (input, ctx) => tool(updateProjectDesign(principal, input), ctx.mcpReq.signal),
+        (input, ctx) =>
+          tool("update_project_design", updateProjectDesign(principal, input), ctx.mcpReq.signal),
       );
       return server;
     },
@@ -222,16 +231,19 @@ const handle = Effect.fn("Mcp.handle")(function* (
 });
 export function mcpRoute(request: Request) {
   const cache = requestLibraryInvalidation();
-  return runtime.runPromiseExit(handle(request, cache), { signal: request.signal }).then((exit) => {
+  return runObservedRequest(request.headers, request.method, "/api/mcp", handle(request, cache), {
+    signal: request.signal,
+  }).then(({ exit, state }) => {
     if (Exit.isSuccess(exit)) {
-      for (const [name, value] of Object.entries(privateHeaders))
-        exit.value.headers.set(name, value);
-      return exit.value;
+      return telemetryResponseHeaders(exit.value, state, privateHeaders);
     }
     const error = failure(exit.cause);
-    return Response.json(
-      { jsonrpc: "2.0", id: null, error: { code: -32000, message: error.message } },
-      { status: error.status, headers: privateHeaders },
+    return telemetryResponseHeaders(
+      Response.json(
+        { jsonrpc: "2.0", id: null, error: { code: -32000, message: error.message } },
+        { status: error.status, headers: privateHeaders },
+      ),
+      state,
     );
   });
 }

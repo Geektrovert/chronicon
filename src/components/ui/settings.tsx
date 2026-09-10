@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import { ButtonLink } from "./button";
 
-export function SettingsPage({ children }: { children: ReactNode }) {
+export function SettingsPage({
+  children,
+  section = "appearance",
+}: {
+  children: ReactNode;
+  section?: "appearance" | "team";
+}) {
   return (
     <main
       id="main"
@@ -18,12 +24,20 @@ export function SettingsPage({ children }: { children: ReactNode }) {
           href="/settings/appearance"
           variant="navigation"
           className="w-auto"
-          aria-current="page"
+          aria-current={section === "appearance" ? "page" : undefined}
         >
           Appearance
         </ButtonLink>
+        <ButtonLink
+          href="/settings/team"
+          variant="navigation"
+          className="w-auto"
+          aria-current={section === "team" ? "page" : undefined}
+        >
+          Team
+        </ButtonLink>
       </nav>
-      <h1 className="sr-only">Appearance</h1>
+      <h1 className="sr-only">{section === "team" ? "Team settings" : "Appearance"}</h1>
       {children}
     </main>
   );
