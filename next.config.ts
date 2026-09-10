@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { Config, Effect, Redacted } from "effect";
 import { withPostHogConfig } from "@posthog/nextjs-config";
+import { posthogHosts } from "./src/lib/posthog";
 
 const portlessUrl = Effect.runSync(Config.string("PORTLESS_URL").pipe(Config.withDefault("")));
 const buildMetadata = Effect.runSync(
@@ -68,9 +69,7 @@ export default Redacted.value(sourceMaps.personalApiKey)
   ? withPostHogConfig(nextConfig, {
       personalApiKey: Redacted.value(sourceMaps.personalApiKey),
       projectId: sourceMaps.projectId,
-      host: /^(https:\/\/)?eu(\.i)?\.posthog\.com\/?$/.test(sourceMaps.host)
-        ? "https://eu.posthog.com"
-        : "https://us.posthog.com",
+      host: posthogHosts(sourceMaps.host).ui,
       sourcemaps: {
         enabled: true,
         releaseName: "chronicon",

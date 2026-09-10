@@ -1,16 +1,7 @@
 import { Config, Effect, Exit, Schema, Stream } from "effect";
+import { posthogHosts, posthogProxyPrefix, posthogSdkPaths, posthogTracePath } from "@/lib/posthog";
 
-const prefix = "/api/cairn-v7q";
-const aliases = [
-  ["/p1/", "/i/v0/e/"],
-  ["/p2/", "/e/"],
-  ["/p3/", "/s/"],
-  ["/p4/", "/flags/"],
-  ["/p5/", "/array/"],
-  ["/p6/", "/static/"],
-  ["/p7", "/i/v1/logs"],
-  ["/p8", "/i/v1/traces"],
-] as const;
+const paths = [...posthogSdkPaths, posthogTracePath];
 const maximumBodyBytes = 4_000_000;
 const maximumResponseBytes = 8_000_000;
 const responseHeaders = {
@@ -97,8 +88,8 @@ const forward = Effect.fn("TelemetryProxy.forward")(function* (request: Request)
   )
     return new Response(null, { status: 403, headers: responseHeaders });
 
-  let path = url.pathname.slice(prefix.length);
-  for (const [alias, upstream] of aliases) {
+  let path = url.pathname.slice(posthogProxyPrefix.length);
+  for (const [upstream, alias] of paths) {
     if (path === alias.replace(/\/$/, "") || path.startsWith(alias)) {
       path = upstream + path.slice(alias.length);
       break;
@@ -115,11 +106,8 @@ const forward = Effect.fn("TelemetryProxy.forward")(function* (request: Request)
 
   if (!config.token.startsWith("phc_"))
     return new Response(null, { status: 503, headers: responseHeaders });
-  const region = /^(https:\/\/)?eu(\.i)?\.posthog\.com\/?$/.test(config.host) ? "eu" : "us";
-  const destination = new URL(
-    path + url.search,
-    `https://${region}${asset ? "-assets" : ""}.i.posthog.com`,
-  );
+  const hosts = posthogHosts(config.host);
+  const destination = new URL(path + url.search, asset ? hosts.assets : hosts.ingestion);
 
   // Construct fresh headers. App cookies, bearer keys, referers and forwarding headers stay here.
   const headers = new Headers();

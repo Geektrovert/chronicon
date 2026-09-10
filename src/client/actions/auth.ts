@@ -6,23 +6,16 @@ import { adminClient, organizationClient } from "better-auth/client/plugins";
 import { ClientError } from "../errors";
 import { announceSignOut, leaveWorkspace } from "./session";
 import { signInDestination } from "@/lib/cli-auth";
-import { observeAction, ActionTelemetry } from "../observe-action";
-import { identifyUser, requestContext, resetIdentity } from "../telemetry";
+import { observeAction } from "../observe-action";
+import { identifyUser, resetIdentity } from "../telemetry";
+import { prepareRequestTelemetry } from "../services/request-telemetry";
 const authClient = createAuthClient({
   plugins: [apiKeyClient(), organizationClient(), adminClient()],
 });
-const authenticationContext = Effect.gen(function* () {
-  const correlation = requestContext();
-  const action = yield* ActionTelemetry;
-  if (action)
-    Object.assign(action, {
-      request_id: correlation.requestId,
-      trace_id: correlation.traceId,
-      span_id: correlation.spanId,
-      method: "POST",
-      route: "/api/auth/[operation]",
-    });
-  return correlation;
+const authenticationContext = prepareRequestTelemetry({
+  method: "POST",
+  route: "/api/auth/[operation]",
+  sampled: true,
 });
 const credentials = Schema.Struct({
   email: Schema.String.check(Schema.isMinLength(1)),

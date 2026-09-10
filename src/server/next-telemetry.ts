@@ -10,6 +10,7 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import { Clock, Config, Deferred, Effect, Logger } from "effect";
+import { posthogProxyPrefix } from "@/lib/posthog";
 import {
   collectorEndpoint,
   collectorHeaders,
@@ -109,7 +110,7 @@ function isTelemetrySpan(span: ReadableSpan, endpoint: string) {
   for (const key of ["http.route", "next.route", "http.target", "http.url", "url.full"]) {
     const value = span.attributes[key];
     const path = pathFrom(value);
-    if (path === "/api/cairn-v7q" || path?.startsWith("/api/cairn-v7q/")) return true;
+    if (path === posthogProxyPrefix || path?.startsWith(`${posthogProxyPrefix}/`)) return true;
     if (typeof value !== "string" || !value.startsWith("http")) continue;
     try {
       const url = new URL(value);

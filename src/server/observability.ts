@@ -20,6 +20,7 @@ import {
 } from "effect/unstable/observability";
 import { PostHog } from "posthog-node";
 import type { Principal } from "@/lib/model";
+import { posthogHosts } from "@/lib/posthog";
 import {
   AppError,
   AuthenticationError,
@@ -111,12 +112,7 @@ export function telemetryConfiguration() {
   const setting = readConfig("NEXT_PUBLIC_POSTHOG_ENABLED");
   const enabled =
     setting === "true" || (setting !== "false" && readConfig("NODE_ENV") === "production");
-  const region = /^(https:\/\/)?eu(\.i)?\.posthog\.com\/?$/.test(
-    readConfig("NEXT_PUBLIC_POSTHOG_HOST"),
-  )
-    ? "eu"
-    : "us";
-  const host = `https://${region}.i.posthog.com`;
+  const host = posthogHosts(readConfig("NEXT_PUBLIC_POSTHOG_HOST")).ingestion;
   return { key, enabled: enabled && key.startsWith("phc_"), host };
 }
 

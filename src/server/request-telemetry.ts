@@ -1,10 +1,10 @@
-import { Cause, Effect, Exit, Layer, References, Scope, Tracer } from "effect";
+import { Cause, Effect, Exit, References, Tracer } from "effect";
 import { trace } from "@opentelemetry/api";
 import { after } from "next/server";
 import { headers } from "next/headers";
 import { runtime, type AppServices } from "./runtime";
 import type { Principal } from "@/lib/model";
-import { flushNextTelemetry } from "./next-telemetry";
+import { createTelemetrySession } from "./services/telemetry";
 import {
   CurrentTelemetry,
   annotatePrincipal,
@@ -12,7 +12,6 @@ import {
   captureServerException,
   logWideEvent,
   makeRequestTelemetry,
-  requestObservabilityLayer,
   safeFailure,
   telemetryContext,
   type RequestTelemetry,
@@ -90,7 +89,6 @@ function observed<A, E, R>(
 }
 
 // Exporters belong to the request; the Postgres/Auth service graph stays shared.
-// Scope.close awaits exports already in flight, which Flusher.flush alone cannot do.
 // oxlint-disable-next-line effecttsgo/async-function -- Next after owns the serverless lifetime beyond the response.
 export async function runObservedRequest<A, E>(
   requestHeaders: Headers,
@@ -108,21 +106,9 @@ export async function runObservedRequest<A, E>(
       spanId: parent.spanId,
       sampled: (parent.traceFlags & 1) === 1,
     });
-  const scope = Scope.makeUnsafe("parallel");
-  after(() =>
-    Promise.allSettled([
-      Effect.runPromise(
-        Scope.close(scope, Exit.void).pipe(Effect.interruptible, Effect.timeoutOption("4 seconds")),
-      ),
-      state.posthog?.shutdown(3500),
-      flushNextTelemetry(),
-    ]).then(() => undefined),
-  );
-  const context = await Effect.runPromise(
-    Layer.buildWithScope(requestObservabilityLayer(state), scope),
-  ).catch(() =>
-    Effect.runPromise(Layer.buildWithScope(requestObservabilityLayer(state, false), scope)),
-  );
+  const session = createTelemetrySession(state);
+  after(() => session.drain().then(() => undefined));
+  const context = await session.build().catch(() => session.build(false));
   state.context = context;
   const exit = await telemetryContext.run(state, () =>
     runtime.runPromiseExit(
