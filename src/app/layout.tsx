@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { ThemeProvider } from "@/components/ui/theme";
 import "./globals.css";
+
+// oxlint-disable-next-line effecttsgo/process-env -- Next.js replaces NODE_ENV at build time.
+const isDevelopment = process.env.NODE_ENV === "development";
 
 const departureMono = localFont({
   src: "./fonts/departure-mono.woff2",
@@ -32,6 +36,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${departureMono.variable} ${nacelle.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        {isDevelopment && (
+          <Script
+            src="https://unpkg.com/react-grab@0.2.0/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+      </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>{children}</ThemeProvider>
       </body>

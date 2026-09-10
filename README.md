@@ -107,6 +107,11 @@ bun run db:migrate
 bun run dev
 ```
 
+`bun run dev` loads [React Grab](https://github.com/aidenybai/react-grab) 0.2.0
+from unpkg. Hover an element and press Cmd+C or Ctrl+C to copy its component and
+source context for your agent. The development-only script is excluded from
+production pages.
+
 Open the URL printed by `bun run dev` and choose Create an account. Passwords use 12–128 characters and Better Auth's salted scrypt hashing. Signup signs you into a new private workspace. Authentication has database-backed rate limits. Email is an account identifier; email verification and password-recovery delivery are not configured.
 
 After database setup, `bun run dev` serves the app at `https://chronicon.localhost`. The command starts or reuses the shared HTTPS proxy on port 443, pins `.localhost` routing to loopback, and assigns Next.js a free internal port. It does not inherit an old proxy port such as 1355 or silently fall back to a URL containing a port number. Other apps share the proxy using distinct names; Git worktrees receive branch-prefixed hostnames. There are no per-app port assignments, DNS configuration files, or certificate paths to maintain.
@@ -353,15 +358,24 @@ Install the recommended Oxc and [TypeScript 7 editor extensions](https://marketp
 
 For Zed, use the [Oxc](https://github.com/oxc-project/oxc-zed) and [Effect Language Service (tsgo)](https://github.com/RATIU5/zed-effect-tsgo) extensions. Open `chronicon/` as the project root after running `bun install --frozen-lockfile`. `.zed/settings.json` launches the workspace's Effect-patched TypeScript 7, Oxlint, and Oxfmt through Bun. It enables formatting and safe lint fixes on save, disables competing TypeScript servers and ESLint, and keeps Prettier disabled. Effect diagnostics come from the shared Oxlint configuration; TypeScript supplies completion, navigation, and refactoring without duplicate Effect diagnostics.
 
-`bun run doctor` runs Vercel Doctor 1.2.0 locally with telemetry disabled; offline scans do not calculate a score. The audit removed unused UI code and its root provider and replaced the starter favicon with a small SVG. Workspace links use Next.js partial prefetching and load destination data on hover or focus. `vercel.json` explicitly enables Fluid Compute for deployment.
+`bun run doctor` runs Vercel Doctor, then [React Doctor](https://www.react.doctor/docs/reference/cli-reference).
+Both audits finish even if one fails; the combined command exits nonzero if either
+fails. Run them independently with `bun run doctor:vercel` or `bun run doctor:react`.
+Pass tool-specific options to the individual commands, such as
+`bun run doctor:react --scope changed`.
 
-The command resolves Doctor through `bunx`; this review used version 1.2.0 on
-September 8, 2026. `bunx` downloads it if it is not cached. The `--offline` flag
-disables Doctor's remote scoring; it does not make that initial package download
-offline. Keeping this audit tool outside the app's dependencies avoids adding its
-separate TypeScript 5 and lint-tool dependency tree to the project install.
+Both tools use pinned versions through `bunx`, keeping their separate TypeScript
+and lint dependencies outside the app's install. The first run downloads missing
+packages. Vercel Doctor uses `--offline`; React Doctor uses `--no-telemetry` and
+`--no-supply-chain` to disable remote scoring, crash reporting, and Socket.dev
+dependency checks.
 
-Eight Doctor advisories remain visible. Two concern default link prefetching: the shared navigation link and brand reuse cached shells. `NavigationLink` also enables full destination prefetching on intent. Four GET-route warnings cannot follow the shared `privateHeaders` in `src/server/http.ts`: every response already uses `Cache-Control: private, no-store`. Library data is cached internally only after authorization. Do not add public/CDN caching to these routes. Another advisory counts API routes and recommends Fluid Compute without checking `vercel.json`; it is already enabled. The remaining warning flags the 22 KB Departure Mono WOFF2 file. It is intentionally self-hosted through `next/font/local`; moving this small font to another storage service would add infrastructure without a meaningful benefit. No Doctor rules are suppressed.
+Some Vercel Doctor advisories reflect deliberate choices. Workspace links reuse
+cached shells and prefetch destination data on intent. API responses set
+`Cache-Control: private, no-store` through the shared `privateHeaders` helper;
+do not add public/CDN caching to authenticated routes. Fluid Compute is enabled in
+`vercel.json`, and Departure Mono is self-hosted through `next/font/local`.
+No Doctor rules are suppressed.
 
 This repository has a strict no-tests policy. Do not add or run automated tests, test frameworks, smoke scripts, or temporary test harnesses. Use code review and manual browser use alongside the checks above. Authenticated browser verification uses an existing account; do not create credentials just for verification.
 
