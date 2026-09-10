@@ -1,0 +1,184 @@
+[
+  {
+    "name": "geist",
+    "family": "'Geist Variable', sans-serif",
+    "dependency": "@fontsource-variable/geist",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/geist/-/geist-5.3.0.tgz"
+  },
+  {
+    "name": "inter",
+    "family": "'Inter Variable', sans-serif",
+    "dependency": "@fontsource-variable/inter",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/inter/-/inter-5.3.0.tgz"
+  },
+  {
+    "name": "noto-sans",
+    "family": "'Noto Sans Variable', sans-serif",
+    "dependency": "@fontsource-variable/noto-sans",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/noto-sans/-/noto-sans-5.3.0.tgz"
+  },
+  {
+    "name": "nunito-sans",
+    "family": "'Nunito Sans Variable', sans-serif",
+    "dependency": "@fontsource-variable/nunito-sans",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/nunito-sans/-/nunito-sans-5.3.0.tgz"
+  },
+  {
+    "name": "figtree",
+    "family": "'Figtree Variable', sans-serif",
+    "dependency": "@fontsource-variable/figtree",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/figtree/-/figtree-5.3.0.tgz"
+  },
+  {
+    "name": "roboto",
+    "family": "'Roboto Variable', sans-serif",
+    "dependency": "@fontsource-variable/roboto",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/roboto/-/roboto-5.3.0.tgz"
+  },
+  {
+    "name": "raleway",
+    "family": "'Raleway Variable', sans-serif",
+    "dependency": "@fontsource-variable/raleway",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/raleway/-/raleway-5.3.0.tgz"
+  },
+  {
+    "name": "dm-sans",
+    "family": "'DM Sans Variable', sans-serif",
+    "dependency": "@fontsource-variable/dm-sans",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/dm-sans/-/dm-sans-5.3.0.tgz"
+  },
+  {
+    "name": "public-sans",
+    "family": "'Public Sans Variable', sans-serif",
+    "dependency": "@fontsource-variable/public-sans",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/public-sans/-/public-sans-5.3.0.tgz"
+  },
+  {
+    "name": "outfit",
+    "family": "'Outfit Variable', sans-serif",
+    "dependency": "@fontsource-variable/outfit",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/outfit/-/outfit-5.3.0.tgz"
+  },
+  {
+    "name": "oxanium",
+    "family": "'Oxanium Variable', sans-serif",
+    "dependency": "@fontsource-variable/oxanium",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/oxanium/-/oxanium-5.3.0.tgz"
+  },
+  {
+    "name": "manrope",
+    "family": "'Manrope Variable', sans-serif",
+    "dependency": "@fontsource-variable/manrope",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/manrope/-/manrope-5.3.0.tgz"
+  },
+  {
+    "name": "space-grotesk",
+    "family": "'Space Grotesk Variable', sans-serif",
+    "dependency": "@fontsource-variable/space-grotesk",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/space-grotesk/-/space-grotesk-5.3.0.tgz"
+  },
+  {
+    "name": "montserrat",
+    "family": "'Montserrat Variable', sans-serif",
+    "dependency": "@fontsource-variable/montserrat",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/montserrat/-/montserrat-5.3.0.tgz"
+  },
+  {
+    "name": "ibm-plex-sans",
+    "family": "'IBM Plex Sans Variable', sans-serif",
+    "dependency": "@fontsource-variable/ibm-plex-sans",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/ibm-plex-sans/-/ibm-plex-sans-5.3.0.tgz"
+  },
+  {
+    "name": "source-sans-3",
+    "family": "'Source Sans 3 Variable', sans-serif",
+    "dependency": "@fontsource-variable/source-sans-3",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/source-sans-3/-/source-sans-3-5.3.0.tgz"
+  },
+  {
+    "name": "instrument-sans",
+    "family": "'Instrument Sans Variable', sans-serif",
+    "dependency": "@fontsource-variable/instrument-sans",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/instrument-sans/-/instrument-sans-5.3.0.tgz"
+  },
+  {
+    "name": "jetbrains-mono",
+    "family": "'JetBrains Mono Variable', monospace",
+    "dependency": "@fontsource-variable/jetbrains-mono",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/jetbrains-mono/-/jetbrains-mono-5.3.0.tgz"
+  },
+  {
+    "name": "geist-mono",
+    "family": "'Geist Mono Variable', monospace",
+    "dependency": "@fontsource-variable/geist-mono",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/geist-mono/-/geist-mono-5.3.0.tgz"
+  },
+  {
+    "name": "noto-serif",
+    "family": "'Noto Serif Variable', serif",
+    "dependency": "@fontsource-variable/noto-serif",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/noto-serif/-/noto-serif-5.3.0.tgz"
+  },
+  {
+    "name": "roboto-slab",
+    "family": "'Roboto Slab Variable', serif",
+    "dependency": "@fontsource-variable/roboto-slab",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/roboto-slab/-/roboto-slab-5.3.0.tgz"
+  },
+  {
+    "name": "merriweather",
+    "family": "'Merriweather Variable', serif",
+    "dependency": "@fontsource-variable/merriweather",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/merriweather/-/merriweather-5.3.0.tgz"
+  },
+  {
+    "name": "lora",
+    "family": "'Lora Variable', serif",
+    "dependency": "@fontsource-variable/lora",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/lora/-/lora-5.3.0.tgz"
+  },
+  {
+    "name": "playfair-display",
+    "family": "'Playfair Display Variable', serif",
+    "dependency": "@fontsource-variable/playfair-display",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/playfair-display/-/playfair-display-5.3.0.tgz"
+  },
+  {
+    "name": "eb-garamond",
+    "family": "'EB Garamond Variable', serif",
+    "dependency": "@fontsource-variable/eb-garamond",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/eb-garamond/-/eb-garamond-5.3.0.tgz"
+  },
+  {
+    "name": "instrument-serif",
+    "family": "'Instrument Serif', serif",
+    "dependency": "@fontsource/instrument-serif",
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource/instrument-serif/-/instrument-serif-5.3.0.tgz"
+  }
+]

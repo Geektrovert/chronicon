@@ -1,17 +1,225 @@
-/* Scope all project tokens to preview surfaces; the workspace keeps its own theme. */
+@import "./gallery-styles.css";
+/* Project tokens stay inside the gallery, including portalled menus. */
 [data-design-preview] {
   background: var(--background);
   color: var(--foreground);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
+  --ds-radius-xs: calc(var(--radius) * 0.5);
+  --ds-radius-sm: calc(var(--radius) * 0.75);
+  --ds-radius-md: calc(var(--radius) * 0.875);
+  --ds-radius-lg: var(--radius);
+  --ds-radius-xl: calc(var(--radius) * 1.2);
+  --ds-radius-2xl: calc(var(--radius) * 1.6);
+  --ds-radius-3xl: calc(var(--radius) * 2.4);
+  --ds-radius-4xl: calc(var(--radius) * 3.2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  caret-color: var(--primary);
 }
-[data-design-preview] [data-slot="card"] {
-  border-radius: var(--radius-xl);
-  color: var(--card-foreground);
+[data-design-preview] ::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
-[data-design-preview] [data-slot="button"] {
-  border-radius: var(--radius);
+[data-design-preview] :is(h2, h3, .gallery-heading) {
+  font-family: var(--font-heading, var(--font-sans));
+}
+[data-design-preview] :is(button, [role="button"]) {
+  cursor: default;
+}
+[data-design-preview][data-pointer="true"] :is(button, [role="button"]):not(:disabled) {
+  cursor: pointer;
+}
+.design-preview-panels {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+}
+.design-gallery-canvas {
+  min-width: 0;
+  padding: clamp(24px, 3vw, 56px);
+  container-type: inline-size;
+}
+.component-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 2.8vw, 48px);
+  align-items: start;
+}
+.gallery-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: clamp(20px, 2.8vw, 48px);
+}
+/* Shared workspace cards have footer fills. The upstream studio cards do not. */
+.design-gallery-canvas [data-slot="card-footer"] {
+  border-top: 0;
+  background: transparent;
+  padding-block: 0;
+}
+.design-gallery-canvas [data-slot="card"] {
+  padding-bottom: var(--card-spacing, 16px);
+}
+.design-gallery-canvas [data-slot="card-description"] {
+  line-height: 1.55;
+}
+.design-gallery-canvas [data-slot="card-title"] {
+  line-height: 1.4;
+}
+.design-gallery-canvas [data-slot="field-label"] {
+  font-weight: 500;
+}
+.design-gallery-canvas [data-slot="textarea"] {
+  min-height: 112px;
+}
+.gallery-inset {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--ds-radius-xl);
+  background: var(--muted);
+}
+.gallery-small-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.gallery-inset .gallery-heading {
+  font-size: 14px;
+  font-weight: 600;
+}
+.gallery-icon-tile {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ds-radius-lg);
+  background: var(--muted);
+}
+.contribution-chart {
+  display: flex;
+  height: 200px;
+  gap: 12px;
+  padding-block: 16px 4px;
+}
+.contribution-column {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 9px;
+  text-align: center;
+}
+.contribution-bar-space {
+  display: flex;
+  flex: 1;
+  align-items: end;
+}
+.contribution-bar {
+  width: 100%;
+  border-radius: var(--ds-radius-sm) var(--ds-radius-sm) 0 0;
+}
+.contribution-column figcaption {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.gallery-menu {
+  --popover: var(--menu-background);
+  --popover-foreground: var(--menu-foreground);
+  --accent: var(--menu-accent);
+  --accent-foreground: var(--menu-accent-foreground);
+  background: var(--menu-background);
+  color: var(--menu-foreground);
+  backdrop-filter: blur(12px);
+}
+.gallery-menu-sample {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--ds-radius-xl);
+}
+.gallery-menu-sample [data-slot="button"] {
+  color: var(--menu-foreground);
+}
+.gallery-menu-sample [data-slot="button"]:is(:hover, [aria-current]) {
+  background: var(--menu-accent);
+  color: var(--menu-accent-foreground);
+}
+[data-design-preview].gallery-menu [data-slot="select-item"]:is(:focus, [data-highlighted]) {
+  background: var(--menu-accent);
+  color: var(--menu-accent-foreground);
+}
+[data-design-preview][data-style="lyra"][data-radius="default"],
+[data-design-preview][data-style="sera"][data-radius="default"] {
+  --ds-radius-xs: 0px;
+  --ds-radius-sm: 0px;
+  --ds-radius-md: 0px;
+  --ds-radius-lg: 0px;
+  --ds-radius-xl: 0px;
+  --ds-radius-2xl: 0px;
+  --ds-radius-3xl: 0px;
+  --ds-radius-4xl: 0px;
+}
+@container (max-width: 800px) {
+  .component-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gallery-column:last-child {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+@container (max-width: 520px) {
+  .component-gallery,
+  .gallery-column:last-child {
+    display: flex;
+    flex-direction: column;
+  }
+  .gallery-column {
+    width: 100%;
+  }
+}
+.design-preview-panels[data-comparison="true"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+.design-preview-panels[data-comparison="true"] .design-gallery-canvas {
+  padding: 24px;
+}
+@media (max-width: 767px) {
+  .design-preview-panels[data-comparison="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .design-gallery-canvas {
+    padding: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-design-preview] *,
+  [data-design-preview] *::before,
+  [data-design-preview] *::after {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
+
+/* An explicit radius overrides the style's fixed corners, including square styles. */
+[data-design-preview]:not([data-radius="default"]):not(.gallery-menu)
+  :is(
+    [data-slot="button"],
+    [data-slot="input"],
+    [data-slot="select-trigger"],
+    [data-slot="textarea"]
+  ) {
+  border-radius: var(--ds-radius-lg);
+}
+[data-design-preview]:not([data-radius="default"]):not(.gallery-menu) [data-slot="card"] {
+  border-radius: var(--ds-radius-2xl);
 }

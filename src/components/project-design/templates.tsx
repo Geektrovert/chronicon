@@ -2,7 +2,7 @@
 // Adapted from shadcn/ui preview-02 NotificationSettings and EmptyConnectBank
 // (MIT). Unique IDs and demo-only state keep side-by-side previews independent.
 import { useId, useState } from "react";
-import { CreditCard } from "lucide-react";
+import { DesignIcon } from "./icons";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
@@ -95,7 +95,7 @@ export function EmptyConnectBank() {
     <Card>
       <CardContent className="flex flex-col items-center gap-4 py-2 text-center">
         <div className="rounded-lg bg-muted p-3">
-          <CreditCard aria-hidden="true" className="size-5" />
+          <DesignIcon name="card" />
         </div>
         <div className="space-y-1.5">
           <CardTitle>{connected ? "Preview connected" : "Connect bank"}</CardTitle>

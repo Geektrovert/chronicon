@@ -1,0 +1,204 @@
+.design-workspace-body {
+  margin-inline-start: 0 !important;
+  padding: 0 !important;
+}
+.design-studio {
+  height: 100dvh;
+  min-height: 0;
+  padding: 0 20px 20px;
+}
+.design-studio-form {
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+.design-studio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 68px;
+  flex-shrink: 0;
+}
+.design-mode-controls {
+  display: flex;
+  gap: 2px;
+  border-radius: 10px;
+  background: var(--muted);
+  padding: 3px;
+}
+.design-studio-body {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 22px;
+  min-height: 0;
+  flex: 1;
+}
+.design-controls {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--sidebar);
+}
+.design-controls-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.design-controls-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.design-picker-group {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.design-picker-group:last-child {
+  border-bottom: 0;
+}
+.design-picker[data-slot="button"] {
+  width: 100%;
+  min-height: 58px;
+  height: auto;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border-radius: 12px;
+}
+.design-picker[data-slot="button"]:hover {
+  background: var(--muted);
+}
+.design-controls-footer {
+  display: grid;
+  gap: 6px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 12px 14px;
+}
+.design-controls-footer a {
+  padding-top: 4px;
+}
+.design-stage {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+.design-stage-toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
+  min-height: 42px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.design-status {
+  display: block;
+  padding: 10px 20px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.design-guidance-panel {
+  overflow: auto;
+  padding: clamp(20px, 4vw, 56px);
+}
+.design-open-controls[data-slot="button"],
+.design-close-controls[data-slot="button"] {
+  display: none;
+}
+@media (max-width: 767px) {
+  .design-studio {
+    padding: 0 10px 10px;
+  }
+  .design-studio-header {
+    min-height: 62px;
+    gap: 8px;
+  }
+  .design-studio-header > div {
+    gap: 5px;
+  }
+  .design-studio-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .design-controls {
+    display: none;
+  }
+  .design-studio-body[data-controls-open="true"] .design-controls {
+    display: flex;
+  }
+  .design-studio-body[data-controls-open="true"] .design-stage {
+    display: none;
+  }
+  .design-stage-toolbar {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+  }
+  .design-open-controls[data-slot="button"],
+  .design-close-controls[data-slot="button"] {
+    display: inline-flex;
+  }
+  .design-pickers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .design-picker-group {
+    align-content: start;
+    padding: 10px;
+  }
+  .design-controls-footer {
+    grid-template-columns: 1fr 1fr;
+  }
+  .design-controls-footer a {
+    grid-column: 1 / -1;
+  }
+}
+
+.design-mobile-appearance {
+  display: none;
+}
+@media (max-width: 767px) {
+  .design-studio-header .design-mode-controls {
+    display: none;
+  }
+  .design-studio-header h1 {
+    white-space: nowrap;
+  }
+  .design-mobile-appearance {
+    display: block;
+    order: 1;
+  }
+  .design-stage-toolbar > .design-open-controls {
+    order: 0;
+  }
+  .design-stage-toolbar > span:last-child {
+    order: 2;
+  }
+  .design-stage-caption {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .design-pickers {
+    gap: 10px;
+    padding: 12px;
+  }
+  .design-picker-group {
+    display: contents;
+  }
+}

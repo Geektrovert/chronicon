@@ -1,5 +1,6 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { projectReference } from "@/lib/model";
+import { FONT_DEFINITIONS } from "./fonts";
 
 export const BASE_COLORS = ["neutral", "stone", "zinc", "mauve", "olive", "mist", "taupe"] as const;
 export const ACCENT_COLORS = [
@@ -23,9 +24,47 @@ export const ACCENT_COLORS = [
 ] as const;
 export const themeName = Schema.Literals([...BASE_COLORS, ...ACCENT_COLORS]);
 export const radiusName = Schema.Literals(["default", "none", "small", "medium", "large"]);
-export const fontName = Schema.Literals(["sans", "serif", "mono"]);
+export const STYLE_NAMES = [
+  "vega",
+  "nova",
+  "maia",
+  "lyra",
+  "mira",
+  "luma",
+  "sera",
+  "rhea",
+] as const;
+export const ICON_LIBRARIES = ["lucide", "tabler", "hugeicons", "phosphor", "remixicon"] as const;
+export const MENU_COLORS = [
+  "default",
+  "inverted",
+  "default-translucent",
+  "inverted-translucent",
+] as const;
+export const FONT_NAMES = [
+  ...FONT_DEFINITIONS.map((font) => font.name),
+  "sans",
+  "serif",
+  "mono",
+] as const;
+export const fontName = Schema.Literals(FONT_NAMES);
 export const menuAccent = Schema.Literals(["subtle", "bold"]);
 export const designSettings = Schema.Struct({
+  // Defaults keep designs and API clients created by the first studio readable.
+  style: Schema.Literals(STYLE_NAMES).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("nova" as const)),
+  ),
+  iconLibrary: Schema.Literals(ICON_LIBRARIES).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("lucide" as const)),
+  ),
+  fontHeading: Schema.Literals(["inherit", ...FONT_NAMES]).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("inherit" as const)),
+  ),
+  menuColor: Schema.Literals(MENU_COLORS).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed("default" as const)),
+  ),
+  rtl: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  pointer: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   baseColor: Schema.Literals(BASE_COLORS),
   theme: themeName,
   chartColor: themeName,
@@ -40,6 +79,12 @@ export const designSettings = Schema.Struct({
 );
 export type DesignSettings = typeof designSettings.Type;
 export const defaultSettings: DesignSettings = {
+  style: "nova",
+  iconLibrary: "lucide",
+  fontHeading: "inherit",
+  menuColor: "default",
+  rtl: false,
+  pointer: false,
   baseColor: "neutral",
   theme: "neutral",
   chartColor: "neutral",

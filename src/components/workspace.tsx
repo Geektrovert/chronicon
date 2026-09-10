@@ -99,6 +99,7 @@ export function Workspace({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const designStudio = pathname.startsWith("/projects/") && pathname.endsWith("/design");
   const params = useParams<{ slug?: string; id?: string }>();
   const run = useTask();
   const [confirmedLibrary, setLibrary] = useState(initialLibrary);
@@ -315,48 +316,52 @@ export function Workspace({
         <a className="skip-link" href="#main">
           Skip to content
         </a>
-        <WorkspaceSidebar
-          bindings={bindings}
-          keyboardSettings={() => {
-            setMobileOpen(false);
-            setKeyboardOpen(true);
-          }}
-          library={optimistic.library}
-          name={name}
-          pathname={pathname}
-          layout={sidebarLayout}
-          maximumWidth={maximumSidebarWidth}
-          resize={setSidebarLayout}
-          resizeEnd={commitSidebarLayout}
-          toggleCollapsed={toggleSidebar}
-          mobileOpen={mobileOpen}
-          createProject={() => {
-            setMobileOpen(false);
-            setProjectOpen(true);
-          }}
-          search={openSearch}
-          publish={() => {
-            setMobileOpen(false);
-            publish();
-          }}
-          settings={() => {
-            setMobileOpen(false);
-            setSettingsOpen(true);
-          }}
-          close={() => setMobileOpen(false)}
-        />
-        <div className="workspace-body">
-          <header className="topbar">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mobile-menu"
-              aria-label="Open navigation"
-              onClick={() => setMobileOpen(true)}
-            >
-              <Menu size={19} />
-            </Button>
-          </header>
+        {!designStudio && (
+          <WorkspaceSidebar
+            bindings={bindings}
+            keyboardSettings={() => {
+              setMobileOpen(false);
+              setKeyboardOpen(true);
+            }}
+            library={optimistic.library}
+            name={name}
+            pathname={pathname}
+            layout={sidebarLayout}
+            maximumWidth={maximumSidebarWidth}
+            resize={setSidebarLayout}
+            resizeEnd={commitSidebarLayout}
+            toggleCollapsed={toggleSidebar}
+            mobileOpen={mobileOpen}
+            createProject={() => {
+              setMobileOpen(false);
+              setProjectOpen(true);
+            }}
+            search={openSearch}
+            publish={() => {
+              setMobileOpen(false);
+              publish();
+            }}
+            settings={() => {
+              setMobileOpen(false);
+              setSettingsOpen(true);
+            }}
+            close={() => setMobileOpen(false)}
+          />
+        )}
+        <div className={designStudio ? "workspace-body design-workspace-body" : "workspace-body"}>
+          {!designStudio && (
+            <header className="topbar">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mobile-menu"
+                aria-label="Open navigation"
+                onClick={() => setMobileOpen(true)}
+              >
+                <Menu size={19} />
+              </Button>
+            </header>
+          )}
           {children}
         </div>
         <CommandDialog

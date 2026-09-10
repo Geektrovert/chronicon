@@ -272,9 +272,13 @@ native external packages. Adding the CLI must not silently change that layout.
 
 Open a project and choose **Design system**. The configurator adapts the actual
 [shadcn/create source](https://github.com/shadcn-ui/ui/tree/3ba91b1cc83e1bbe4ab35a422ff2a694849c5048/apps/v4/app/%28app%29/%28create%29/components)
-and Base UI preview templates. It supports the Nova style, seven base colors,
-17 accent palettes, chart colors, system fonts, radii, and menu accents. Light and
-dark previews are scoped to the project; changing them does not recolor Chronicon.
+and Base UI preview templates. A compact control rail sits beside a large component
+gallery. The twelve controls cover all eight upstream styles, seven base colors,
+17 accent palettes, chart colors, separate heading and body fonts, five icon libraries,
+radius, menu color and accent, direction, and cursor. All 26 upstream font families
+are self-hosted with their licenses; the three existing system fonts remain available.
+View the gallery in light, dark, or comparison mode. Preview changes stay scoped to
+the project and do not recolor Chronicon. On mobile, Customize opens the full controls.
 The upstream MIT license, pinned revision, and adaptations are recorded in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
@@ -284,6 +288,7 @@ Settings, resolved light/dark CSS tokens, source revision, and Markdown guidance
 are stored together. Updates compare the expected revision in SQL; a conflict
 leaves the browser draft intact. Reload saved data explicitly after reconciling.
 Notes-only updates retain saved tokens, even when the upstream catalog changes.
+Older six-setting designs receive compatible defaults for the added controls on read.
 
 `GET /api/projects/:id/design` returns the design and generated Markdown.
 `PUT` on that route accepts `expectedRevision` plus complete `settings`, `guidance`,
