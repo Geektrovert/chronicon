@@ -10,6 +10,9 @@ const requiredText = (max: number) => text(max).check(Schema.isMinLength(1));
 const defaultText = (max: number) =>
   text(max).pipe(Schema.withDecodingDefaultKey(Effect.succeed("")));
 const documentKind = Schema.Literals(["report", "plan", "reference"]);
+export const visibilitySchema = Schema.Literals(["private", "public"]);
+export const accessRoleSchema = Schema.Literals(["full_access", "edit", "view"]);
+export type AccessRole = typeof accessRoleSchema.Type;
 export const projectInput = Schema.Struct({
   slug: slugSchema,
   name: requiredText(100),
@@ -47,6 +50,9 @@ export const revisionNumber = Schema.Int.check(Schema.isGreaterThan(0));
 export const projectSchema = Schema.Struct({
   id: Schema.String,
   ownerId: Schema.String,
+  organizationId: Schema.String,
+  visibility: visibilitySchema,
+  accessRole: Schema.optionalKey(accessRoleSchema),
   slug: Schema.String,
   name: Schema.String,
   description: Schema.String,
@@ -62,6 +68,8 @@ export const projectUpdate = Schema.Struct({
 export const documentSchema = Schema.Struct({
   id: Schema.String,
   projectId: Schema.String,
+  visibility: visibilitySchema,
+  accessRole: Schema.optionalKey(accessRoleSchema),
   slug: Schema.String,
   title: Schema.String,
   summary: Schema.String,
@@ -94,11 +102,12 @@ const revisionInfo = Schema.Struct({
 export const revisionHistorySchema = Schema.Struct({ id: Schema.String, ...revisionInfo.fields });
 export const documentDetailSchema = Schema.Struct({
   document: documentSchema,
-  project: projectSchema,
+  project: Schema.NullOr(projectSchema),
   revision: revisionInfo,
   history: Schema.Array(revisionHistorySchema),
   html: Schema.String,
 });
+export const libraryQuery = Schema.Struct({ projectId: Schema.optionalKey(Schema.NonEmptyString) });
 export const librarySchema = Schema.Struct({
   projects: Schema.Array(projectSchema),
   documents: Schema.Array(documentSchema),
@@ -116,6 +125,8 @@ export type Library = typeof librarySchema.Type;
 export type DocumentDetail = typeof documentDetailSchema.Type;
 export type Principal = {
   readonly ownerId: string;
+  readonly organizationId: string;
+  readonly emailVerified: boolean;
   readonly name: string;
   readonly access: "owner" | "agent";
   readonly keyId?: string;

@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Effect, Schema, Stream } from "effect";
-import { ClientError } from "@/client/errors";
 import { useTask } from "@/client/runtime";
-import { searchResponse } from "./search-protocol";
+import { watchSearchWorker } from "@/client/actions/search";
+import { capture } from "@/client/telemetry";
 import type { Library } from "./model";
 
 export function useSearch(library: Library, query: string, projectId?: string) {
@@ -12,9 +11,13 @@ export function useSearch(library: Library, query: string, projectId?: string) {
   const latest = useRef(0);
   const [ready, setReady] = useState(false);
   const [ids, setIds] = useState<ReadonlyArray<string>>([]);
+  const [completedSearch, setCompletedSearch] = useState(0);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const lastSearch = useRef("");
   function retry() {
+    capture("search_retry");
+    lastSearch.current = "";
     setError("");
     setReady(false);
     setIds([]);
@@ -23,52 +26,22 @@ export function useSearch(library: Library, query: string, projectId?: string) {
   useEffect(
     () =>
       run(
-        Effect.scoped(
-          Effect.gen(function* () {
-            const resource = yield* Effect.acquireRelease(
-              Effect.try({
-                try: () => new Worker(new URL("./search.worker.ts", import.meta.url)),
-                catch: () =>
-                  new ClientError({ message: "Search is unavailable. Reload the page." }),
-              }),
-              (worker) =>
-                Effect.sync(() => {
-                  worker.terminate();
-                }),
-            );
-            setWorker(resource);
-            const messages = Stream.fromEventListener<MessageEvent<unknown>>(
-              resource,
-              "message",
-            ).pipe(
-              Stream.runForEach((event) =>
-                Effect.gen(function* () {
-                  const message = yield* Schema.decodeUnknownEffect(searchResponse)(
-                    event.data,
-                  ).pipe(
-                    Effect.mapError(
-                      () =>
-                        new ClientError({
-                          message: "Search returned invalid data. Reload the page.",
-                        }),
-                    ),
-                  );
-                  if (message.type === "ready") setReady(true);
-                  else if (message.type === "error")
-                    return yield* new ClientError({ message: message.message });
-                  else if (message.id === latest.current) setIds(message.ids);
-                }),
-              ),
-            );
-            const errors = Stream.fromEventListener(resource, "error").pipe(
-              Stream.runForEach(() =>
-                Effect.fail(new ClientError({ message: "Search stopped. Reload the page." })),
-              ),
-            );
-            yield* Effect.all([messages, errors], { concurrency: "unbounded" });
-          }),
-        ),
-        { onError: setError },
+        watchSearchWorker({
+          worker: setWorker,
+          ready: () => setReady(true),
+          results: (id, ids) => {
+            if (id === latest.current) {
+              setIds(ids);
+              setCompletedSearch(id);
+            }
+          },
+        }),
+        {
+          onError: (message) => {
+            setError(message);
+            capture("search_failed");
+          },
+        },
       ),
     [run, attempt],
   );
@@ -83,5 +56,23 @@ export function useSearch(library: Library, query: string, projectId?: string) {
       ...(projectId === undefined ? {} : { projectId }),
     });
   }, [query, projectId, library, ready, worker]);
+  useEffect(() => {
+    if (!query.trim()) {
+      lastSearch.current = "";
+      return;
+    }
+    if (!ready || error || completedSearch !== latest.current) return;
+    const search = `${projectId ?? ""}:${query}`;
+    if (lastSearch.current === search) return;
+    const timer = window.setTimeout(() => {
+      lastSearch.current = search;
+      capture("search_completed", {
+        query_length: query.length,
+        result_count: ids.length,
+        project_scoped: projectId !== undefined,
+      });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [query, projectId, ids, ready, error, completedSearch]);
   return { ready, ids, error, retry };
 }

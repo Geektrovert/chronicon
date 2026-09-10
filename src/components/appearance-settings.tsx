@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { Field, FieldDescription, FieldLabel } from "./ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useTheme } from "./ui/theme";
+import { capture } from "@/client/telemetry";
 
 const options = [
   { value: "light", label: "Light" },
@@ -26,7 +27,10 @@ export function AppearanceSettings() {
         value={ready ? theme : null}
         disabled={!ready}
         onValueChange={(value) => {
-          if (value) setTheme(value);
+          if (value) {
+            setTheme(value);
+            capture("appearance_changed", { setting: "theme", value });
+          }
         }}
       >
         <SelectTrigger id="appearance-theme" aria-describedby="theme-description">

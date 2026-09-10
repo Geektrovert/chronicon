@@ -10,6 +10,7 @@ import type { Project } from "@/lib/model";
 import { createAgentKey, revokeAgentKey, loadKeys, type AgentKey } from "@/client/actions/keys";
 import { copyText } from "@/client/actions/files";
 import { useTask } from "@/client/runtime";
+import { capture } from "@/client/telemetry";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -23,6 +24,9 @@ export function AgentSettings({
   onOpenChange: (open: boolean) => void;
   projects: ReadonlyArray<Project>;
 }) {
+  useEffect(() => {
+    if (open) capture("agent_connection_opened");
+  }, [open]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="wide">
@@ -206,7 +210,10 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
             variant="outline"
             onClick={() =>
               run(copyText(config, "Select and copy the configuration above."), {
-                onSuccess: () => setCopied(true),
+                onSuccess: () => {
+                  setCopied(true);
+                  capture("agent_configuration_copied");
+                },
                 onError: setError,
               })
             }

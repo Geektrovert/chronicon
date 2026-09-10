@@ -3,7 +3,7 @@ import type { Principal } from "@/lib/model";
 import { AppConfig } from "../config";
 import { readCachedLibrary } from "../cache";
 import { SearchService } from "../services/search";
-import { projectAccess } from "./access";
+import { findProject } from "./projects";
 
 export const findDocuments = Effect.fn("Documents.find")(function* (
   principal: Principal,
@@ -12,14 +12,7 @@ export const findDocuments = Effect.fn("Documents.find")(function* (
   const config = yield* AppConfig;
   const library = yield* readCachedLibrary(principal);
   const reference = input.project;
-  const project = reference
-    ? yield* projectAccess(
-        principal,
-        library.projects.find((p) =>
-          "id" in reference ? p.id === reference.id : p.slug === reference.slug,
-        ),
-      )
-    : undefined;
+  const project = reference ? yield* findProject(principal, reference) : undefined;
   const available = library.documents.filter(
     (d) => !d.archived && (!project || d.projectId === project.id),
   );

@@ -2,7 +2,7 @@
 import { Form } from "./ui/form";
 import { useForm, useStore } from "@tanstack/react-form";
 import { Field, FieldLabel, FieldError, FieldDescription } from "./ui/field";
-import { startTransition, useState, useTransition } from "react";
+import { startTransition, useEffect, useState, useTransition } from "react";
 import { Result } from "effect";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { slugify, type Project } from "@/lib/model";
 import { createProject } from "@/client/actions/library";
 import { runAction } from "@/client/runtime";
+import { capture } from "@/client/telemetry";
 export function CreateProject({
   open,
   onOpenChange,
@@ -22,6 +23,9 @@ export function CreateProject({
 }) {
   const [error, setError] = useState("");
   const [busy, submit] = useTransition();
+  useEffect(() => {
+    if (open) capture("project_create_opened");
+  }, [open]);
   const form = useForm({
     defaultValues: { name: "", slug: "", description: "" },
     onSubmit: ({ value }) => {

@@ -1,6 +1,6 @@
 # Chronicon
 
-A private workspace for project plans, reports, and design systems.
+A team workspace for project plans, reports, and design systems.
 
 Keep the documents you and your agents create in one searchable place. Update them
 without losing earlier revisions, and give each project a shared design language.
@@ -13,6 +13,7 @@ without losing earlier revisions, and give each project a shared design language
 - **Find what you need** with full-text search, projects, tags, stars, and an archive.
 - **Keep every revision** at one private link. View or download earlier versions.
 - **Design by project** with live component previews, light and dark themes, and a reusable `design.md`.
+- **Share projects or individual documents** with named people, or publish a read-only public link.
 
 ## Get started
 
@@ -64,15 +65,48 @@ published on npm and JSR.
 
 ## Privacy and access
 
-Each account has its own private workspace. Document links require access to that
-account; copying a link does not grant access to someone else. Agent keys can be
-limited to selected projects and read-only access.
+Every account starts with one default team. Team owners and admins can invite
+members by email in **Settings → Team**. Switch between your team and teams you
+have joined from the sidebar. Creating additional teams is not available.
+
+New projects and documents are private. Joining a team does not give someone
+access to its projects. Use **Share** on a project to add people, with one of three
+permissions:
+
+| Permission  | Allowed actions                |
+| ----------- | ------------------------------ |
+| Full access | View, edit, and manage sharing |
+| Can edit    | View and edit content          |
+| Can view    | Read content                   |
+
+Documents inherit project access. You can also share a single document with a
+guest without giving them access to its private project or other documents.
+The broadest applicable permission wins. Removing a direct document grant does
+not remove access inherited from the project. Stars belong to each user.
+
+Sharing with an existing verified account grants access immediately. Other email
+addresses receive an invitation to create an account or sign in, verify their
+email, and accept. Invitations expire after seven days and can be cancelled.
+
+Choose **Anyone with the link** in Share to make a project or document public.
+Public projects expose their unarchived documents. A document published on its
+own does not expose its private parent project. Public links show the current
+revision, without editing controls or revision history. Setting a document back
+to private still leaves it public if its project is public.
+
+The project creator keeps full access while in the team. Removing a team member
+revokes their grants in that team and transfers projects they created there to
+the team owner. Team and platform admin roles do not bypass content permissions.
+
+Agent keys are limited to their issuing team and optional selected projects.
+They cannot exceed the issuing user's current permissions, manage sharing, or
+make content public. Copying a private link does not grant access.
 
 Choose Light, Dark, or System in [Appearance settings](https://chronicon.klyk.work/settings/appearance).
 Appearance and keyboard shortcuts are saved in your browser.
 
-Email verification and password reset are not available yet. Keep your password
-somewhere you can retrieve it.
+Verify your email before accepting invitations or sharing with other people.
+Password reset is not available yet. Keep your password somewhere you can retrieve it.
 
 ## Run locally
 
@@ -89,6 +123,11 @@ cp .env.example .env.local
 Set `DATABASE_URL` to your Postgres URL and `BETTER_AUTH_SECRET` to a random secret
 of at least 32 characters. Leave `BLOB_READ_WRITE_TOKEN` empty to store local files
 in `.chronicon/blobs`.
+
+Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to send verification and invitation
+emails. The sender must use a domain verified in your Resend account. Existing
+accounts can sign in without email delivery configured; signup and invitations
+need working email delivery.
 
 ```sh
 bun -e 'console.log(crypto.randomUUID() + crypto.randomUUID())'
@@ -112,18 +151,109 @@ Hover an element and press Cmd+C or Ctrl+C to copy its source context for an age
 Deploy to Vercel with Postgres and a **private** Vercel Blob store. This repository
 targets Vercel Hobby and Neon Free; check their current limits before deploying.
 
-| Environment variable    | Value                                            |
-| ----------------------- | ------------------------------------------------ |
-| `DATABASE_URL`          | Postgres connection URL                          |
-| `BLOB_READ_WRITE_TOKEN` | Token for your private Blob store                |
-| `BETTER_AUTH_URL`       | Your site's HTTPS origin                         |
-| `BETTER_AUTH_SECRET`    | A stable random secret of at least 32 characters |
+| Environment variable    | Value                                                                |
+| ----------------------- | -------------------------------------------------------------------- |
+| `DATABASE_URL`          | Postgres connection URL                                              |
+| `BLOB_READ_WRITE_TOKEN` | Token for your private Blob store                                    |
+| `BETTER_AUTH_URL`       | Your site's HTTPS origin                                             |
+| `BETTER_AUTH_SECRET`    | A stable random secret of at least 32 characters                     |
+| `RESEND_API_KEY`        | Resend API key for sending email                                     |
+| `RESEND_FROM_EMAIL`     | Sender on a verified domain, such as `Chronicon <hello@example.com>` |
 
-Run `bun run db:migrate` against the target database before deploying. Local file
-storage is unavailable in production. Keep secrets in environment configuration
-and use separate credentials for preview deployments.
+Coordinate the team migration with the app release. The migration assigns
+existing projects to their creators' default teams and keeps every project and
+document private. Older app versions cannot create projects after the new team
+constraint is applied. Pause writes, run `bun run db:migrate` against the target
+database, then start the updated app before reopening writes.
+
+Local file storage is unavailable in production. Keep secrets in environment
+configuration and use separate credentials for preview deployments.
 
 </details>
+
+## Observability
+
+Chronicon uses the existing US PostHog project `555830`, named Unthink. All events
+carry `app=chronicon`; logs and traces also use `service.name=chronicon`. The
+[Chronicon dashboard](https://us.posthog.com/project/555830/dashboard/2084739)
+has a saved app filter. Keep that filter when creating insights in the shared
+project. Person IDs use `chronicon:user:<account-id>` and browser persistence is
+specific to Chronicon.
+
+Set `NEXT_PUBLIC_POSTHOG_KEY` to that project's public `phc_` token and
+`NEXT_PUBLIC_POSTHOG_HOST=https://us.posthog.com` locally and at build time on
+Vercel. The public token supports product events, exceptions, OTLP logs and
+distributed traces. Collection defaults to production builds. Set
+`NEXT_PUBLIC_POSTHOG_ENABLED=true` for a manual local session or `false` to
+disable collection. Vercel's deployment environment and commit SHA distinguish
+preview traffic and releases; self-hosted builds can set `NEXT_PUBLIC_APP_ENV`
+and `NEXT_PUBLIC_APP_RELEASE`.
+
+Browser requests use `/api/cairn-v7q` with opaque endpoint aliases. The proxy
+accepts only supported PostHog endpoints, fixes the upstream host, bounds request
+bodies to 4 MB and responses to 8 MB, and strips app cookies, bearer credentials
+and referrers. Body reads share the request's 15-second timeout. It forwards SDK
+assets and configuration to the PostHog asset host. Keep the proxy outside future
+authentication or locale redirects, and retain `skipTrailingSlashRedirect`.
+An uncommon route avoids common blocklist patterns but cannot guarantee delivery
+through every blocker.
+
+Product events describe actions and outcomes, including authentication, project
+creation, document publishing and reading, search, design changes, agent access,
+teams and sharing. They omit document titles, HTML, summaries, search text,
+email addresses and invitation or CLI tokens. Route properties use templates.
+Autocapture, session replay, surveys and raw console capture are disabled for this
+private workspace. Browser error capture and server error hooks retain safe
+stack locations without copying error messages or request bodies.
+
+Each backend operation emits a structured completion log with its outcome,
+duration, request ID, trace ID and allowed domain identifiers. Effect supplies
+SQL and service spans. Browser request spans, Next.js spans and Effect spans
+share W3C trace context. Log attributes `posthogDistinctId` and `sessionId` use
+the existing project's person and session links. Expected authorization failures,
+revision conflicts and cancellations remain distinct from unexpected exceptions.
+
+The application writes JSON logs to stdout and drains Effect logs to
+`https://us.i.posthog.com/i/v1/logs`. Traces go to
+`https://us.i.posthog.com/i/v1/traces`. Request finalizers and Next.js `after()`
+flush bounded batches before serverless suspension. These are application drains;
+they do not include Vercel's build logs or platform request logs. Vercel platform
+Drains require Pro or Enterprise, so this setup stays on Hobby.
+
+Optional `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` adds a second log sink.
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` selects an alternative trace collector.
+Use full OTLP HTTP/JSON endpoint URLs. The matching `*_HEADERS` variables accept
+comma-separated, URL-encoded `name=value` pairs. Credentials for independent
+collectors belong only in server environment variables. PostHog's distributed
+tracing API is in beta.
+
+Set `POSTHOG_LOGS_ENABLED=false` to stop the direct PostHog server log drain or
+`POSTHOG_TRACES_ENABLED=false` to stop server trace exports. An independent log
+collector remains active when only the PostHog log drain is disabled.
+`OTEL_SDK_DISABLED=true` disables all server OTLP exports. These switches preserve
+stdout logs and do not disable browser analytics or browser logs and traces.
+
+Source-map upload requires a server-only `POSTHOG_API_KEY` with error tracking
+write access and `POSTHOG_PROJECT_ID=555830`. Builds upload source maps under the
+`chronicon` release and remove them after upload. Set `NEXT_PUBLIC_APP_RELEASE` to a unique
+build identifier when no Vercel commit SHA is available. A failed upload stops the
+Turbopack build. Without that key the upload wrapper and
+public browser source maps remain disabled. Never use a `NEXT_PUBLIC_` prefix for
+the upload key. Deploy the same build that performed the upload.
+
+To inspect a release manually, open an existing account, browse projects and
+documents, search, and perform an intended write. Inspect browser requests under
+the proxy path, then filter PostHog Activity by `app=chronicon`. Follow a
+`request_id` into Logs and its `trace_id` into Traces. Check both a successful
+operation and an ordinary rejected action. Verify source-map symbolication after
+supplying the upload key. Follow the repository's no-automated-tests policy.
+
+See the current [PostHog Next.js guide](https://posthog.com/docs/libraries/next-js),
+[Logs guide](https://posthog.com/docs/logs/installation/nextjs),
+[tracing guide](https://posthog.com/docs/distributed-tracing/installation/nextjs),
+[source-map guide](https://posthog.com/docs/error-tracking/upload-source-maps/nextjs),
+[Effect logging guide](https://effect.website/docs/observability/logging/) and
+[wide event guidance](https://loggingsucks.com/).
 
 ## Contribute
 

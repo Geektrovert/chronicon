@@ -7,7 +7,7 @@ import { LoadingState } from "./ui/loading-state";
 import { Viewer } from "./viewer";
 import { useWorkspace } from "./workspace";
 
-function PendingDocument({ document, project }: { document: Document; project: Project }) {
+function PendingDocument({ document, project }: { document: Document; project: Project | null }) {
   const { library, error } = useWorkspace();
   const libraryDocument = library.documents.find((item) => item.id === document.id);
   const current =
@@ -37,7 +37,7 @@ export function DocumentStream({
   report,
 }: {
   document: Document;
-  project: Project;
+  project: Project | null;
   report: Promise<DocumentDetail>;
 }) {
   return (

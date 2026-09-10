@@ -61,7 +61,7 @@ export function ProjectsView() {
                   <Folder className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <div className="min-w-0">
                     <h2>
-                      <NavigationLink href={`/projects/${project.slug}`}>
+                      <NavigationLink href={`/projects/${project.id}`}>
                         {project.name}
                       </NavigationLink>
                     </h2>

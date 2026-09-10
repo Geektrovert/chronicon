@@ -108,10 +108,12 @@ export function LibraryView({
             />
           </label>
         </div>
-        <Button onClick={publish}>
-          <Plus size={16} />
-          {library.projects.length ? "Publish document" : "Create project"}
-        </Button>
+        {(!project || project.accessRole === "edit" || project.accessRole === "full_access") && (
+          <Button onClick={publish}>
+            <Plus size={16} />
+            {library.projects.length ? "Publish document" : "Create project"}
+          </Button>
+        )}
       </Toolbar>
       {(error || search.error) && (
         <div className="inline-error" role="alert">

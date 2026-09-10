@@ -3,14 +3,16 @@ import { Cause, Effect, Exit, ManagedRuntime, Option, Result, Schema } from "eff
 import { useCallback, useEffect, useRef } from "react";
 import { Api } from "./services/api";
 import { ClientError } from "./errors";
+import { captureError } from "./telemetry";
 
 const runtime = ManagedRuntime.make(Api.layer);
 
 function taskError(cause: Cause.Cause<unknown>) {
   const error = Cause.findErrorOption(cause);
-  return Option.isSome(error) && Schema.is(ClientError)(error.value)
-    ? error.value.message
-    : "Unable to complete this action. Try again.";
+  if (Option.isSome(error) && Schema.is(ClientError)(error.value)) return error.value.message;
+  const defect = Cause.findDefect(cause);
+  if (Result.isSuccess(defect)) captureError(defect.success, { source: "effect_runtime" });
+  return "Unable to complete this action. Try again.";
 }
 
 // React Actions await the write, keeping useOptimistic active until confirmation.

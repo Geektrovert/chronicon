@@ -1,9 +1,10 @@
 import { Clock, Effect, Ref, Semaphore, Stream } from "effect";
-import { loadLibrary } from "./library";
+import { loadLibrary, loadProjectLibrary } from "./library";
 import type { Library } from "@/lib/model";
 
 export const watchLibrary = Effect.fn("Client.watchLibrary")(function* (
   receive: (library: Library) => void,
+  projectId?: string,
 ) {
   const lastInteraction = yield* Ref.make(yield* Clock.currentTimeMillis);
   const refreshGate = yield* Semaphore.make(1);
@@ -14,11 +15,12 @@ export const watchLibrary = Effect.fn("Client.watchLibrary")(function* (
     const now = yield* Clock.currentTimeMillis;
     if (document.visibilityState !== "visible" || now - (yield* Ref.get(lastInteraction)) > 120_000)
       return;
-    yield* loadLibrary.pipe(
+    yield* (projectId ? loadProjectLibrary(projectId) : loadLibrary).pipe(
       Effect.tap((library) => Effect.sync(() => receive(library))),
       Effect.ignore,
     );
   }).pipe((effect) => refreshGate.withPermit(effect));
+  if (projectId) yield* reload;
   yield* Effect.forkScoped(
     Stream.fromEventListener(window, "pointerdown", { passive: true }).pipe(
       Stream.runForEach(() => active),

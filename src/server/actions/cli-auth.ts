@@ -7,6 +7,8 @@ import { AppConfig } from "../config";
 import { databaseError } from "../database";
 import { AppError } from "../errors";
 import { ownerAccess } from "./access";
+import { defaultTeamId } from "./default-team";
+import { annotateAuthenticatedUser, recordOperation } from "../observability";
 
 const digest = (value: string) =>
   Crypto.Crypto.use((crypto) => crypto.digest("SHA-256", new TextEncoder().encode(value))).pipe(
@@ -35,8 +37,8 @@ export const approveCli = Effect.fn("Cli.approve")(function* (
           status: 429,
           message: "Too many pending logins. Try again in five minutes.",
         });
-      yield* sql`INSERT INTO cli_authorization ("codeHash", "userId", "redirectUri", challenge, "expiresAt")
-        VALUES (${codeHash}, ${principal.ownerId}, ${input.redirectUri}, ${input.challenge}, now() + interval '5 minutes')`;
+      yield* sql`INSERT INTO cli_authorization ("codeHash", "userId", "organizationId", "redirectUri", challenge, "expiresAt")
+        VALUES (${codeHash}, ${principal.ownerId}, ${principal.organizationId}, ${input.redirectUri}, ${input.challenge}, now() + interval '5 minutes')`;
     }).pipe(
       Effect.catchTag(
         "SqlError",
@@ -47,6 +49,7 @@ export const approveCli = Effect.fn("Cli.approve")(function* (
   const redirect = new URL(input.redirectUri);
   redirect.searchParams.set("code", code);
   redirect.searchParams.set("state", input.state);
+  yield* recordOperation("chronicon_cli_authorized");
   return { redirect: redirect.href };
 });
 
@@ -58,10 +61,10 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
   const challenge = yield* digest(input.verifier);
   const grant = yield* SqlSchema.findOneOption({
     Request: Schema.Void,
-    Result: Schema.Struct({ userId: Schema.String }),
+    Result: Schema.Struct({ userId: Schema.String, organizationId: Schema.NullOr(Schema.String) }),
     execute: () => sql`DELETE FROM cli_authorization
         WHERE "codeHash" = ${codeHash} AND "redirectUri" = ${input.redirectUri}
-        AND challenge = ${challenge} AND "expiresAt" > now() RETURNING "userId"`,
+        AND challenge = ${challenge} AND "expiresAt" > now() RETURNING "userId", "organizationId"`,
   })(undefined).pipe(databaseError("redeem CLI authorization"));
   if (Option.isNone(grant))
     return yield* new AppError({
@@ -76,10 +79,19 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
         name: "Chronicon CLI",
         expiresIn: 30 * 86400,
         permissions: { documents: ["read", "write"] },
-        metadata: { projectIds: null },
+        metadata: {
+          projectIds: null,
+          organizationId: grant.value.organizationId ?? defaultTeamId(grant.value.userId),
+        },
       },
     }),
   );
+  annotateAuthenticatedUser(
+    grant.value.userId,
+    grant.value.organizationId ?? defaultTeamId(grant.value.userId),
+    "agent",
+  );
+  yield* recordOperation("chronicon_cli_connected");
   return {
     server: config.origin,
     workspaceId: grant.value.userId,
@@ -100,5 +112,6 @@ export const revokeCli = Effect.fn("Cli.revoke")(function* (principal: Principal
   yield* sql`DELETE FROM apikey WHERE id = ${principal.keyId} AND "referenceId" = ${principal.ownerId}`.pipe(
     databaseError("revoke CLI key"),
   );
+  yield* recordOperation("chronicon_cli_disconnected");
   return { success: true };
 });

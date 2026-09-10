@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import localFont from "next/font/local";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/ui/theme";
+import { TelemetryNavigation } from "@/components/telemetry";
 import "./globals.css";
 
 // oxlint-disable-next-line effecttsgo/process-env -- Next.js replaces NODE_ENV at build time.
@@ -46,7 +48,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         )}
       </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <Suspense fallback={null}>
+            <TelemetryNavigation />
+          </Suspense>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

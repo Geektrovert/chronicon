@@ -26,7 +26,7 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import { FileText, Folder, Folders, Menu } from "lucide-react";
 import type { Document, Library } from "@/lib/model";
 import { runAction, useTask } from "@/client/runtime";
-import { loadLibrary, updateReport } from "@/client/actions/library";
+import { loadLibrary, loadProjectLibrary, updateReport } from "@/client/actions/library";
 import { watchLibrary } from "@/client/actions/watch-library";
 import { watchSessionEnd } from "@/client/actions/session";
 import { useSearch } from "@/lib/use-search";
@@ -51,25 +51,37 @@ import "./project-navigation.css";
 
 const noPendingDocuments: ReadonlyArray<string> = [];
 
-// Writes and background reads can finish out of order. Keep newer confirmations.
-function mergeLibrary(current: Library, incoming: Library): Library {
+// A full snapshot can revoke access. Never retain resources absent from it.
+// Keep newer content confirmations only for resources still present, using the
+// snapshot's current permissions even when its content revision is older.
+function reconcileLibrary(current: Library, incoming: Library): Library {
+  const previous = new Map(current.documents.map((document) => [document.id, document]));
+  return {
+    projects: incoming.projects,
+    documents: incoming.documents.map((document) => {
+      const newer = previous.get(document.id);
+      return newer && newer.updatedAt > document.updatedAt
+        ? { ...newer, accessRole: document.accessRole, visibility: document.visibility }
+        : document;
+    }),
+  };
+}
+
+function mergeDocuments(current: Library, incoming: ReadonlyArray<Document>): Library {
   const documents = new Map(current.documents.map((document) => [document.id, document]));
-  for (const document of incoming.documents) {
+  for (const document of incoming) {
     const previous = documents.get(document.id);
     if (!previous || document.updatedAt >= previous.updatedAt) documents.set(document.id, document);
   }
   return {
-    projects: [
-      ...new Map(
-        [...current.projects, ...incoming.projects].map((project) => [project.id, project]),
-      ).values(),
-    ],
+    projects: current.projects,
     documents: [...documents.values()],
   };
 }
 
 const WorkspaceContext = createContext<{
   library: Library;
+  setProjectScope: (library: Library) => void;
   query: string;
   setQuery: (query: string) => void;
   search: ReturnType<typeof useSearch>;
@@ -106,8 +118,29 @@ export function Workspace({
   const params = useParams<{ slug?: string; id?: string }>();
   const run = useTask();
   const [confirmedLibrary, setLibrary] = useState(initialLibrary);
+  const [projectScope, setProjectScope] = useState<Library | null>(null);
+  const scopeProject = projectScope?.projects[0];
+  const scopeActive =
+    !!scopeProject &&
+    (params.slug === scopeProject.id ||
+      params.slug === scopeProject.slug ||
+      (!!params.id && !!projectScope?.documents.some((document) => document.id === params.id)));
+  const scopeId = scopeActive ? scopeProject?.id : undefined;
+  const visibleLibrary =
+    scopeActive && projectScope
+      ? {
+          projects: [
+            ...confirmedLibrary.projects.filter((project) => project.id !== scopeId),
+            ...projectScope.projects,
+          ],
+          documents: [
+            ...confirmedLibrary.documents.filter((document) => document.projectId !== scopeId),
+            ...projectScope.documents,
+          ],
+        }
+      : confirmedLibrary;
   const [optimistic, updateOptimistic] = useOptimistic(
-    { library: confirmedLibrary, pendingDocuments: noPendingDocuments },
+    { library: visibleLibrary, pendingDocuments: noPendingDocuments },
     (current, document: Document) => ({
       library: {
         ...current.library,
@@ -124,10 +157,13 @@ export function Workspace({
   const [previousLibrary, setPreviousLibrary] = useState(initialLibrary);
   if (initialLibrary !== previousLibrary) {
     setPreviousLibrary(initialLibrary);
-    setLibrary((current) => mergeLibrary(current, initialLibrary));
+    setLibrary((current) => reconcileLibrary(current, initialLibrary));
   }
   const projectId = params.slug
-    ? library.projects.find((project) => project.slug === params.slug)?.id
+    ? (
+        library.projects.find((project) => project.id === params.slug) ??
+        library.projects.find((project) => project.slug === params.slug)
+      )?.id
     : library.documents.find((document) => document.id === params.id)?.projectId;
   const [searchInput, setSearchInput] = useState({ pathname, query: "" });
   const query = searchInput.pathname === pathname ? searchInput.query : "";
@@ -153,20 +189,29 @@ export function Workspace({
   );
   const { ids: resultIds, ready: searchReady, error: searchError, retry: retrySearch } = search;
   const project = library.projects.find((p) => p.id === projectId);
+  const writableProjects = library.projects.filter(
+    (item) => item.accessRole === "edit" || item.accessRole === "full_access",
+  );
   function refresh() {
     setError("");
     startRefresh(() =>
-      runAction(loadLibrary).then((result) => {
+      runAction(scopeId ? loadProjectLibrary(scopeId) : loadLibrary).then((result) => {
         startTransition(() => {
-          if (Result.isSuccess(result))
-            setLibrary((current) => mergeLibrary(current, result.success));
-          else setError(result.failure);
+          if (Result.isSuccess(result)) {
+            if (scopeId)
+              setProjectScope((current) =>
+                current?.projects[0]?.id === scopeId
+                  ? reconcileLibrary(current, result.success)
+                  : current,
+              );
+            else setLibrary((current) => reconcileLibrary(current, result.success));
+          } else setError(result.failure);
         });
       }),
     );
   }
   function publish() {
-    if (library.projects.length) setPublishOpen(true);
+    if (writableProjects.length) setPublishOpen(true);
     else setProjectOpen(true);
   }
   const commitSidebarLayout = useCallback(
@@ -184,7 +229,17 @@ export function Workspace({
     commitSidebarLayout({ ...sidebarLayout, collapsed: !sidebarLayout.collapsed });
   }
   const documentChanged = useCallback((document: Document) => {
-    setLibrary((current) => mergeLibrary(current, { projects: [], documents: [document] }));
+    setLibrary((current) =>
+      current.projects.some((project) => project.id === document.projectId) ||
+      current.documents.some((item) => item.id === document.id)
+        ? mergeDocuments(current, [document])
+        : current,
+    );
+    setProjectScope((current) =>
+      current?.projects[0]?.id === document.projectId
+        ? mergeDocuments(current, [document])
+        : current,
+    );
   }, []);
   function updateDocument(
     document: Document,
@@ -282,10 +337,18 @@ export function Workspace({
     () =>
       run(
         watchLibrary((incoming) => {
-          startTransition(() => setLibrary((current) => mergeLibrary(current, incoming)));
-        }),
+          startTransition(() => {
+            if (scopeId)
+              setProjectScope((current) =>
+                current?.projects[0]?.id === scopeId
+                  ? reconcileLibrary(current, incoming)
+                  : current,
+              );
+            else setLibrary((current) => reconcileLibrary(current, incoming));
+          });
+        }, scopeId),
       ),
-    [run],
+    [run, scopeId],
   );
   const documentsById = new Map(library.documents.map((d) => [d.id, d]));
   const commandResults = query.trim()
@@ -333,6 +396,7 @@ export function Workspace({
       <WorkspaceContext
         value={{
           library: optimistic.library,
+          setProjectScope,
           query: commandOpen ? "" : query,
           setQuery,
           search,
@@ -465,7 +529,7 @@ export function Workspace({
                       <CommandItem
                         key={item.id}
                         value={`project:${item.id}`}
-                        onSelect={() => navigate(`/projects/${item.slug}`)}
+                        onSelect={() => navigate(`/projects/${item.id}`)}
                       >
                         <Folder size={17} />
                         <span className="truncate">{item.name}</span>
@@ -485,7 +549,8 @@ export function Workspace({
                         <span className="min-w-0 flex-1">
                           <span className="content-title">{doc.title}</span>
                           <small className="block text-muted-foreground">
-                            {library.projects.find((p) => p.id === doc.projectId)?.name}
+                            {library.projects.find((p) => p.id === doc.projectId)?.name ??
+                              "Shared document"}
                           </small>
                         </span>
                         <span className="text-xs text-muted-foreground">v{doc.revision}</span>
@@ -515,14 +580,14 @@ export function Workspace({
                   ? old.projects
                   : [...old.projects, p],
               }));
-              router.push(`/projects/${p.slug}`);
+              router.push(`/projects/${p.id}`);
             }}
           />
           <Publisher
             key={projectId || "all-projects"}
             open={publishOpen}
             onOpenChange={setPublishOpen}
-            projects={library.projects}
+            projects={writableProjects}
             projectId={projectId}
             onPublished={(document) => {
               documentChanged(document);
