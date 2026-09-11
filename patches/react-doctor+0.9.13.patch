@@ -1,0 +1,112 @@
+diff --git a/node_modules/react-doctor/dist/index.js b/node_modules/react-doctor/dist/index.js
+index 7bb2061..929a662 100644
+--- a/node_modules/react-doctor/dist/index.js
++++ b/node_modules/react-doctor/dist/index.js
+@@ -74416,30 +74416,38 @@ const resolveIdentifierBinding = (identifier, reactImportBindings, sourceFile, v
+ 	return null;
+ };
+ const isUseCallIdentifier = (node) => node.text === USE_IDENTIFIER && ts.isCallExpression(node.parent) && node.parent.expression === node;
+-const findUseCallIdentifier = (sourceFile, useOffset) => {
+-	let matchedIdentifier = null;
++const isUseMemberCall = (node) => ts.isPropertyAccessExpression(node) && node.name.text === USE_IDENTIFIER && ts.isCallExpression(node.parent) && node.parent.expression === node;
++const findUseCall = (sourceFile, useOffset) => {
++	let matchedCall = null;
+ 	const visit = (node) => {
+-		if (matchedIdentifier) return;
++		if (matchedCall) return;
+ 		if (ts.isIdentifier(node) && isUseCallIdentifier(node) && node.getStart(sourceFile) === useOffset) {
+-			matchedIdentifier = node;
++			matchedCall = { kind: "identifier", node };
++			return;
++		}
++		if (isUseMemberCall(node) && node.getStart(sourceFile) === useOffset) {
++			matchedCall = { kind: "member", node };
+ 			return;
+ 		}
+ 		ts.forEachChild(node, visit);
+ 	};
+ 	visit(sourceFile);
+-	return matchedIdentifier;
++	return matchedCall;
+ };
+ const resolveUseCallBinding = (sourceText, filename, utf8Offset) => {
+ 	const sourceFile = ts.createSourceFile(filename, sourceText, ts.ScriptTarget.Latest, true, getTypescriptScriptKind(filename));
+-	const useIdentifier = findUseCallIdentifier(sourceFile, getUtf16Offset$1(sourceText, utf8Offset));
+-	if (!useIdentifier) return null;
+-	return resolveIdentifierBinding(useIdentifier, collectReactImportBindings(sourceFile), sourceFile);
+-};
+-const RULES_OF_HOOKS_CODE = "react-hooks(rules-of-hooks)";
+-const REACT_HOOK_USE_MESSAGE_PREFIX = "React Hook \"use\"";
++	const useCall = findUseCall(sourceFile, getUtf16Offset$1(sourceText, utf8Offset));
++	if (!useCall) return null;
++	const reactImportBindings = collectReactImportBindings(sourceFile);
++	if (useCall.kind === "member")
++		return isReactNamespaceExpression(useCall.node.expression, reactImportBindings, sourceFile, /* @__PURE__ */ new Set())
++			? REACT_USE_BINDING_RESOLUTION
++			: LOCAL_BINDING_RESOLUTION;
++	return resolveIdentifierBinding(useCall.node, reactImportBindings, sourceFile);
++};
++const RULES_OF_HOOKS_CODES = new Set(["react-hooks(rules-of-hooks)", "react-doctor(rules-of-hooks)"]);
+ const shouldSuppressLocalUseHookDiagnostic = (diagnostic, rootDirectory) => {
+-	if (diagnostic.code !== RULES_OF_HOOKS_CODE) return false;
+-	if (!diagnostic.message.startsWith(REACT_HOOK_USE_MESSAGE_PREFIX)) return false;
++	if (!RULES_OF_HOOKS_CODES.has(diagnostic.code)) return false;
+ 	const primaryLabel = diagnostic.labels[0];
+ 	if (!primaryLabel) return false;
+ 	const absolutePath = path$1$1.isAbsolute(diagnostic.filename) ? diagnostic.filename : path$1$1.join(rootDirectory, diagnostic.filename);
+diff --git a/node_modules/react-doctor/dist/record-metric-Cckscwg_.js b/node_modules/react-doctor/dist/record-metric-Cckscwg_.js
+index d3c021f..871b5dc 100644
+--- a/node_modules/react-doctor/dist/record-metric-Cckscwg_.js
++++ b/node_modules/react-doctor/dist/record-metric-Cckscwg_.js
+@@ -72787,30 +72787,38 @@ const resolveIdentifierBinding = (identifier, reactImportBindings, sourceFile, v
+ 	return null;
+ };
+ const isUseCallIdentifier = (node) => node.text === USE_IDENTIFIER && ts.isCallExpression(node.parent) && node.parent.expression === node;
+-const findUseCallIdentifier = (sourceFile, useOffset) => {
+-	let matchedIdentifier = null;
++const isUseMemberCall = (node) => ts.isPropertyAccessExpression(node) && node.name.text === USE_IDENTIFIER && ts.isCallExpression(node.parent) && node.parent.expression === node;
++const findUseCall = (sourceFile, useOffset) => {
++	let matchedCall = null;
+ 	const visit = (node) => {
+-		if (matchedIdentifier) return;
++		if (matchedCall) return;
+ 		if (ts.isIdentifier(node) && isUseCallIdentifier(node) && node.getStart(sourceFile) === useOffset) {
+-			matchedIdentifier = node;
++			matchedCall = { kind: "identifier", node };
++			return;
++		}
++		if (isUseMemberCall(node) && node.getStart(sourceFile) === useOffset) {
++			matchedCall = { kind: "member", node };
+ 			return;
+ 		}
+ 		ts.forEachChild(node, visit);
+ 	};
+ 	visit(sourceFile);
+-	return matchedIdentifier;
++	return matchedCall;
+ };
+ const resolveUseCallBinding = (sourceText, filename, utf8Offset) => {
+ 	const sourceFile = ts.createSourceFile(filename, sourceText, ts.ScriptTarget.Latest, true, getTypescriptScriptKind(filename));
+-	const useIdentifier = findUseCallIdentifier(sourceFile, getUtf16Offset$1(sourceText, utf8Offset));
+-	if (!useIdentifier) return null;
+-	return resolveIdentifierBinding(useIdentifier, collectReactImportBindings(sourceFile), sourceFile);
+-};
+-const RULES_OF_HOOKS_CODE = "react-hooks(rules-of-hooks)";
+-const REACT_HOOK_USE_MESSAGE_PREFIX = "React Hook \"use\"";
++	const useCall = findUseCall(sourceFile, getUtf16Offset$1(sourceText, utf8Offset));
++	if (!useCall) return null;
++	const reactImportBindings = collectReactImportBindings(sourceFile);
++	if (useCall.kind === "member")
++		return isReactNamespaceExpression(useCall.node.expression, reactImportBindings, sourceFile, /* @__PURE__ */ new Set())
++			? REACT_USE_BINDING_RESOLUTION
++			: LOCAL_BINDING_RESOLUTION;
++	return resolveIdentifierBinding(useCall.node, reactImportBindings, sourceFile);
++};
++const RULES_OF_HOOKS_CODES = new Set(["react-hooks(rules-of-hooks)", "react-doctor(rules-of-hooks)"]);
+ const shouldSuppressLocalUseHookDiagnostic = (diagnostic, rootDirectory) => {
+-	if (diagnostic.code !== RULES_OF_HOOKS_CODE) return false;
+-	if (!diagnostic.message.startsWith(REACT_HOOK_USE_MESSAGE_PREFIX)) return false;
++	if (!RULES_OF_HOOKS_CODES.has(diagnostic.code)) return false;
+ 	const primaryLabel = diagnostic.labels[0];
+ 	if (!primaryLabel) return false;
+ 	const absolutePath = path$1$1.isAbsolute(diagnostic.filename) ? diagnostic.filename : path$1$1.join(rootDirectory, diagnostic.filename);
