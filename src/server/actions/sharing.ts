@@ -24,6 +24,7 @@ import { findProject } from "./projects";
 import { findDocumentContext } from "./documents";
 import { EmailDelivery } from "../services/email";
 import { updateDocumentSharing } from "./document-sharing";
+import { documentPublicPath } from "./public-links";
 
 const sharingContext = Effect.fn("Sharing.context")(function* (
   principal: Principal,
@@ -85,7 +86,7 @@ export const readSharing = Effect.fn("Sharing.read")(function* (
     inheritedPublic: !!document && project.visibility === "public",
     canManage,
     role,
-    publicUrl: `${config.origin}/public/${reference.type === "project" ? "projects" : "documents"}/${reference.id}`,
+    publicUrl: `${config.origin}${document ? yield* documentPublicPath(document.id) : `/public/projects/${project.id}`}`,
     members,
     invitations,
   };

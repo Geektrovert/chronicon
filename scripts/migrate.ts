@@ -7,6 +7,7 @@ import { databaseError, databaseLayer } from "../src/server/database";
 import { AppConfig } from "../src/server/config";
 import { EmailDelivery } from "../src/server/services/email";
 import { teamMembershipMigration } from "./lib/team-membership-migration";
+import { publicLinksMigration } from "./lib/public-links-migration";
 
 const migrationLayer = Auth.layer.pipe(
   Layer.provideMerge(Layer.mergeAll(databaseLayer, EmailDelivery.layer)),
@@ -119,6 +120,7 @@ const main = Effect.gen(function* () {
         yield* sql`CREATE UNIQUE INDEX IF NOT EXISTS sharing_invitation_document_pending
       ON sharing_invitation ("documentId", email) WHERE status = 'pending' AND type = 'document'`;
         yield* teamMembershipMigration;
+        yield* publicLinksMigration;
       }),
     )
     .pipe(databaseError("migrate teams and sharing"));

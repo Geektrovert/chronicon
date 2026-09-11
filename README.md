@@ -94,6 +94,24 @@ own does not expose its private parent project. Public links show the current
 revision, without editing controls or revision history. Setting a document back
 to private still leaves it public if its project is public.
 
+Public document links use `/<username>/d/<document-slug>-<identifier>`. Choose a
+username in **Settings → Account**. Existing accounts receive a generated username
+that discloses no email or account ID. Former usernames remain reserved to the
+same account and redirect to its current username. The old
+`/public/documents/<id>` links also redirect, after checking public access.
+
+Each document keeps the slug and account namespace assigned when it was created,
+plus a random 16-bit identifier written as four hexadecimal characters. The database
+checks collisions within that account and slug and retries allocation. Editing,
+transferring, archiving, or changing sharing does not rotate the stored address.
+Public links always recheck current visibility. The identifier is not an access secret.
+
+Public pages and previews declare `noindex`, `nofollow`, `noarchive`, `nosnippet`,
+and `noimageindex`. `robots.txt` disallows public routes, and the request proxy denies
+identified crawlers before reading document content. These are best-effort controls:
+a scraper impersonating a browser can still fetch a public link. Use private sharing
+when readers must authenticate.
+
 The project creator keeps full access while in the team. Removing a team member
 revokes their grants in that team and transfers projects they created there to
 the team owner. Team and platform admin roles do not bypass content permissions.
@@ -171,6 +189,18 @@ The older `/api/sharing` visibility action remains compatible. Its document acti
 also accepts `expectedRevision`; the current browser supplies it. Older callers that
 omit it retain their previous last-write-wins behavior, while every visibility change
 still advances the document's sharing revision.
+
+Public document addresses are returned through the existing `sharing.publicUrl`;
+clients should use that value rather than construct a URL from a document ID.
+Document IDs, revision preconditions, and private-by-default writes are unchanged.
+
+Browser sessions can read `GET /api/account/profile` and update their username with
+`PATCH /api/account/profile`, using `{ "username": "example", "expectedRevision": 1 }`.
+Both return `{ "username": "example", "revision": 1 }`, with the revision advancing
+on a change. Usernames use 3–40 lowercase ASCII letters, numbers, or hyphens, with
+no leading, trailing, or consecutive hyphens. Reserved or claimed usernames and
+stale revisions return `409`; invalid or unknown fields return `400`. Updates require
+a verified email and same-origin browser session. Agent keys cannot manage usernames.
 
 ## Run locally
 

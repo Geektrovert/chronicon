@@ -11,8 +11,13 @@ import {
 import { databaseError } from "../database";
 import { AppError } from "../errors";
 import { requireDocumentSharing } from "./access";
+import { documentPublicPath } from "./public-links";
 
-export function documentSharingState(origin: string, document: Document, project: Project) {
+export const documentSharingState = Effect.fn("Sharing.documentState")(function* (
+  origin: string,
+  document: Document,
+  project: Project,
+) {
   const inheritedPublic = project.visibility === "public";
   return {
     visibility: document.visibility,
@@ -20,10 +25,10 @@ export function documentSharingState(origin: string, document: Document, project
     inheritedPublic,
     publicUrl:
       !document.archived && (document.visibility === "public" || inheritedPublic)
-        ? `${origin}/public/documents/${document.id}`
+        ? `${origin}${yield* documentPublicPath(document.id)}`
         : null,
   };
-}
+});
 
 // Call inside the document's project transaction, after locking and re-reading access.
 // Sharing revisions describe direct link access, independently of HTML history and grants.

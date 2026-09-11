@@ -46,8 +46,10 @@ const staticRoutes = new Set([
   "/settings",
   "/settings/appearance",
   "/settings/team",
+  "/settings/account",
   "/cli/authorize",
   "/api/account",
+  "/api/account/profile",
   "/api/documents",
   "/api/projects",
   "/api/library",
@@ -102,6 +104,7 @@ export function telemetryRoute(path: string) {
     [/^\/projects\/[^/]+$/, "/projects/[slug]"],
     [/^\/invitations\/[^/]+$/, "/invitations/[id]"],
     [/^\/public\/documents\/[^/]+$/, "/public/documents/[id]"],
+    [/^\/[^/]+\/d\/[^/]+\/?$/, "/[username]/d/[documentSlug]"],
     [/^\/public\/projects\/[^/]+$/, "/public/projects/[id]"],
   ] as const;
   return patterns.find(([pattern]) => pattern.test(pathname))?.[1] ?? "/[unmatched]";

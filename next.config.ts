@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { Config, Effect, Redacted } from "effect";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 import { posthogHosts } from "./src/lib/posthog";
+import { robotsDirective } from "./src/lib/crawlers";
 
 const portlessUrl = Effect.runSync(Config.string("PORTLESS_URL").pipe(Config.withDefault("")));
 const buildMetadata = Effect.runSync(
@@ -45,6 +46,7 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: robotsDirective },
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(), payment=()",

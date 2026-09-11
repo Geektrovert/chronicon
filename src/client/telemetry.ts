@@ -128,6 +128,7 @@ export function telemetryRoute(value: string) {
       "/sign-up",
       "/settings",
       "/settings/team",
+      "/settings/account",
       "/settings/appearance",
       "/cli/authorize",
     ].includes(path)
@@ -138,6 +139,7 @@ export function telemetryRoute(value: string) {
   if (/^\/documents\/[^/]+\/?$/.test(path)) return "/documents/[id]";
   if (/^\/invitations\/[^/]+\/?$/.test(path)) return "/invitations/[id]";
   if (/^\/public\/documents\/[^/]+\/?$/.test(path)) return "/public/documents/[id]";
+  if (/^\/[^/]+\/d\/[^/]+\/?$/.test(path)) return "/[username]/d/[documentSlug]";
   if (/^\/public\/projects\/[^/]+\/?$/.test(path)) return "/public/projects/[id]";
   if (/^\/api\/projects\/[^/]+\/design(?:\.md)?\/?$/.test(path)) return "/api/projects/[id]/design";
   if (/^\/api\/documents\/[^/]+\/?$/.test(path)) return "/api/documents/[id]";
@@ -153,6 +155,7 @@ export function telemetryRoute(value: string) {
       "/api/sharing",
       "/api/cli/authorize",
       "/api/account",
+      "/api/account/profile",
     ].includes(path)
   )
     return path;

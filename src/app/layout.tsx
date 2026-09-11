@@ -28,7 +28,7 @@ const nacelle = localFont({
 export const metadata: Metadata = {
   title: { default: "Chronicon", template: "%s · Chronicon" },
   description: "A private library for plans, reports, and ideas.",
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: false, noarchive: true, nosnippet: true, noimageindex: true },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

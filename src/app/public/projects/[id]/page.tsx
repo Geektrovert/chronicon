@@ -34,7 +34,7 @@ async function PublicProjectPage({ params }: PageProps<"/public/projects/[id]">)
         {data.documents.map((document) => (
           <Link
             key={document.id}
-            href={`/public/documents/${document.id}`}
+            href={document.publicPath}
             prefetch={false}
             className="block p-5 hover:bg-muted/50"
           >

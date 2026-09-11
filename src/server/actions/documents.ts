@@ -218,7 +218,7 @@ export const readDocument = Effect.fn("Library.read")(function* (
       archived: current.document.archived,
     },
     project: role ? { ...current.project, accessRole: role } : null,
-    sharing: documentSharingState(config.origin, current.document, current.project),
+    sharing: yield* documentSharingState(config.origin, current.document, current.project),
     ...result,
     revision: {
       version: revision.version,
@@ -383,15 +383,26 @@ export const publishDocument = Effect.fn("Library.publish")(
           yield* sql`INSERT INTO revision ${sql.insert(revision)}`.pipe(
             databaseError("record revision"),
           );
-          // Effect's commit failures are defects. Once commit starts, its outcome may be unknown.
-          yield* Ref.set(committing, true);
           return {
             project,
             document: { ...saved, starred: current?.starred ?? false, accessRole: role },
             created: !current,
             unchanged: false,
           };
-        }),
+        }).pipe(
+          Effect.flatMap((result) =>
+            Effect.gen(function* () {
+              const sharing = yield* documentSharingState(
+                config.origin,
+                result.document,
+                result.project,
+              );
+              // Effect's commit failures are defects. Once commit starts, its outcome may be unknown.
+              yield* Ref.set(committing, true);
+              return { ...result, sharing };
+            }),
+          ),
+        ),
       )
       .pipe(
         Effect.catchTag(
@@ -425,7 +436,6 @@ export const publishDocument = Effect.fn("Library.publish")(
         ? repositoryAssociation(config.origin, principal.ownerId, result.project)
         : null,
       url: `${config.origin}/documents/${result.document.id}`,
-      sharing: documentSharingState(config.origin, result.document, result.project),
     };
   },
   (effect, principal) =>
@@ -482,7 +492,10 @@ export const updateDocument = Effect.fn("Library.update")(
               databaseError("archive document"),
             );
           const { document, project } = yield* findDocumentContext(principal, id);
-          return { ...document, sharing: documentSharingState(config.origin, document, project) };
+          return {
+            ...document,
+            sharing: yield* documentSharingState(config.origin, document, project),
+          };
         }),
       )
       .pipe(Effect.catchTag("SqlError", () => new DatabaseError({ operation: "update document" })));

@@ -6,7 +6,7 @@ export function SettingsPage({
   section = "appearance",
 }: {
   children: ReactNode;
-  section?: "appearance" | "team";
+  section?: "appearance" | "team" | "account";
 }) {
   return (
     <main
@@ -17,9 +17,17 @@ export function SettingsPage({
     >
       <nav
         aria-label="Settings"
-        className="mb-8 flex items-center gap-4 border-b border-border pb-4"
+        className="mb-8 flex flex-wrap items-center gap-4 border-b border-border pb-4"
       >
         <span className="text-sm text-muted-foreground">Settings</span>
+        <ButtonLink
+          href="/settings/account"
+          variant="navigation"
+          className="w-auto"
+          aria-current={section === "account" ? "page" : undefined}
+        >
+          Account
+        </ButtonLink>
         <ButtonLink
           href="/settings/appearance"
           variant="navigation"
@@ -37,7 +45,9 @@ export function SettingsPage({
           Team
         </ButtonLink>
       </nav>
-      <h1 className="sr-only">{section === "team" ? "Team settings" : "Appearance"}</h1>
+      <h1 className="sr-only">
+        {{ account: "Account settings", team: "Team settings", appearance: "Appearance" }[section]}
+      </h1>
       {children}
     </main>
   );

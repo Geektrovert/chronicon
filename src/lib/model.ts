@@ -5,6 +5,24 @@ export const slugSchema = Schema.String.check(
   Schema.isMaxLength(80),
   Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 );
+export const usernameSchema = Schema.String.check(
+  Schema.isMinLength(3),
+  Schema.isMaxLength(40),
+  Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+);
+export const publicProfileSchema = Schema.Struct({
+  username: usernameSchema,
+  revision: Schema.Int.check(Schema.isGreaterThan(0)),
+});
+export const publicProfileInput = Schema.Struct({
+  username: usernameSchema,
+  expectedRevision: Schema.Int.check(Schema.isGreaterThan(0)),
+});
+export const publicDocumentAddressSchema = Schema.Struct({
+  username: usernameSchema,
+  slug: slugSchema,
+  identifier: Schema.String.check(Schema.isPattern(/^[0-9a-f]{4}$/)),
+});
 const text = (max: number) => Schema.Trim.check(Schema.isMaxLength(max));
 const requiredText = (max: number) => text(max).check(Schema.isMinLength(1));
 const defaultText = (max: number) =>

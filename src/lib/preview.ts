@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { robotsDirective } from "./crawlers";
 
 export const previewNavigation = Schema.Struct({
   type: Schema.Literal("chronicon:preview:navigate"),
@@ -80,5 +81,5 @@ window.addEventListener("message", function(event) {
 });
 })();
 </script>`;
-  return `<!doctype html><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">${navigation}${html}`;
+  return `<!doctype html><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="robots" content="${robotsDirective}"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">${navigation}${html}`;
 }
