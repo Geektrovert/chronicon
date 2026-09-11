@@ -21,6 +21,7 @@ export const PATCH = (request: Request) =>
       const principal = yield* authenticate(request.headers);
       return yield* updatePublicProfile(
         principal,
+        request.headers,
         yield* decodeInput(publicProfileInput, yield* readJSON(request)),
       );
     }).pipe(Effect.uninterruptible),

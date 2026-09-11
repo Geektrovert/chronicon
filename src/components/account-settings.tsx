@@ -24,7 +24,7 @@ export function AccountSettings({
   const [notice, setNotice] = useState("");
   const [busy, submit] = useTransition();
   const form = useForm({
-    defaultValues: { username: initialProfile.username },
+    defaultValues: { username: profile.username },
     onSubmit: ({ value }) => {
       if (busy || !emailVerified) return;
       setError("");

@@ -13,7 +13,7 @@ export const documentPublicPath = Effect.fn("Public.documentPath")(function* (id
     Request: Schema.String,
     Result: publicDocumentAddressSchema,
     execute: (id) => sql`SELECT p.username, l.slug, l.identifier FROM public_document_link l
-      JOIN public_profile p ON p."userId" = l."ownerId" WHERE l."documentId" = ${id}`,
+      JOIN "user" p ON p.id = l."ownerId" WHERE l."documentId" = ${id}`,
   })(id).pipe(databaseError("read document link"));
   if (Option.isNone(address))
     return yield* new AppError({

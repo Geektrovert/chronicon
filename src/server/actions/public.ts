@@ -40,7 +40,7 @@ export const readPublicProject = Effect.fn("Public.project")(function* (id: stri
       id,
     ) => sql`SELECT d.id, d.title, d.summary, d.kind, d."updatedAt", profile.username, l.slug, l.identifier
       FROM document d JOIN project p ON p.id = d."projectId"
-      JOIN public_document_link l ON l."documentId" = d.id JOIN public_profile profile ON profile."userId" = l."ownerId"
+      JOIN public_document_link l ON l."documentId" = d.id JOIN "user" profile ON profile.id = l."ownerId"
       WHERE p.id = ${id} AND p.visibility = 'public' AND d.archived = false ORDER BY d."updatedAt" DESC`,
   })(id).pipe(databaseError("list public documents"));
   const visible =
@@ -94,7 +94,7 @@ const findPublicDocument = Effect.fn("Public.findDocument")(function* (
       CASE WHEN p.visibility = 'public' THEN p.id ELSE NULL END AS "publicProjectId",
       CASE WHEN p.visibility = 'public' THEN p.name ELSE NULL END AS "publicProjectName"
       FROM document d JOIN project p ON p.id = d."projectId" JOIN revision r ON r."documentId" = d.id AND r.version = d.revision
-      JOIN public_document_link l ON l."documentId" = d.id JOIN public_profile profile ON profile."userId" = l."ownerId"
+      JOIN public_document_link l ON l."documentId" = d.id JOIN "user" profile ON profile.id = l."ownerId"
       WHERE ${condition} AND d.archived = false AND (d.visibility = 'public' OR p.visibility = 'public')`,
   })(undefined).pipe(databaseError("read public document"));
   if (Option.isNone(found))

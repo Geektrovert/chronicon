@@ -2,7 +2,7 @@
 import { Effect, Redacted, Schema } from "effect";
 import { createAuthClient } from "better-auth/react";
 import { apiKeyClient } from "@better-auth/api-key/client";
-import { adminClient, organizationClient } from "better-auth/client/plugins";
+import { adminClient, organizationClient, usernameClient } from "better-auth/client/plugins";
 import { ClientError } from "../errors";
 import { announceSignOut, leaveWorkspace } from "./session";
 import { signInDestination } from "@/lib/cli-auth";
@@ -10,7 +10,12 @@ import { observeAction } from "../observe-action";
 import { identifyUser, resetIdentity } from "../telemetry";
 import { prepareRequestTelemetry } from "../services/request-telemetry";
 const authClient = createAuthClient({
-  plugins: [apiKeyClient(), organizationClient(), adminClient()],
+  plugins: [
+    apiKeyClient(),
+    organizationClient(),
+    adminClient(),
+    usernameClient({ displayUsername: false }),
+  ],
 });
 const authenticationContext = prepareRequestTelemetry({
   method: "POST",

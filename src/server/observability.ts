@@ -68,6 +68,8 @@ const authRoutes = new Set([
   "verify-email",
   "send-verification-email",
   "update-user",
+  "is-username-available",
+  "sign-in/username",
   "change-password",
   "revoke-session",
   "revoke-sessions",

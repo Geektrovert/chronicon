@@ -95,8 +95,10 @@ revision, without editing controls or revision history. Setting a document back
 to private still leaves it public if its project is public.
 
 Public document links use `/<username>/d/<document-slug>-<identifier>`. Choose a
-username in **Settings → Account**. Existing accounts receive a generated username
-that discloses no email or account ID. Former usernames remain reserved to the
+username in **Settings → Account**. Better Auth's username plugin owns the unique,
+lowercase username on each user. Signup infers a slug from the display name and adds
+a random suffix if needed. It does not ask for a username or derive one from email.
+Changing the display name later does not change the username. Former usernames remain reserved to the
 same account and redirect to its current username. The old
 `/public/documents/<id>` links also redirect, after checking public access.
 
@@ -201,6 +203,17 @@ on a change. Usernames use 3–40 lowercase ASCII letters, numbers, or hyphens, 
 no leading, trailing, or consecutive hyphens. Reserved or claimed usernames and
 stale revisions return `409`; invalid or unknown fields return `400`. Updates require
 a verified email and same-origin browser session. Agent keys cannot manage usernames.
+
+The profile update calls Better Auth's `updateUser` with an `If-Match` header such as
+`"username-1"`. Its user update hook and database trigger enforce that precondition
+without allowing clients to write `usernameRevision` directly. Native username updates
+can use the same optional header. Both paths retain aliases and advance the revision
+only when the username changes. The plugin's availability endpoint also checks reserved
+names and aliases. Database constraints resolve races between availability checks and saves.
+
+Run migrations before deployment. The username migration preserves chosen usernames
+and old aliases, backfills inferred defaults, and replaces the earlier profile table
+with a compatibility view for deployments still using the original profile API.
 
 ## Run locally
 

@@ -3,12 +3,14 @@ import type { Pool } from "pg";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { apiKey } from "@better-auth/api-key";
-import { admin, organization } from "better-auth/plugins";
+import { admin, organization, username } from "better-auth/plugins";
+import { usernameSchema } from "@/lib/model";
 import { AppConfig } from "./config";
 import { DatabasePool } from "./database";
 import { AppError, AuthenticationError } from "./errors";
 import { defaultTeamId, ensureDefaultTeam } from "./actions/default-team";
 import { isEligibleTeamInviter } from "./actions/team-inviter";
+import { canUseUsername, usernamePrecondition } from "./actions/usernames";
 import { EmailDelivery } from "./services/email";
 import { annotateAuthenticatedUser, logOperationalError, telemetryError } from "./observability";
 
@@ -35,6 +37,11 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
     baseURL: config.baseUrl,
     secret: Redacted.value(config.authSecret) || undefined,
     database: pool,
+    user: {
+      additionalFields: {
+        usernameRevision: { type: "number", required: false, defaultValue: 1, input: false },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 12,
@@ -54,6 +61,17 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
       user: {
         create: {
           after: (user) => ensureDefaultTeam(pool, user).then(() => undefined),
+        },
+        update: {
+          before: (user, context) => {
+            const revision =
+              typeof user.username === "string"
+                ? usernamePrecondition(context?.headers)
+                : undefined;
+            return Promise.resolve({
+              data: revision === undefined ? user : { ...user, usernameRevision: revision },
+            });
+          },
         },
       },
       session: {
@@ -78,6 +96,48 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
         return Promise.resolve();
       }),
       before: createAuthMiddleware((context) => {
+        if (
+          context.path === "/sign-up/email" &&
+          (bodyField(context.body, "username") !== undefined ||
+            bodyField(context.body, "displayUsername") !== undefined)
+        )
+          throw new APIError("BAD_REQUEST", {
+            message: "Choose a username in Account settings after signing up.",
+          });
+        if (context.path === "/update-user" && bodyField(context.body, "username") !== undefined) {
+          const handle = bodyField(context.body, "username");
+          if (typeof handle !== "string" || !Schema.is(usernameSchema)(handle.toLowerCase()))
+            throw new APIError("BAD_REQUEST", {
+              message: "Use 3–40 lowercase letters, numbers, or hyphens.",
+            });
+          return getSessionFromCtx(context).then((session) => {
+            if (!session?.user.emailVerified)
+              throw new APIError("FORBIDDEN", {
+                message: "Verify your email before choosing a public username.",
+              });
+            const revision = usernamePrecondition(context.headers);
+            if (revision !== undefined && revision !== session.user.usernameRevision)
+              throw new APIError("CONFLICT", {
+                message: "Your username changed. Reload settings before saving.",
+              });
+            return canUseUsername(pool, handle, session.user.id).then((available) => {
+              if (!available)
+                throw new APIError("CONFLICT", {
+                  message: "That username is taken or reserved. Choose another.",
+                });
+            });
+          });
+        }
+        if (context.path === "/is-username-available") {
+          const handle = bodyField(context.body, "username");
+          if (typeof handle !== "string" || !Schema.is(usernameSchema)(handle.toLowerCase()))
+            return Promise.resolve(context.json({ available: false }));
+          return getSessionFromCtx(context).then((session) =>
+            canUseUsername(pool, handle, session?.user.id).then((available) =>
+              available ? undefined : context.json({ available: false }),
+            ),
+          );
+        }
         if (context.path === "/organization/update-member-role") {
           return getSessionFromCtx(context).then((session) => {
             if (!session?.user.emailVerified)
@@ -111,6 +171,13 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
       }),
     },
     plugins: [
+      username({
+        displayUsername: false,
+        minUsernameLength: 3,
+        maxUsernameLength: 40,
+        validationOrder: { username: "post-normalization" },
+        usernameValidator: Schema.is(usernameSchema),
+      }),
       admin({ defaultRole: "user" }),
       organization({
         allowUserToCreateOrganization: false,
@@ -193,6 +260,17 @@ export const authCall = <A>(work: () => Promise<A>) =>
             error.statusCode < 500 ? error.message : "Authentication is unavailable. Try again.",
         });
       const details = error && typeof error === "object" ? error : {};
+      const constraint: unknown = Reflect.get(details, "constraint");
+      if (constraint === "chronicon_username_revision")
+        return new AppError({
+          status: 409,
+          message: "Your username changed. Reload settings before saving.",
+        });
+      if (constraint === "chronicon_username_unavailable")
+        return new AppError({
+          status: 409,
+          message: "That username is taken or reserved. Choose another.",
+        });
       const rawMessage: unknown = Reflect.get(details, "message");
       const message = typeof rawMessage === "string" ? rawMessage : "";
       logOperationalError("Authentication failed internally", {
