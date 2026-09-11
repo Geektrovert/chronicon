@@ -119,9 +119,10 @@ revokes their grants in that team and transfers projects they created there to
 the team owner. Team and platform admin roles do not bypass content permissions.
 
 Agent keys are limited to their issuing team and optional selected projects.
-They cannot exceed the issuing user's current permissions. **Read, edit, and share**
-keys can change a document's public-link access when the issuing user has a verified
-email and full access. Existing **Read and edit** keys retain their original access.
+They cannot exceed the issuing user's current permissions. **Read** keys can view
+content. **Write** keys can also edit content and change a document's public-link
+access when the issuing user has a verified email and full access. This includes
+existing write keys and keys issued through CLI login.
 Keys cannot manage named grants, project sharing, other keys, stars, or archive state.
 Copying a private link does not grant access.
 
@@ -180,12 +181,14 @@ stars and archive changes. Agent keys cannot modify those flags.
 | No-op                        | Identical content-only retries retain the existing behavior. Explicit sharing always checks its revision, even if the requested visibility already matches.        |
 | Revision history             | Sharing-only changes advance the sharing revision without uploading HTML or adding a content revision.                                                             |
 | Conflict or uncertain result | Read the saved state and decide whether the change is still intended. A stale sharing request returns `409`; do not automatically replay it with a newer revision. |
-| Access                       | A verified user with full access, plus `documents: ["read", "write", "share"]` for agent keys. Key team and project scope still apply.                             |
+| Access                       | A verified user with full access, plus `documents: ["read", "write"]` for agent keys. Key team and project scope still apply.                                      |
 
-Create sharing-enabled keys through **Connect an agent → Read, edit, and share**, or
-send `share: true` with `write: true` to the existing browser-authenticated key API.
-Omitting `share` keeps key creation backward compatible. Standard CLI login continues
-to issue read/edit keys. Named invitations and project sharing remain browser workflows.
+Choose **Write** in **Connect an agent**, or send `write: true` to the
+browser-authenticated key API. `write: false` creates a Read key. The optional
+`share` field is deprecated and accepted for older callers, but `write` determines
+sharing access. `share: true` with `write: false` remains invalid. Existing keys need
+no rotation; a stored `share` permission has no effect. Named invitations and project
+sharing remain browser workflows.
 
 The older `/api/sharing` visibility action remains compatible. Its document action
 also accepts `expectedRevision`; the current browser supplies it. Older callers that

@@ -234,8 +234,7 @@ export const publishDocument = Effect.fn("Library.publish")(
     if (!principal.canWrite)
       return yield* new AppError({
         status: 403,
-        message:
-          "This key is read-only. Create a key with Read and edit access from Connect an agent.",
+        message: "This key is read-only. Create a key with Write access from Connect an agent.",
       });
     const config = yield* AppConfig;
     const sql = yield* PgClient.PgClient;

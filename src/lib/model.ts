@@ -78,7 +78,8 @@ export const keyInput = Schema.Struct({
   name: requiredText(60),
   projectIds: Schema.NullOr(Schema.Array(Schema.String)),
   write: Schema.Boolean,
-  share: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  // Accepted for older clients. Write access now includes document sharing.
+  share: Schema.optionalKey(Schema.Boolean),
   days: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 365 })),
 }).check(Schema.makeFilter((value) => !value.share || value.write));
 export const deleteKeyInput = Schema.Struct({ keyId: Schema.NonEmptyString });
@@ -176,7 +177,6 @@ export type Principal = {
   readonly email?: string;
   readonly projectIds: ReadonlyArray<string> | null;
   readonly canWrite: boolean;
-  readonly canShare: boolean;
 };
 
 export function repositoryAssociation(server: string, workspaceId: string, project: Project) {

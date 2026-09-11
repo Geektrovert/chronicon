@@ -38,7 +38,7 @@ const insertProject = Effect.fn("Library.insertProject")(function* (
   if (principal.projectIds || !principal.canWrite)
     return yield* new AppError({
       status: 403,
-      message: "To create projects, use a key with All projects and Read and edit access.",
+      message: "To create projects, use a key with All projects and Write access.",
     });
   const memberships =
     yield* sql`SELECT id FROM member WHERE "organizationId" = ${principal.organizationId} AND "userId" = ${principal.ownerId} FOR SHARE`.pipe(

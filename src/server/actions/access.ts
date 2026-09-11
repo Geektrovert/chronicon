@@ -71,7 +71,6 @@ export const authenticate = Effect.fn("Access.authenticate")(
         keyId: result.key.id,
         projectIds: metadata.projectIds,
         canWrite: !!permissions.documents?.includes("write"),
-        canShare: !!permissions.documents?.includes("share"),
       } satisfies Principal;
     }
     const session = yield* authCall(() => auth.api.getSession({ headers }));
@@ -105,7 +104,6 @@ export const authenticate = Effect.fn("Access.authenticate")(
       access: "owner",
       projectIds: null,
       canWrite: true,
-      canShare: true,
     } satisfies Principal;
   },
   (effect) => effect.pipe(Effect.tap(annotatePrincipal)),
@@ -220,8 +218,8 @@ export const requireDocumentSharing = Effect.fn("Access.documentSharing")(functi
   document: Document | undefined,
   project: Project,
 ) {
-  if (!principal.canWrite || !principal.canShare)
-    return yield* deny("Use a key with Read, edit, and share access to change document sharing.");
+  if (!principal.canWrite)
+    return yield* deny("Use a key with Write access to change document sharing.");
   if (!principal.emailVerified) return yield* deny("Verify your email before sharing a document.");
   const role = document
     ? yield* documentRole(principal, document, project)

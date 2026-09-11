@@ -156,7 +156,7 @@ function handler(
         "update_document",
         {
           description:
-            "Change an existing document's public-link sharing without uploading HTML. Supply sharing {visibility,expectedRevision} from read_document. Requires a sharing-enabled write key and the issuing user's verified email and full access. Returns current sharing; publicUrl is null when private or archived. A public parent project still grants public access. On conflict, read before deciding whether to change access again.",
+            "Change an existing document's public-link sharing without uploading HTML. Supply sharing {visibility,expectedRevision} from read_document. Requires a Write key and the issuing user's verified email and full access. Returns current sharing; publicUrl is null when private or archived. A public parent project still grants public access. On conflict, read before deciding whether to change access again.",
           inputSchema: standard(
             Schema.Struct({ id: Schema.NonEmptyString, sharing: documentSharingInput }),
           ),

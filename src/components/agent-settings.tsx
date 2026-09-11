@@ -1,7 +1,7 @@
 "use client";
 import { Form, FieldGroup } from "./ui/form";
 import { useForm } from "@tanstack/react-form";
-import { Field, FieldLabel, FieldError } from "./ui/field";
+import { Field, FieldLabel, FieldError, FieldDescription } from "./ui/field";
 import { SelectField } from "./ui/select-field";
 import { useEffect, useState } from "react";
 import { formatDate } from "@/lib/date";
@@ -70,8 +70,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
         createAgentKey({
           name: value.name,
           projectIds: value.project === "all" ? null : [value.project],
-          write: value.access === "write" || value.access === "share",
-          share: value.access === "share",
+          write: value.access === "write",
           days: Number(value.days),
         }),
         {
@@ -161,9 +160,8 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
                     label="Access"
                     name="access"
                     options={[
-                      { value: "write", label: "Read and edit" },
-                      { value: "share", label: "Read, edit, and share" },
-                      { value: "read", label: "Read only" },
+                      { value: "read", label: "Read" },
+                      { value: "write", label: "Write" },
                     ]}
 
                     value={field.state.value}
@@ -194,6 +192,9 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
               )}
             </form.Field>
           </FieldGroup>
+          <FieldDescription>
+            Write access includes reading, editing, and sharing documents.
+          </FieldDescription>
           <Button type="submit" disabled={busy}>
             <KeyRound size={16} />
             {busy ? "Creating key…" : "Create agent key"}

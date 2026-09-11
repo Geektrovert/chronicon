@@ -26,7 +26,8 @@ export function CliAuthorization({
         <PageHeader title="Connect your terminal" />
         <p>
           Signed in as {account}. Authorize the CLI to read and edit projects, documents, and design
-          systems in this account for 30 days.
+          systems in this account for 30 days. Write access also allows document sharing where you
+          have full access and a verified email.
         </p>
         <p className="text-sm text-muted-foreground">
           Continue only if you started this login. Revoke access anytime from Connect an agent in

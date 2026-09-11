@@ -46,7 +46,6 @@ export const createKey = Effect.fn("Keys.create")(function* (
   }
   const documentPermissions = ["read"];
   if (input.write) documentPermissions.push("write");
-  if (input.share) documentPermissions.push("share");
   const created = yield* authCall(() =>
     auth.api.createApiKey({
       body: {
@@ -60,7 +59,6 @@ export const createKey = Effect.fn("Keys.create")(function* (
   );
   yield* recordOperation("chronicon_agent_key_created", {
     write_access: input.write,
-    share_access: input.share,
     project_scope_count: input.projectIds?.length ?? 0,
     all_projects: input.projectIds === null,
     expires_in_days: input.days,
