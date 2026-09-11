@@ -99,14 +99,78 @@ revokes their grants in that team and transfers projects they created there to
 the team owner. Team and platform admin roles do not bypass content permissions.
 
 Agent keys are limited to their issuing team and optional selected projects.
-They cannot exceed the issuing user's current permissions, manage sharing, or
-make content public. Copying a private link does not grant access.
+They cannot exceed the issuing user's current permissions. **Read, edit, and share**
+keys can change a document's public-link access when the issuing user has a verified
+email and full access. Existing **Read and edit** keys retain their original access.
+Keys cannot manage named grants, project sharing, other keys, stars, or archive state.
+Copying a private link does not grant access.
 
 Choose Light, Dark, or System in [Appearance settings](https://chronicon.klyk.work/settings/appearance).
 Appearance and keyboard shortcuts are saved in your browser.
 
 Verify your email before accepting invitations or sharing with other people.
 Password reset is not available yet. Keep your password somewhere you can retrieve it.
+
+## Document API and MCP sharing
+
+`POST /api/documents` and MCP `upsert_document` accept the same optional `sharing`
+object alongside the existing HTML, metadata, and `expectedRevision` fields:
+
+```json
+{
+  "project": { "id": "PROJECT_ID" },
+  "slug": "release-notes",
+  "title": "Release notes",
+  "html": "<!doctype html><html lang=\"en\"><title>Release notes</title><body><p>Released today.</p></body></html>",
+  "expectedRevision": 0,
+  "sharing": { "visibility": "public", "expectedRevision": 0 }
+}
+```
+
+Omitting `sharing` creates a document with private visibility and preserves visibility
+on updates. Existing requests and response fields keep their meaning; sharing
+information is additive. Unknown request fields, `sharing: null`, empty sharing
+objects, and unsupported visibility values are rejected.
+
+`GET /api/documents/:id` and MCP `read_document` return current `sharing`, including
+`visibility`, `revision`, `inheritedPublic`, and `publicUrl`. Document mutations return
+the same sharing shape. The existing `url` remains the authenticated viewer URL.
+`sharing.publicUrl` is non-null only when the current, unarchived document is publicly
+accessible. Public project access is inherited, so setting a document to private
+does not revoke access granted by its public project. Named grants are independent.
+
+For an existing document, use the returned `sharing.revision` as
+`sharing.expectedRevision`. To change sharing without sending HTML, use
+`PATCH /api/documents/:id` with:
+
+```json
+{ "sharing": { "visibility": "private", "expectedRevision": 1 } }
+```
+
+The MCP equivalent is `update_document` with `{id, sharing}`. The PATCH response
+preserves the existing document fields and adds `sharing`; it still supports browser
+stars and archive changes. Agent keys cannot modify those flags.
+
+| Contract                     | Behavior                                                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Creation                     | Use `0` for the content revision and, when supplying sharing, its expected revision. Saved revisions start at `1`.                                                 |
+| Content update               | Send full HTML and metadata with `document.revision` as the top-level `expectedRevision`.                                                                          |
+| Sharing update               | Send `sharing.expectedRevision` from a fresh read. It guards direct document visibility, not named grants, archive state, or inherited project access.             |
+| Atomicity                    | Content and requested sharing changes commit together. Authorization, validation, or revision failures save neither.                                               |
+| No-op                        | Identical content-only retries retain the existing behavior. Explicit sharing always checks its revision, even if the requested visibility already matches.        |
+| Revision history             | Sharing-only changes advance the sharing revision without uploading HTML or adding a content revision.                                                             |
+| Conflict or uncertain result | Read the saved state and decide whether the change is still intended. A stale sharing request returns `409`; do not automatically replay it with a newer revision. |
+| Access                       | A verified user with full access, plus `documents: ["read", "write", "share"]` for agent keys. Key team and project scope still apply.                             |
+
+Create sharing-enabled keys through **Connect an agent → Read, edit, and share**, or
+send `share: true` with `write: true` to the existing browser-authenticated key API.
+Omitting `share` keeps key creation backward compatible. Standard CLI login continues
+to issue read/edit keys. Named invitations and project sharing remain browser workflows.
+
+The older `/api/sharing` visibility action remains compatible. Its document action
+also accepts `expectedRevision`; the current browser supplies it. Older callers that
+omit it retain their previous last-write-wins behavior, while every visibility change
+still advances the document's sharing revision.
 
 ## Run locally
 
@@ -165,6 +229,12 @@ existing projects to their creators' default teams and keeps every project and
 document private. Older app versions cannot create projects after the new team
 constraint is applied. Pause writes, run `bun run db:migrate` against the target
 database, then start the updated app before reopening writes.
+
+For the document-sharing API update, run `bun run db:migrate` before deploying the
+app. It adds `document.sharingRevision` at `1` without changing visibility or HTML.
+A database trigger advances it whenever direct visibility changes, including writes
+from older app instances during rollout. The migration can be rerun and is compatible
+with the previous app version. Keep the column and trigger if rolling the app back.
 
 Local file storage is unavailable in production. Keep secrets in environment
 configuration and use separate credentials for preview deployments.

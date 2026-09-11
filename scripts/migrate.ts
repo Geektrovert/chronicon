@@ -69,6 +69,17 @@ const main = Effect.gen(function* () {
         yield* sql`CREATE UNIQUE INDEX IF NOT EXISTS project_organization_slug ON project ("organizationId", slug)`;
         yield* sql`ALTER TABLE project ADD COLUMN IF NOT EXISTS visibility text NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'public'))`;
         yield* sql`ALTER TABLE document ADD COLUMN IF NOT EXISTS visibility text NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'public'))`;
+        yield* sql`ALTER TABLE document ADD COLUMN IF NOT EXISTS "sharingRevision" integer NOT NULL DEFAULT 1 CHECK ("sharingRevision" > 0)`;
+        // Keep revisions correct for every visibility writer, including older app instances.
+        yield* sql`CREATE OR REPLACE FUNCTION chronicon_document_sharing_revision() RETURNS trigger AS $$
+          BEGIN
+            NEW."sharingRevision" := OLD."sharingRevision" + CASE WHEN NEW.visibility IS DISTINCT FROM OLD.visibility THEN 1 ELSE 0 END;
+            RETURN NEW;
+          END;
+        $$ LANGUAGE plpgsql`;
+        yield* sql`DROP TRIGGER IF EXISTS document_sharing_revision ON document`;
+        yield* sql`CREATE TRIGGER document_sharing_revision BEFORE UPDATE OF visibility, "sharingRevision" ON document
+          FOR EACH ROW EXECUTE FUNCTION chronicon_document_sharing_revision()`;
         yield* sql`CREATE TABLE IF NOT EXISTS project_access (
       "projectId" text NOT NULL REFERENCES project(id) ON DELETE CASCADE,
       "userId" text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,

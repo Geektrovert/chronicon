@@ -7,6 +7,7 @@ import { Effect, Exit, Schema } from "effect";
 import {
   projectReference,
   publishInput,
+  documentSharingInput,
   revisionNumber,
   slugSchema,
   type Principal,
@@ -14,7 +15,7 @@ import {
 import { findDocuments } from "./actions/discovery";
 import { authenticate } from "./actions/access";
 import { AppConfig } from "./config";
-import { readDocumentByReference, publishDocument } from "./actions/documents";
+import { readDocumentByReference, publishDocument, updateDocument } from "./actions/documents";
 import { LibraryInvalidation, readCachedLibrary, requestLibraryInvalidation } from "./cache";
 import { agentInstructions } from "./agent-instructions";
 import { AppError } from "./errors";
@@ -64,13 +65,13 @@ function handler(
   return createMcpHandler(
     () => {
       const server = new McpServer(
-        { name: "Chronicon", version: "0.2.0" },
+        { name: "Chronicon", version: "0.3.0" },
         { instructions: agentInstructions(origin, principal.ownerId) },
       );
       server.registerTool(
         "list_projects",
         {
-          description: "List private projects available to this agent.",
+          description: "List projects available to this agent.",
           inputSchema: standard(Schema.Struct({})),
           annotations: { readOnlyHint: true },
         },
@@ -85,7 +86,7 @@ function handler(
         "read_document",
         {
           description:
-            "Read HTML and revision history by document ID, or project reference and document slug. Use the current revision as expectedRevision in upsert_document.",
+            "Read HTML, revision history, and current sharing by document ID, or project reference and document slug. Use document.revision for content updates and sharing.revision for sharing updates.",
           inputSchema: standard(
             Schema.Struct({
               id: Schema.optionalKey(Schema.NonEmptyString),
@@ -129,9 +130,9 @@ function handler(
         "upsert_document",
         {
           description:
-            "Create or update self-contained HTML. Use CSS variables with light defaults, @media (prefers-color-scheme: dark) overrides, and :root { color-scheme: light dark }; previews follow Chronicon's theme. Use project {id} from the saved association, or {slug,name} to create a missing project with workspace-wide write access. Creation and publishing are atomic. expectedRevision=0 creates a document; read_document first for updates. Identical retries add no revision. Save the returned association as instructed at initialization.",
+            "Create or update self-contained HTML. Use CSS variables with light defaults, @media (prefers-color-scheme: dark) overrides, and :root { color-scheme: light dark }; previews follow Chronicon's theme. Use project {id} from the saved association, or {slug,name} to create a missing project with workspace-wide write access. expectedRevision=0 creates a document; read_document first for updates. Optional sharing {visibility,expectedRevision} uses 0 on creation or the current sharing.revision on updates. Omission defaults new documents to private and preserves sharing on updates. Content and sharing save atomically. Use a non-null sharing.publicUrl for public links. Save the returned association as instructed at initialization.",
           inputSchema: standard(publishInput),
-          annotations: { idempotentHint: true, destructiveHint: false },
+          annotations: { idempotentHint: true, destructiveHint: true },
         },
         (input, ctx) =>
           tool(
@@ -145,8 +146,33 @@ function handler(
                 created: result.created,
                 unchanged: result.unchanged,
                 url: result.url,
+                sharing: result.sharing,
               };
             }),
+            ctx.mcpReq.signal,
+          ),
+      );
+      server.registerTool(
+        "update_document",
+        {
+          description:
+            "Change an existing document's public-link sharing without uploading HTML. Supply sharing {visibility,expectedRevision} from read_document. Requires a sharing-enabled write key and the issuing user's verified email and full access. Returns current sharing; publicUrl is null when private or archived. A public parent project still grants public access. On conflict, read before deciding whether to change access again.",
+          inputSchema: standard(
+            Schema.Struct({ id: Schema.NonEmptyString, sharing: documentSharingInput }),
+          ),
+          annotations: { idempotentHint: true, destructiveHint: true },
+        },
+        (input, ctx) =>
+          tool(
+            "update_document",
+            updateDocument(principal, input.id, { sharing: input.sharing }).pipe(
+              Effect.map((document) => ({
+                id: document.id,
+                revision: document.revision,
+                url: `${origin}/documents/${document.id}`,
+                sharing: document.sharing,
+              })),
+            ),
             ctx.mcpReq.signal,
           ),
       );

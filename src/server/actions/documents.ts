@@ -9,6 +9,7 @@ import {
   revisionSchema,
   revisionHistorySchema,
   repositoryAssociation,
+  type documentPatch,
   type Document,
   type Principal,
   type PublishInput,
@@ -21,6 +22,11 @@ import { Storage } from "../services/storage";
 import { hashJson } from "../services/hash";
 import { invalidateLibrary } from "../cache";
 import { findProject, resolvePublishProject } from "./projects";
+import {
+  documentSharingState,
+  requireDocumentSharingRevision,
+  updateDocumentSharing,
+} from "./document-sharing";
 
 const textBoundaryTags = new Set([
   "address",
@@ -199,16 +205,20 @@ export const readDocument = Effect.fn("Library.read")(function* (
   );
   // A download can outlast a permission change. Recheck before returning HTML
   // and use the current parent visibility to preserve document-only access.
-  const current = yield* findDocument(principal, id);
+  const current = yield* findDocumentContext(principal, id);
+  const role = yield* projectRole(principal, current.project);
+  const config = yield* AppConfig;
   return {
     document: {
       ...document,
       accessRole: current.document.accessRole,
       visibility: current.document.visibility,
+      sharingRevision: current.document.sharingRevision,
       starred: current.document.starred,
       archived: current.document.archived,
     },
-    project: current.project,
+    project: role ? { ...current.project, accessRole: role } : null,
+    sharing: documentSharingState(config.origin, current.document, current.project),
     ...result,
     revision: {
       version: revision.version,
@@ -258,6 +268,7 @@ export const publishDocument = Effect.fn("Library.publish")(
               text: document.text,
               revision: document.revision,
               hash: document.hash,
+              visibility: document.visibility,
               updatedAt: document.updatedAt,
             })} WHERE id = ${document.id} RETURNING *`
           : sql`INSERT INTO document ${sql.insert(document)} RETURNING *`,
@@ -300,7 +311,11 @@ export const publishDocument = Effect.fn("Library.publish")(
           const role = current
             ? (yield* documentAccess(principal, current, project, true)).accessRole
             : (yield* projectAccess(principal, project, true)).accessRole;
-          if (current?.hash === hash) {
+          if (input.sharing)
+            yield* requireDocumentSharingRevision(principal, current, project, input.sharing);
+          const sharingChanged =
+            input.sharing !== undefined && input.sharing.visibility !== current?.visibility;
+          if (current?.hash === hash && !sharingChanged) {
             if (current.text !== text)
               yield* sql`UPDATE document SET text = ${text} WHERE id = ${current.id}`.pipe(
                 databaseError("refresh searchable text"),
@@ -317,13 +332,28 @@ export const publishDocument = Effect.fn("Library.publish")(
               status: 409,
               message: `This document is now at revision ${current?.revision ?? 0}. Read the latest revision and merge your changes before publishing.`,
             });
+          if (current?.hash === hash && input.sharing) {
+            const document = yield* updateDocumentSharing(
+              principal,
+              current,
+              project,
+              input.sharing,
+            );
+            return {
+              project,
+              document: { ...document, accessRole: role },
+              created: false,
+              unchanged: false,
+            };
+          }
           const path = yield* blobs.put(input.html);
           yield* Ref.set(uploaded, path);
           const now = DateTime.formatIso(yield* DateTime.now);
           const document: Document = {
             id: current?.id ?? (yield* uuid),
             projectId: project.id,
-            visibility: current?.visibility ?? "private",
+            visibility: input.sharing?.visibility ?? current?.visibility ?? "private",
+            sharingRevision: current?.sharingRevision ?? 1,
             slug: input.slug,
             title: input.title,
             summary: input.summary,
@@ -395,6 +425,7 @@ export const publishDocument = Effect.fn("Library.publish")(
         ? repositoryAssociation(config.origin, principal.ownerId, result.project)
         : null,
       url: `${config.origin}/documents/${result.document.id}`,
+      sharing: documentSharingState(config.origin, result.document, result.project),
     };
   },
   (effect, principal) =>
@@ -407,6 +438,8 @@ export const publishDocument = Effect.fn("Library.publish")(
           revision: result.document.revision,
           created: result.created,
           unchanged: result.unchanged,
+          visibility: result.sharing.visibility,
+          sharing_revision: result.sharing.revision,
         }),
       ),
       Effect.uninterruptible,
@@ -414,16 +447,28 @@ export const publishDocument = Effect.fn("Library.publish")(
 );
 
 export const updateDocument = Effect.fn("Library.update")(
-  function* (principal: Principal, id: string, patch: { starred?: boolean; archived?: boolean }) {
+  function* (principal: Principal, id: string, patch: typeof documentPatch.Type) {
     const sql = yield* PgClient.PgClient;
-    yield* ownerAccess(principal);
+    const config = yield* AppConfig;
+    if (patch.starred !== undefined || patch.archived !== undefined) yield* ownerAccess(principal);
     return yield* sql
       .withTransaction(
         Effect.gen(function* () {
           yield* sql`SELECT p.id FROM project p JOIN document d ON d."projectId" = p.id WHERE d.id = ${id} FOR UPDATE OF p`.pipe(
             databaseError("lock document project"),
           );
-          yield* findDocumentContext(principal, id, patch.archived !== undefined);
+          const current = yield* findDocumentContext(
+            principal,
+            id,
+            patch.archived !== undefined || patch.sharing !== undefined,
+          );
+          if (patch.sharing)
+            yield* updateDocumentSharing(
+              principal,
+              current.document,
+              current.project,
+              patch.sharing,
+            );
           if (patch.starred === true)
             yield* sql`INSERT INTO document_star ("documentId", "userId") VALUES (${id}, ${principal.ownerId}) ON CONFLICT DO NOTHING`.pipe(
               databaseError("star document"),
@@ -436,16 +481,11 @@ export const updateDocument = Effect.fn("Library.update")(
             yield* sql`UPDATE document SET archived = ${patch.archived} WHERE id = ${id}`.pipe(
               databaseError("archive document"),
             );
-          const { document } = yield* findDocumentContext(principal, id);
-          return document;
+          const { document, project } = yield* findDocumentContext(principal, id);
+          return { ...document, sharing: documentSharingState(config.origin, document, project) };
         }),
       )
-      .pipe(
-        Effect.catchTag(
-          "SqlError",
-          () => new DatabaseError({ operation: "update document flags" }),
-        ),
-      );
+      .pipe(Effect.catchTag("SqlError", () => new DatabaseError({ operation: "update document" })));
   },
   (effect, principal) =>
     effect.pipe(
@@ -456,6 +496,8 @@ export const updateDocument = Effect.fn("Library.update")(
           project_id: result.projectId,
           starred: result.starred,
           archived: result.archived,
+          visibility: result.sharing.visibility,
+          sharing_revision: result.sharing.revision,
         }),
       ),
       Effect.uninterruptible,

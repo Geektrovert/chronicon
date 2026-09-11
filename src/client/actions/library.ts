@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import {
   documentDetailSchema,
-  documentSchema,
+  documentUpdateResultSchema,
   librarySchema,
   projectInput,
   projectSchema,
@@ -58,7 +58,7 @@ export const updateReport = Effect.fn("Client.updateReport")(function* (
   input: unknown,
 ) {
   const body = yield* decodeClient(documentPatch, input);
-  return yield* request(documentSchema, `/api/documents/${encodeURIComponent(id)}`, {
+  return yield* request(documentUpdateResultSchema, `/api/documents/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body,
   }).pipe(

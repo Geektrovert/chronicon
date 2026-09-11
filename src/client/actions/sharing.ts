@@ -18,7 +18,7 @@ export const loadSharing = (type: ResourceType, id: string) =>
 
 type SharingChange =
   | { action: "invite"; email: string; role: AccessRole }
-  | { action: "visibility"; visibility: "private" | "public" }
+  | { action: "visibility"; visibility: "private" | "public"; expectedRevision?: number }
   | { action: "remove"; userId: string }
   | { action: "cancel"; invitationId: string };
 

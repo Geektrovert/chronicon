@@ -166,7 +166,11 @@ function SharingLinkAccess({ type, id, data, busy, change }: AccessProps) {
               onValueChange={(value) => {
                 if (value === "private" || value === "public")
                   change(
-                    { action: "visibility", visibility: value },
+                    {
+                      action: "visibility",
+                      visibility: value,
+                      ...(data.revision === null ? {} : { expectedRevision: data.revision }),
+                    },
                     value === "public"
                       ? "Public link enabled."
                       : data.inheritedPublic

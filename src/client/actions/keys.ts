@@ -27,6 +27,7 @@ export const createAgentKey = Effect.fn("Client.createAgentKey")(function* (inpu
       project_scoped: body.projectIds !== null,
       scope_count: body.projectIds?.length,
       write_access: body.write,
+      share_access: body.share,
       expiration_days: body.days,
     }),
   );

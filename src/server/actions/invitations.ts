@@ -77,6 +77,7 @@ const authorizeResourceInvitation = Effect.fn("Invitations.authorizeResource")(f
     access: "owner",
     projectIds: null,
     canWrite: true,
+    canShare: true,
   };
   const target = invitation.documentId ?? invitation.projectId;
   if (!target)

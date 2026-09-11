@@ -14,9 +14,17 @@ export const sharingReference = Schema.Struct(resource);
 export const sharingInput = Schema.Union([
   Schema.Struct({ ...resource, action: Schema.Literal("invite"), email, role: accessRoleSchema }),
   Schema.Struct({
-    ...resource,
+    type: Schema.Literal("project"),
+    id: Schema.NonEmptyString,
     action: Schema.Literal("visibility"),
     visibility: visibilitySchema,
+  }),
+  Schema.Struct({
+    type: Schema.Literal("document"),
+    id: Schema.NonEmptyString,
+    action: Schema.Literal("visibility"),
+    visibility: visibilitySchema,
+    expectedRevision: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThan(0))),
   }),
   Schema.Struct({ ...resource, action: Schema.Literal("remove"), userId: Schema.NonEmptyString }),
   Schema.Struct({
@@ -35,6 +43,7 @@ export const sharingMemberSchema = Schema.Struct({
 });
 export const sharingSchema = Schema.Struct({
   visibility: visibilitySchema,
+  revision: Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0))),
   inheritedPublic: Schema.Boolean,
   canManage: Schema.Boolean,
   role: accessRoleSchema,

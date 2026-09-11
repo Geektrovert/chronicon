@@ -11,6 +11,16 @@ const defaultText = (max: number) =>
   text(max).pipe(Schema.withDecodingDefaultKey(Effect.succeed("")));
 const documentKind = Schema.Literals(["report", "plan", "reference"]);
 export const visibilitySchema = Schema.Literals(["private", "public"]);
+export const documentSharingInput = Schema.Struct({
+  visibility: visibilitySchema,
+  expectedRevision: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+});
+export const documentSharingSchema = Schema.Struct({
+  visibility: visibilitySchema,
+  revision: Schema.Int.check(Schema.isGreaterThan(0)),
+  inheritedPublic: Schema.Boolean,
+  publicUrl: Schema.NullOr(Schema.String),
+});
 export const accessRoleSchema = Schema.Literals(["full_access", "edit", "view"]);
 export type AccessRole = typeof accessRoleSchema.Type;
 export const projectInput = Schema.Struct({
@@ -34,17 +44,25 @@ export const publishInput = Schema.Struct({
     .pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   html: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(2_000_000)),
   expectedRevision: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  sharing: Schema.optionalKey(documentSharingInput),
 });
 export const documentPatch = Schema.Struct({
   starred: Schema.optionalKey(Schema.Boolean),
   archived: Schema.optionalKey(Schema.Boolean),
-}).check(Schema.makeFilter((value) => value.starred !== undefined || value.archived !== undefined));
+  sharing: Schema.optionalKey(documentSharingInput),
+}).check(
+  Schema.makeFilter(
+    (value) =>
+      value.starred !== undefined || value.archived !== undefined || value.sharing !== undefined,
+  ),
+);
 export const keyInput = Schema.Struct({
   name: requiredText(60),
   projectIds: Schema.NullOr(Schema.Array(Schema.String)),
   write: Schema.Boolean,
+  share: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   days: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 365 })),
-});
+}).check(Schema.makeFilter((value) => !value.share || value.write));
 export const deleteKeyInput = Schema.Struct({ keyId: Schema.NonEmptyString });
 export const revisionNumber = Schema.Int.check(Schema.isGreaterThan(0));
 export const projectSchema = Schema.Struct({
@@ -69,6 +87,7 @@ export const documentSchema = Schema.Struct({
   id: Schema.String,
   projectId: Schema.String,
   visibility: visibilitySchema,
+  sharingRevision: Schema.Int.check(Schema.isGreaterThan(0)),
   accessRole: Schema.optionalKey(accessRoleSchema),
   slug: Schema.String,
   title: Schema.String,
@@ -102,6 +121,7 @@ const revisionInfo = Schema.Struct({
 export const revisionHistorySchema = Schema.Struct({ id: Schema.String, ...revisionInfo.fields });
 export const documentDetailSchema = Schema.Struct({
   document: documentSchema,
+  sharing: documentSharingSchema,
   project: Schema.NullOr(projectSchema),
   revision: revisionInfo,
   history: Schema.Array(revisionHistorySchema),
@@ -114,9 +134,14 @@ export const librarySchema = Schema.Struct({
 });
 export const publishResultSchema = Schema.Struct({
   document: documentSchema,
+  sharing: documentSharingSchema,
   created: Schema.Boolean,
   unchanged: Schema.Boolean,
   url: Schema.String,
+});
+export const documentUpdateResultSchema = Schema.Struct({
+  ...documentSchema.fields,
+  sharing: documentSharingSchema,
 });
 export type PublishInput = typeof publishInput.Type;
 export type Project = typeof projectSchema.Type;
@@ -133,6 +158,7 @@ export type Principal = {
   readonly email?: string;
   readonly projectIds: ReadonlyArray<string> | null;
   readonly canWrite: boolean;
+  readonly canShare: boolean;
 };
 
 export function repositoryAssociation(server: string, workspaceId: string, project: Project) {

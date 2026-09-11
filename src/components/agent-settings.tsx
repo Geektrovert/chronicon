@@ -70,7 +70,8 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
         createAgentKey({
           name: value.name,
           projectIds: value.project === "all" ? null : [value.project],
-          write: value.access === "write",
+          write: value.access === "write" || value.access === "share",
+          share: value.access === "share",
           days: Number(value.days),
         }),
         {
@@ -161,6 +162,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
                     name="access"
                     options={[
                       { value: "write", label: "Read and edit" },
+                      { value: "share", label: "Read, edit, and share" },
                       { value: "read", label: "Read only" },
                     ]}
 

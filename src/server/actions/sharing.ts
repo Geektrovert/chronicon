@@ -23,6 +23,7 @@ import {
 import { findProject } from "./projects";
 import { findDocumentContext } from "./documents";
 import { EmailDelivery } from "../services/email";
+import { updateDocumentSharing } from "./document-sharing";
 
 const sharingContext = Effect.fn("Sharing.context")(function* (
   principal: Principal,
@@ -80,6 +81,7 @@ export const readSharing = Effect.fn("Sharing.read")(function* (
     : [];
   return {
     visibility: document?.visibility ?? project.visibility,
+    revision: document?.sharingRevision ?? null,
     inheritedPublic: !!document && project.visibility === "public",
     canManage,
     role,
@@ -106,10 +108,12 @@ export const changeSharing = Effect.fn("Sharing.change")(
           const table = document ? "document_access" : "project_access";
           const column = document ? "documentId" : "projectId";
           if (input.action === "visibility") {
-            if (document)
-              yield* sql`UPDATE document SET visibility = ${input.visibility} WHERE id = ${document.id}`.pipe(
-                databaseError("publish document access"),
-              );
+            if (document && input.type === "document")
+              yield* updateDocumentSharing(principal, document, project, {
+                visibility: input.visibility,
+                // Preserve the existing sharing endpoint's optional precondition for older clients.
+                expectedRevision: input.expectedRevision ?? document.sharingRevision,
+              });
             else
               yield* sql`UPDATE project SET visibility = ${input.visibility} WHERE id = ${project.id}`.pipe(
                 databaseError("publish project access"),

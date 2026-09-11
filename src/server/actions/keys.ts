@@ -44,19 +44,23 @@ export const createKey = Effect.fn("Keys.create")(function* (
       });
     organizationId = projects[0]!.organizationId;
   }
+  const documentPermissions = ["read"];
+  if (input.write) documentPermissions.push("write");
+  if (input.share) documentPermissions.push("share");
   const created = yield* authCall(() =>
     auth.api.createApiKey({
       body: {
         userId: principal.ownerId,
         name: input.name,
         expiresIn: input.days * 86400,
-        permissions: { documents: input.write ? ["read", "write"] : ["read"] },
+        permissions: { documents: documentPermissions },
         metadata: { projectIds: input.projectIds, organizationId },
       },
     }),
   );
   yield* recordOperation("chronicon_agent_key_created", {
     write_access: input.write,
+    share_access: input.share,
     project_scope_count: input.projectIds?.length ?? 0,
     all_projects: input.projectIds === null,
     expires_in_days: input.days,
