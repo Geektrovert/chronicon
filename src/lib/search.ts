@@ -1,5 +1,6 @@
 import MiniSearch from "minisearch";
 import type { Library } from "./model";
+
 export function buildSearch(library: Library) {
   const index = new MiniSearch({
     fields: ["title", "project", "tags", "summary", "text"],
@@ -11,6 +12,7 @@ export function buildSearch(library: Library) {
       combineWith: "AND",
     },
   });
+
   const projects = new Map(library.projects.map((project) => [project.id, project.name]));
   index.addAll(
     library.documents.map((document) => ({
@@ -19,5 +21,6 @@ export function buildSearch(library: Library) {
       tags: document.tags.join(" "),
     })),
   );
+
   return index;
 }

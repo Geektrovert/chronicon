@@ -23,6 +23,7 @@ export function AccountSettings({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, submit] = useTransition();
+
   const form = useForm({
     defaultValues: { username: profile.username },
     onSubmit: ({ value }) => {
@@ -34,8 +35,10 @@ export function AccountSettings({
           (result) => {
             if (Result.isFailure(result)) {
               setError(result.failure);
+
               return;
             }
+
             setProfile(result.success);
             form.reset({ username: result.success.username });
             setNotice("Username saved. Existing public links still work.");
@@ -44,6 +47,7 @@ export function AccountSettings({
       );
     },
   });
+
   return (
     <div className="space-y-8">
       <header>

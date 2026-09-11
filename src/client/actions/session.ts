@@ -2,6 +2,7 @@ import { Clock, Effect, Stream } from "effect";
 import { resetIdentity } from "../telemetry";
 
 const signOutKey = "chronicon.signed-out";
+
 const teamChangeKey = "chronicon.team-changed";
 
 export const leaveWorkspace = Effect.sync(() => {
@@ -25,7 +26,9 @@ export const watchSessionEnd = Effect.gen(function* () {
     Stream.fromEventListener(window, "storage").pipe(
       Stream.runForEach((event) => {
         if (!(event instanceof StorageEvent)) return Effect.void;
+
         if (event.key === signOutKey) return leaveWorkspace;
+
         return event.key === teamChangeKey
           ? Effect.sync(() => window.location.assign("/"))
           : Effect.void;
@@ -41,5 +44,6 @@ export const watchSessionEnd = Effect.gen(function* () {
       ),
     ),
   );
+
   return yield* Effect.never;
 }).pipe(Effect.scoped);

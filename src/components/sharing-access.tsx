@@ -27,6 +27,7 @@ type AccessProps = {
 
 function SharingMembers({ type, data, busy, change }: AccessProps) {
   const fieldId = useId();
+
   return (
     <>
       {data.members.length > 0 && (
@@ -140,6 +141,7 @@ function SharingLinkAccess({ type, id, data, busy, change }: AccessProps) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const publicAccess = data.visibility === "public" || data.inheritedPublic;
+
   return (
     <>
       <section aria-label="Link access" className="space-y-3 border-t border-border pt-4">
@@ -166,11 +168,13 @@ function SharingLinkAccess({ type, id, data, busy, change }: AccessProps) {
               onValueChange={(value) => {
                 if (value === "private" || value === "public")
                   change(
-                    {
-                      action: "visibility",
-                      visibility: value,
-                      ...(data.revision === null ? {} : { expectedRevision: data.revision }),
-                    },
+                    data.revision === null
+                      ? { action: "visibility", visibility: value }
+                      : {
+                          action: "visibility",
+                          visibility: value,
+                          expectedRevision: data.revision,
+                        },
                     value === "public"
                       ? "Public link enabled."
                       : data.inheritedPublic

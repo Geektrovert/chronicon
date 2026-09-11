@@ -1,6 +1,8 @@
 "use client";
+
 import { useDeferredValue, useRef } from "react";
 import { highlight } from "sugar-high";
+
 export function CodeEditor({
   value,
   onChange,
@@ -14,8 +16,10 @@ export function CodeEditor({
 }) {
   const preview = useRef<HTMLPreElement>(null);
   const deferredValue = useDeferredValue(value);
+
   const highlighted =
     deferredValue.length <= 150_000 ? highlight(deferredValue, { lang: "html" }) : undefined;
+
   return (
     <div className={`code-editor ${highlighted ? "highlighted" : ""}`}>
       {highlighted && (

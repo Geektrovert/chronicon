@@ -14,6 +14,7 @@ export function Card({ className, ...props }: ComponentProps<"div">) {
     />
   );
 }
+
 export function CardHeader({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
@@ -23,6 +24,7 @@ export function CardHeader({ className, ...props }: ComponentProps<"div">) {
     />
   );
 }
+
 export function CardTitle({ className, children, ...props }: ComponentProps<"h3">) {
   return (
     <h3
@@ -34,6 +36,7 @@ export function CardTitle({ className, children, ...props }: ComponentProps<"h3"
     </h3>
   );
 }
+
 export function CardDescription({ className, ...props }: ComponentProps<"p">) {
   return (
     <p
@@ -43,9 +46,11 @@ export function CardDescription({ className, ...props }: ComponentProps<"p">) {
     />
   );
 }
+
 export function CardContent({ className, ...props }: ComponentProps<"div">) {
   return <div data-slot="card-content" className={cn("px-4", className)} {...props} />;
 }
+
 export function CardFooter({ className, ...props }: ComponentProps<"div">) {
   return (
     <div

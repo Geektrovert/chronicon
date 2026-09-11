@@ -10,8 +10,10 @@ export const metadata = { title: "Invitation" };
 async function InvitationPage({ params, searchParams }: PageProps<"/invitations/[id]">) {
   const { id } = await params;
   const { type = "team" } = await searchParams;
+
   if (type !== "team" && type !== "resource") notFound();
   await requirePageOwner(`/invitations/${encodeURIComponent(id)}?type=${type}`);
+
   return <InvitationAccept id={id} type={type} />;
 }
 

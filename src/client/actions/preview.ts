@@ -16,6 +16,7 @@ export const watchPreviewNavigation = (
         )
           return;
         const href = previewRoute(event.data.href, window.location.origin);
+
         if (href) navigate(href);
       }),
     ),

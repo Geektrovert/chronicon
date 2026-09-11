@@ -19,6 +19,7 @@ export const PATCH = (request: Request) =>
     Effect.gen(function* () {
       yield* sameOrigin(request);
       const principal = yield* authenticate(request.headers);
+
       return yield* updatePublicProfile(
         principal,
         request.headers,

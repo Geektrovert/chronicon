@@ -19,6 +19,7 @@ export function CliAuthorization({
 }) {
   const [busy, start] = useTransition();
   const [error, setError] = useState("");
+
   return (
     <main className="signin-page">
       <Brand />

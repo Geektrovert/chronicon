@@ -4,6 +4,7 @@ import { databaseError } from "../database";
 
 export const findOwnerEmail = Effect.fn("Owner.findEmail")(function* (id: string) {
   const sql = yield* SqlClient.SqlClient;
+
   return yield* SqlSchema.findOneOption({
     Request: Schema.String,
     Result: Schema.Struct({

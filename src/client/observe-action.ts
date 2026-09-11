@@ -15,12 +15,16 @@ export const observeAction =
       yield* Effect.sync(() =>
         capture(`${operation}_started`, { ...properties, action_id: actionId }),
       );
+
       const exit = yield* Effect.exit(
         program.pipe(Effect.provideService(ActionTelemetry, requestProperties)),
       );
+
       const failure = Exit.isFailure(exit) ? Cause.findErrorOption(exit.cause) : Option.none();
+
       const error =
         Option.isSome(failure) && Schema.is(ClientError)(failure.value) ? failure.value : undefined;
+
       const outcome = Exit.isSuccess(exit)
         ? "success"
         : error
@@ -28,8 +32,10 @@ export const observeAction =
           : Result.isSuccess(Cause.findDefect(exit.cause))
             ? "defect"
             : "cancelled";
+
       yield* Effect.sync(() => {
         const durationMs = performance.now() - started;
+
         const completion = {
           ...properties,
           ...requestProperties,
@@ -39,10 +45,13 @@ export const observeAction =
           duration_ms: Math.round(durationMs),
           status: error?.status,
         };
+
         capture(`${operation}_${Exit.isSuccess(exit) ? "completed" : "failed"}`, completion);
         wideLog("action", completion, Exit.isSuccess(exit) ? "info" : "warn");
+
         if (requestProperties.trace_id && !requestProperties.request_span_recorded)
           requestSpan(completion, startedAt, durationMs);
       });
+
       return Exit.isSuccess(exit) ? exit.value : yield* Effect.failCause(exit.cause);
     });

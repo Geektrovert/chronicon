@@ -1,7 +1,9 @@
 "use client";
+
 // Adapted from shadcn/ui Base UI Slider (MIT).
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import { cn } from "@/lib/utils";
+
 export function Slider({
   className,
   defaultValue,
@@ -16,6 +18,7 @@ export function Slider({
     : Array.isArray(defaultValue)
       ? defaultValue
       : [value ?? defaultValue ?? min];
+
   return (
     <SliderPrimitive.Root
       data-slot="slider"

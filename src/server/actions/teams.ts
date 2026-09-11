@@ -12,25 +12,30 @@ import { annotateTelemetry, recordOperation } from "../observability";
 export const readTeams = Effect.fn("Teams.read")(function* (principal: Principal) {
   yield* ownerAccess(principal);
   const sql = yield* PgClient.PgClient;
+
   const teams = yield* SqlSchema.findAll({
     Request: Schema.String,
     Result: teamsSchema.fields.teams.value,
     execute: (id) =>
       sql`SELECT o.id, o.name, m.role FROM organization o JOIN member m ON m."organizationId" = o.id WHERE m."userId" = ${id} ORDER BY o."createdAt", o.id`,
   })(principal.ownerId).pipe(databaseError("list teams"));
+
   const active = teams.find((team) => team.id === principal.organizationId);
+
   if (!active)
     return yield* new AppError({
       status: 403,
       message: "Team membership changed. Reload the workspace.",
     });
   const canManage = ["owner", "admin"].includes(active.role) && !!principal.emailVerified;
+
   const members = yield* SqlSchema.findAll({
     Request: Schema.String,
     Result: teamsSchema.fields.members.value,
     execute: (id) =>
       sql`SELECT m.id, m."userId", u.name, u.email, m.role FROM member m JOIN "user" u ON u.id = m."userId" WHERE m."organizationId" = ${id} ORDER BY m."createdAt"`,
   })(active.id).pipe(databaseError("list team members"));
+
   const invitations = canManage
     ? yield* SqlSchema.findAll({
         Request: Schema.String,
@@ -39,6 +44,7 @@ export const readTeams = Effect.fn("Teams.read")(function* (principal: Principal
           sql`SELECT id, email, role, status FROM invitation WHERE "organizationId" = ${id} AND status = 'pending' AND "expiresAt" > CURRENT_TIMESTAMP ORDER BY "createdAt"`,
       })(active.id).pipe(databaseError("list team invitations"))
     : [];
+
   return {
     teams,
     activeTeamId: active.id,
@@ -58,6 +64,7 @@ export const changeTeam = Effect.fn("Teams.change")(function* (
   yield* ownerAccess(principal);
   const auth = yield* Auth;
   const current = yield* readTeams(principal);
+
   if (input.action === "switch") {
     if (!current.teams.some((team) => team.id === input.organizationId))
       return yield* new AppError({ status: 403, message: "You are not a member of that team." });
@@ -66,8 +73,10 @@ export const changeTeam = Effect.fn("Teams.change")(function* (
     );
     yield* annotateTelemetry({ organization_id: input.organizationId });
     yield* recordOperation("chronicon_team_switched");
+
     return yield* readTeams({ ...principal, organizationId: input.organizationId });
   }
+
   if (!current.canManage)
     return yield* new AppError({
       status: 403,
@@ -75,6 +84,7 @@ export const changeTeam = Effect.fn("Teams.change")(function* (
         ? "Only team owners and admins can manage members."
         : "Verify your email before inviting or managing members.",
     });
+
   if (input.action === "invite") {
     yield* authCall(() =>
       auth.api.createInvitation({
@@ -89,6 +99,7 @@ export const changeTeam = Effect.fn("Teams.change")(function* (
     );
   } else if (input.action === "remove") {
     const member = current.members.find((member) => member.id === input.memberId);
+
     if (!member || member.role === "owner")
       return yield* new AppError({ status: 400, message: "The team owner cannot be removed." });
     yield* authCall(() =>
@@ -104,6 +115,8 @@ export const changeTeam = Effect.fn("Teams.change")(function* (
       auth.api.cancelInvitation({ headers, body: { invitationId: input.invitationId } }),
     );
   }
+
   yield* recordOperation("chronicon_team_changed", { action: input.action });
+
   return yield* readTeams(principal);
 });

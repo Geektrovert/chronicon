@@ -1,4 +1,5 @@
 "use client";
+
 // Adapted from shadcn/ui preview-02 NotificationSettings and EmptyConnectBank (MIT).
 import { useId, useState } from "react";
 import { DesignIcon } from "./icons";
@@ -36,12 +37,15 @@ const NOTIFICATIONS = [
 
 export function NotificationSettings() {
   const id = useId();
-  const [checked, setChecked] = useState<Record<string, boolean>>(
+
+  const [checked, setChecked] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(NOTIFICATIONS.map((n) => [n.id, n.defaultChecked])),
   );
+
   const [saved, setSaved] = useState(false);
   const allChecked = NOTIFICATIONS.every((n) => checked[n.id]);
   const someChecked = NOTIFICATIONS.some((n) => checked[n.id]) && !allChecked;
+
   return (
     <Card>
       <CardHeader>
@@ -90,6 +94,7 @@ export function NotificationSettings() {
 
 export function EmptyConnectBank() {
   const [connected, setConnected] = useState(false);
+
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-4 py-2 text-center">

@@ -3,6 +3,7 @@ import { projectReference } from "@/lib/model";
 import { FONT_DEFINITIONS } from "./fonts";
 
 export const BASE_COLORS = ["neutral", "stone", "zinc", "mauve", "olive", "mist", "taupe"] as const;
+
 export const ACCENT_COLORS = [
   "amber",
   "blue",
@@ -22,8 +23,11 @@ export const ACCENT_COLORS = [
   "violet",
   "yellow",
 ] as const;
+
 export const themeName = Schema.Literals([...BASE_COLORS, ...ACCENT_COLORS]);
+
 export const radiusName = Schema.Literals(["default", "none", "small", "medium", "large"]);
+
 export const STYLE_NAMES = [
   "vega",
   "nova",
@@ -34,21 +38,27 @@ export const STYLE_NAMES = [
   "sera",
   "rhea",
 ] as const;
+
 export const ICON_LIBRARIES = ["lucide", "tabler", "hugeicons", "phosphor", "remixicon"] as const;
+
 export const MENU_COLORS = [
   "default",
   "inverted",
   "default-translucent",
   "inverted-translucent",
 ] as const;
+
 export const FONT_NAMES = [
   ...FONT_DEFINITIONS.map((font) => font.name),
   "sans",
   "serif",
   "mono",
 ] as const;
+
 export const fontName = Schema.Literals(FONT_NAMES);
+
 export const menuAccent = Schema.Literals(["subtle", "bold"]);
+
 export const designSettings = Schema.Struct({
   // Defaults keep older saved designs and API clients compatible.
   style: Schema.Literals(STYLE_NAMES).pipe(
@@ -77,7 +87,9 @@ export const designSettings = Schema.Struct({
       value.theme === value.baseColor || ACCENT_COLORS.some((color) => color === value.theme),
   ),
 );
+
 export type DesignSettings = typeof designSettings.Type;
+
 export const defaultSettings: DesignSettings = {
   style: "nova",
   iconLibrary: "lucide",
@@ -92,10 +104,12 @@ export const defaultSettings: DesignSettings = {
   font: "sans",
   menuAccent: "subtle",
 };
+
 export const designTokens = Schema.Struct({
   light: Schema.Record(Schema.String, Schema.String),
   dark: Schema.Record(Schema.String, Schema.String),
 });
+
 export const designRecord = Schema.Struct({
   projectId: Schema.String,
   revision: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
@@ -105,20 +119,28 @@ export const designRecord = Schema.Struct({
   sourceRevision: Schema.String,
   updatedAt: Schema.NullOr(Schema.String),
 });
+
 export const designDetail = Schema.Struct({ ...designRecord.fields, markdown: Schema.String });
+
 export type ProjectDesign = typeof designDetail.Type;
+
 export const readDesignInput = Schema.Struct({ project: projectReference });
+
 const updateFields = {
   expectedRevision: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   settings: Schema.optionalKey(designSettings),
   guidance: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(64_000))),
   markdown: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(100_000))),
 };
+
 const validUpdate = (value: typeof updateBody.Type) =>
   (value.settings !== undefined || value.guidance !== undefined || value.markdown !== undefined) &&
   !(value.guidance !== undefined && value.markdown !== undefined);
+
 const updateBody = Schema.Struct(updateFields);
+
 export const updateDesignBody = updateBody.check(Schema.makeFilter(validUpdate));
+
 export const updateDesignInput = Schema.Struct({
   project: projectReference,
   ...updateFields,

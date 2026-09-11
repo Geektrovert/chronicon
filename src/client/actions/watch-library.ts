@@ -8,11 +8,14 @@ export const watchLibrary = Effect.fn("Client.watchLibrary")(function* (
 ) {
   const lastInteraction = yield* Ref.make(yield* Clock.currentTimeMillis);
   const refreshGate = yield* Semaphore.make(1);
+
   const active = Clock.currentTimeMillis.pipe(
     Effect.flatMap((now) => Ref.set(lastInteraction, now)),
   );
+
   const reload = Effect.gen(function* () {
     const now = yield* Clock.currentTimeMillis;
+
     if (document.visibilityState !== "visible" || now - (yield* Ref.get(lastInteraction)) > 120_000)
       return;
     yield* (projectId ? loadProjectLibrary(projectId) : loadLibrary).pipe(
@@ -20,6 +23,7 @@ export const watchLibrary = Effect.fn("Client.watchLibrary")(function* (
       Effect.ignore,
     );
   }).pipe((effect) => refreshGate.withPermit(effect));
+
   if (projectId) yield* reload;
   yield* Effect.forkScoped(
     Stream.fromEventListener(window, "pointerdown", { passive: true }).pipe(
@@ -35,5 +39,6 @@ export const watchLibrary = Effect.fn("Client.watchLibrary")(function* (
     ),
   );
   yield* Effect.forkScoped(reload.pipe(Effect.delay("1 minute"), Effect.forever));
+
   return yield* Effect.never;
 }, Effect.scoped);

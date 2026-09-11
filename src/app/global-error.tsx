@@ -13,6 +13,7 @@ export default function GlobalError({
   useEffect(() => {
     captureError(error, { boundary: "root", digest: error.digest });
   }, [error]);
+
   return (
     <html lang="en">
       <body>

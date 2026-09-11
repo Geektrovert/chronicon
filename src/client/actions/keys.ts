@@ -14,14 +14,20 @@ const agentKeySchema = Schema.Struct({
     Schema.Struct({ projectIds: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.String))) }),
   ),
 });
+
 export type AgentKey = typeof agentKeySchema.Type;
+
 const keysSchema = Schema.Struct({ apiKeys: Schema.Array(agentKeySchema) });
+
 const createdKeySchema = Schema.Struct({ key: Schema.NonEmptyString });
+
 const deletedKeySchema = Schema.Struct({ success: Schema.Boolean });
 
 export const loadKeys = request(keysSchema, "/api/keys");
-export const createAgentKey = Effect.fn("Client.createAgentKey")(function* (input: unknown) {
+
+export const createAgentKey = Effect.fn("Client.createAgentKey")(function* (input: Schema.Json) {
   const body = yield* decodeClient(keyInput, input);
+
   return yield* request(createdKeySchema, "/api/keys", { method: "POST", body }).pipe(
     observeAction("agent_key_create", {
       project_scoped: body.projectIds !== null,
@@ -31,8 +37,10 @@ export const createAgentKey = Effect.fn("Client.createAgentKey")(function* (inpu
     }),
   );
 });
+
 export const revokeAgentKey = Effect.fn("Client.revokeAgentKey")(function* (keyId: string) {
   const body = yield* decodeClient(deleteKeyInput, { keyId });
+
   return yield* request(deletedKeySchema, "/api/keys", { method: "DELETE", body }).pipe(
     observeAction("agent_key_revoke"),
   );

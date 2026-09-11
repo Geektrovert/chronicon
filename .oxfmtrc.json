@@ -3,5 +3,11 @@
   "semi": true,
   "singleQuote": false,
   "printWidth": 100,
-  "ignorePatterns": [".next/**", ".chronicon/**", "node_modules/**", "bun.lock"]
+  "ignorePatterns": [
+    ".next/**",
+    ".chronicon/**",
+    "node_modules/**",
+    "tools/oxlint/anti-slop/**",
+    "bun.lock"
+  ]
 }

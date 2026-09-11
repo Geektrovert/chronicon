@@ -1,4 +1,5 @@
 "use client";
+
 import type { CSSProperties } from "react";
 import type { DesignSettings, ProjectDesign } from "@/lib/project-design/model";
 import { buildTokens, fontFamily } from "@/lib/project-design/config";
@@ -8,6 +9,7 @@ import "./preview.css";
 import "./fonts.css";
 
 export type PreviewMode = "light" | "dark" | "both";
+
 export function DesignPreview({
   settings,
   tokens,
@@ -19,6 +21,7 @@ export function DesignPreview({
 }) {
   const modes = mode === "both" ? (["light", "dark"] as const) : [mode];
   const defaultTokens = buildTokens(settings);
+
   return (
     <div className="design-preview-panels" data-comparison={mode === "both"}>
       {modes.map((appearance) => {
@@ -27,11 +30,13 @@ export function DesignPreview({
             ([name, value]) => [`--${name}`, value],
           ),
         );
+
         const style: CSSProperties = {
           ...variables,
           colorScheme: appearance,
           fontFamily: fontFamily(settings.font),
         };
+
         return (
           <GalleryContext key={appearance} value={{ settings, mode: appearance, style }}>
             <section

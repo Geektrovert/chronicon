@@ -4,6 +4,7 @@ import { formatDate } from "@/lib/date";
 import { BookOpen, FileText, Layers2, Star } from "lucide-react";
 import type { Document, Project } from "@/lib/model";
 import { Button } from "./ui/button";
+
 export function DocumentList({
   documents,
   projects,
@@ -25,6 +26,7 @@ export function DocumentList({
 }) {
   const projectsById = new Map(projects.map((project) => [project.id, project]));
   const pendingIds = new Set(pendingDocuments);
+
   if (!documents.length)
     return (
       <EmptyState
@@ -59,6 +61,7 @@ export function DocumentList({
         )}
       </EmptyState>
     );
+
   return (
     <div className="document-list">
       {documents.map((doc) => (

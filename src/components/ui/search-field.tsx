@@ -1,4 +1,5 @@
 "use client";
+
 import { useRef, type RefObject } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "./input";
@@ -22,6 +23,7 @@ export function SearchField({
 }) {
   const ownRef = useRef<HTMLInputElement>(null);
   const input = inputRef ?? ownRef;
+
   return (
     <InputGroup>
       <InputGroupAddon>

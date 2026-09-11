@@ -2,26 +2,32 @@ import type { designRecord } from "./model";
 import { FONT_DEFINITIONS } from "./fonts";
 
 const START = "<!-- chronicon:design:start -->";
+
 const END = "<!-- chronicon:design:end -->";
+
 type Record = typeof designRecord.Type;
 
 function fontInstructions(design: Record) {
   const names = new Set([design.settings.font, design.settings.fontHeading]);
   const fonts = FONT_DEFINITIONS.filter((font) => names.has(font.name));
+
   return fonts.length
     ? "Load the selected font families before applying these tokens: " +
         fonts.map((font) => `${font.title} from ${font.dependency}`).join("; ") +
         ". Keep their font licenses when redistributing."
     : "These system fonts need no downloads.";
 }
+
 function declarations(tokens: Readonly<{ [name: string]: string }>) {
   return Object.entries(tokens)
     .map(([name, value]) => `  --${name}: ${value};`)
     .join("\n");
 }
+
 export function designCSS(tokens: Record["tokens"]) {
   return `:root {\n  color-scheme: light;\n${declarations(tokens.light)}\n}\n\n.dark {\n  color-scheme: dark;\n${declarations(tokens.dark)}\n}`;
 }
+
 export function managedMarkdown(design: Record) {
   return `${START}
 # Project design system
@@ -75,6 +81,7 @@ Settings and resolved light/dark tokens are saved together. An upstream update d
 not change an existing saved design. Existing published documents keep their own CSS.
 ${END}`;
 }
+
 export function designMarkdown(design: Record) {
   return `${managedMarkdown(design)}\n\n${design.guidance}\n`;
 }
@@ -83,9 +90,12 @@ export function designMarkdown(design: Record) {
 // also accepted as guidance; partial or edited generated blocks are rejected.
 export function guidanceFromMarkdown(markdown: string, current: Record) {
   const normalized = markdown.replace(/\r\n/g, "\n").trim();
+
   if (!normalized.includes(START) && !normalized.includes(END)) return normalized;
   const managed = managedMarkdown(current);
+
   if (!normalized.startsWith(managed)) return undefined;
   const guidance = normalized.slice(managed.length).trim();
+
   return guidance.includes(START) || guidance.includes(END) ? undefined : guidance;
 }

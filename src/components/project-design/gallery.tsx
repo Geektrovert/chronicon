@@ -1,7 +1,9 @@
 "use client";
+
 // Adapted from shadcn/ui preview-02 cards (MIT). All values are sample content.
 import { useId, useState } from "react";
 import { useForm } from "@tanstack/react-form";
+import { Schema } from "effect";
 import { Button } from "../ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../ui/card";
 import { Field, FieldLabel, FieldDescription } from "../ui/field";
@@ -17,6 +19,7 @@ function ContributionHistory() {
   const [detail, setDetail] = useState(false);
   const months = ["Dec", "Jan", "Feb", "Mar", "Apr", "May"];
   const amounts = [800, 1100, 900, 1300, 750, 1400];
+
   return (
     <Card>
       <CardHeader>
@@ -73,20 +76,24 @@ function ContributionHistory() {
     </Card>
   );
 }
+
 const currencies = [
   { value: "usd", label: "USD · US dollar" },
   { value: "eur", label: "EUR · Euro" },
   { value: "gbp", label: "GBP · British pound" },
   { value: "jpy", label: "JPY · Japanese yen" },
 ];
+
 function PayoutThreshold() {
   const id = useId();
   const gallery = useGallery();
   const [saved, setSaved] = useState(false);
+
   const form = useForm({
     defaultValues: { amount: 2500, currency: "usd", notes: "" },
     onSubmit: () => setSaved(true),
   });
+
   return (
     <Card>
       <CardHeader className="relative pe-14">
@@ -165,7 +172,10 @@ function PayoutThreshold() {
                 max={10000}
                 step={50}
                 onValueChange={(value) => {
-                  field.handleChange(typeof value === "number" ? value : value[0]);
+                  // oxlint-disable-next-line typescript/no-unsafe-assignment -- The slider component's union is typed as any by its current declaration.
+                  const nextValue: unknown = Array.isArray(value) ? value[0] : value;
+
+                  if (Schema.is(Schema.Finite)(nextValue)) field.handleChange(nextValue);
                   setSaved(false);
                 }}
               />
@@ -202,6 +212,7 @@ function PayoutThreshold() {
     </Card>
   );
 }
+
 function SavingsTargets() {
   return (
     <Card>
@@ -228,8 +239,10 @@ function SavingsTargets() {
     </Card>
   );
 }
+
 function DistributeTrack() {
   const [creating, setCreating] = useState(false);
+
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-5 py-5 text-center">
@@ -250,6 +263,7 @@ function DistributeTrack() {
     </Card>
   );
 }
+
 function ClaimableBalance() {
   return (
     <Card>
@@ -274,12 +288,14 @@ function ClaimableBalance() {
     </Card>
   );
 }
+
 const transactions: { name: string; category: string; amount: string; icon: DesignIconName }[] = [
   { name: "Blue Bottle Coffee", category: "Food and drink", amount: "−$6.50", icon: "coffee" },
   { name: "Whole Foods Market", category: "Groceries", amount: "−$142.30", icon: "cart" },
   { name: "Uber Technologies", category: "Transport", amount: "−$24.10", icon: "car" },
   { name: "Netflix subscription", category: "Entertainment", amount: "−$19.99", icon: "tv" },
 ];
+
 function RecentTransactions() {
   return (
     <Card>
@@ -306,14 +322,17 @@ function RecentTransactions() {
     </Card>
   );
 }
+
 function MenuPreview() {
   const [selected, setSelected] = useState("Overview");
+
   const items: { label: string; icon: DesignIconName }[] = [
     { label: "Overview", icon: "home" },
     { label: "Transactions", icon: "wallet" },
     { label: "Payment methods", icon: "card" },
     { label: "Settings", icon: "settings" },
   ];
+
   return (
     <Card>
       <CardHeader>
@@ -340,6 +359,7 @@ function MenuPreview() {
     </Card>
   );
 }
+
 export function ComponentGallery() {
   return (
     <div className="component-gallery">

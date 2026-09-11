@@ -12,6 +12,7 @@ export const request = Effect.fn("Client.request")(function* <
 >(schema: S, path: string, options?: { method?: HttpMethod; body?: unknown }) {
   const isRead = !options?.method || ["GET", "HEAD", "OPTIONS", "TRACE"].includes(options.method);
   const recovery = isRead ? "Try again." : "Refresh to check the result before trying again.";
+
   const { status, body } = yield* Api.use((api) =>
     api.request({ url: new URL(path, window.location.origin).href, ...options }),
   ).pipe(
@@ -25,13 +26,17 @@ export const request = Effect.fn("Client.request")(function* <
         }),
     ),
   );
+
   if (status < 200 || status >= 300) {
     if (status === 401) yield* leaveWorkspace;
+
     const error = yield* Schema.decodeUnknownEffect(errorSchema)(body).pipe(
       Effect.orElseSucceed(() => ({ error: `Unable to confirm the result. ${recovery}` })),
     );
+
     return yield* new ClientError({ status, message: error.error });
   }
+
   return yield* Schema.decodeEffect(schema)(body).pipe(
     Effect.mapError(
       () =>

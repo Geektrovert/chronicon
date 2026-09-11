@@ -1,4 +1,5 @@
 "use client";
+
 // Adapted from shadcn/ui Base UI Checkbox and Nova style (MIT). See THIRD_PARTY_NOTICES.md.
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
 import { Check, Minus } from "lucide-react";

@@ -17,6 +17,7 @@ export const prepareRequestTelemetry = (input: {
   Effect.gen(function* () {
     const correlation = requestContext(input.sampled);
     const action = yield* ActionTelemetry;
+
     const fields = {
       request_id: correlation.requestId,
       trace_id: correlation.traceId,
@@ -24,6 +25,8 @@ export const prepareRequestTelemetry = (input: {
       method: input.method,
       route: input.route,
     };
+
     if (action) Object.assign(action, fields);
+
     return { headers: correlation.headers, fields, action };
   });

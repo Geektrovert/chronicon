@@ -5,6 +5,7 @@ import { posthogHosts } from "./src/lib/posthog";
 import { robotsDirective } from "./src/lib/crawlers";
 
 const portlessUrl = Effect.runSync(Config.string("PORTLESS_URL").pipe(Config.withDefault("")));
+
 const buildMetadata = Effect.runSync(
   Config.all({
     release: Config.string("NEXT_PUBLIC_APP_RELEASE").pipe(

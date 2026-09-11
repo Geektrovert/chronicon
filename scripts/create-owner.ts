@@ -12,6 +12,7 @@ import {
 } from "./lib/provision-owner";
 
 const ownerLayer = databaseLayer.pipe(Layer.provideMerge(AppConfig.layer));
+
 const hiddenPassword = (message: string) =>
   Effect.uninterruptibleMask((restore) =>
     Effect.gen(function* () {
@@ -24,39 +25,47 @@ const hiddenPassword = (message: string) =>
             ),
         }),
       );
+
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
           Redacted.wipeUnsafe(value);
         }),
       );
+
       return value;
     }),
   );
+
 const main = Effect.gen(function* () {
   const nonInteractive = yield* Config.all({
     ci: Config.string("CI").pipe(Config.withDefault("")),
     vercel: Config.string("VERCEL").pipe(Config.withDefault("")),
   });
+
   if (nonInteractive.ci || nonInteractive.vercel || !process.stdin.isTTY || !process.stdout.isTTY)
     return yield* new OwnerSetupError({
       message: "Run bun run owner:create in your own interactive terminal.",
     });
+
   if (process.argv.length !== 2)
     return yield* new OwnerSetupError({
       message: "This command takes no arguments. Enter your password at the hidden prompt.",
     });
   const email = yield* configuredOwnerEmail;
   const config = yield* AppConfig;
+
   const target = yield* Effect.try({
     try: () => new URL(Redacted.value(config.databaseUrl)).hostname,
     catch: () =>
       new OwnerSetupError({ message: "Set DATABASE_URL to a valid Postgres connection URL." }),
   });
+
   yield* Console.log(`Create account: ${email}\nDatabase: ${target}`);
   yield* Console.log("Your password is hidden while you type. The database stores only its hash.");
   yield* requireEmptyWorkspace;
   const password = yield* hiddenPassword("Password (12–128 characters):");
   const confirmation = yield* hiddenPassword("Confirm password:");
+
   if (Redacted.value(password) !== Redacted.value(confirmation))
     return yield* new OwnerSetupError({
       message: "Passwords did not match. No account was created. Run the command again.",
@@ -89,4 +98,5 @@ const main = Effect.gen(function* () {
     ),
   ),
 );
+
 BunRuntime.runMain(main, { disableErrorReporting: true });

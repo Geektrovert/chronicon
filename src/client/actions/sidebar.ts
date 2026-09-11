@@ -2,10 +2,13 @@ import { DateTime, Effect, Exit, Schedule, Stream } from "effect";
 import { ClientError } from "../errors";
 
 const collapsedStorageKey = "chronicon.sidebar.collapsed";
+
 const widthStorageKey = "chronicon.sidebar.width";
 
 export const sidebarSizes = { default: 288, min: 240, max: 480, rail: 60, viewportFraction: 0.45 };
+
 export type SidebarLayout = { collapsed: boolean; width: number };
+
 export const defaultSidebarLayout: SidebarLayout = {
   collapsed: false,
   width: sidebarSizes.default,
@@ -14,6 +17,7 @@ export const defaultSidebarLayout: SidebarLayout = {
 export const loadSidebarLayout = Effect.try({
   try: () => {
     const width = Number(localStorage.getItem(widthStorageKey));
+
     return {
       collapsed: localStorage.getItem(collapsedStorageKey) === "true",
       width:
@@ -49,6 +53,7 @@ export const watchSidebarTime = (onTick: (now: DateTime.Utc) => void) =>
 export const watchSidebarViewport = (onChange: (mobile: boolean, maximumWidth: number) => void) =>
   Effect.gen(function* () {
     const viewport = yield* Effect.sync(() => window.matchMedia("(max-width: 820px)"));
+
     const update = Effect.sync(() =>
       onChange(
         viewport.matches,
@@ -58,6 +63,7 @@ export const watchSidebarViewport = (onChange: (mobile: boolean, maximumWidth: n
         ),
       ),
     );
+
     yield* update;
     yield* Stream.fromEventListener(window, "resize").pipe(Stream.runForEach(() => update));
   });
@@ -70,13 +76,18 @@ export function sidebarLayoutFromKey(
   shiftKey: boolean,
 ): SidebarLayout | undefined {
   if (key === "Enter") return { ...layout, collapsed: !layout.collapsed };
+
   if (key === "Home") return shiftKey ? defaultSidebarLayout : { ...layout, collapsed: true };
+
   if (key === "End") return { collapsed: false, width: maximumWidth };
+
   if (key !== "ArrowLeft" && key !== "ArrowRight") return;
   const expanding = (key === "ArrowRight") === (direction === "ltr");
+
   if (layout.collapsed) return expanding ? { collapsed: false, width: sidebarSizes.min } : layout;
   const step = shiftKey ? 48 : 16;
   const width = Math.min(layout.width, maximumWidth) + (expanding ? step : -step);
+
   return width < sidebarSizes.min
     ? { ...layout, collapsed: true }
     : { collapsed: false, width: Math.min(width, maximumWidth) };
@@ -90,14 +101,18 @@ export const resizeSidebar = Effect.fn("Client.resizeSidebar")(function* (
   onChange: (layout: SidebarLayout) => void,
 ) {
   const frame = handle.closest<HTMLElement>(".workspace");
+
   if (!frame) return initial;
   const direction = getComputedStyle(handle).direction === "rtl" ? -1 : 1;
   const startWidth = initial.collapsed ? sidebarSizes.rail : Math.min(initial.width, maximumWidth);
   let dragged = false;
+
   const movedBeyondClick = (event: PointerEvent) =>
     Math.hypot(event.clientX - pointer.clientX, event.clientY - pointer.clientY) >= 4;
+
   const layoutAt = (event: PointerEvent): SidebarLayout => {
     const width = startWidth + (event.clientX - pointer.clientX) * direction;
+
     return width < (sidebarSizes.min + sidebarSizes.rail) / 2
       ? { ...initial, collapsed: true }
       : {
@@ -112,8 +127,10 @@ export const resizeSidebar = Effect.fn("Client.resizeSidebar")(function* (
       Effect.sync(() => {
         controller.abort();
         delete frame.dataset.sidebarResizing;
+
         if (handle.hasPointerCapture(pointer.pointerId))
           handle.releasePointerCapture(pointer.pointerId);
+
         if (Exit.isFailure(exit)) onChange(initial);
       }),
   );
@@ -121,12 +138,15 @@ export const resizeSidebar = Effect.fn("Client.resizeSidebar")(function* (
   return yield* Effect.callback<SidebarLayout>((resume) => {
     const options = { signal: listeners.signal };
     let finished = false;
+
     const complete = (layout: SidebarLayout) => {
       if (finished) return;
       finished = true;
       resume(Effect.succeed(layout));
     };
+
     const cancel = () => complete(initial);
+
     const cancelPointer = (event: PointerEvent) => {
       if (event.pointerId === pointer.pointerId) cancel();
     };
@@ -136,6 +156,7 @@ export const resizeSidebar = Effect.fn("Client.resizeSidebar")(function* (
       "pointermove",
       (event) => {
         if (finished || event.pointerId !== pointer.pointerId) return;
+
         if (!dragged && !movedBeyondClick(event)) return;
         dragged = true;
         frame.dataset.sidebarResizing = "true";

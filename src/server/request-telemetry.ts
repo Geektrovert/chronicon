@@ -15,6 +15,7 @@ import {
   safeFailure,
   telemetryContext,
   type RequestTelemetry,
+  type Attributes,
 } from "./observability";
 
 function observed<A, E, R>(
@@ -25,6 +26,7 @@ function observed<A, E, R>(
   started = performance.now(),
 ) {
   const metrics = { ...state.metrics };
+
   return Effect.useSpan(
     operation,
     { kind: operation === "http.request" ? "server" : "internal", parent: state.parent },
@@ -32,13 +34,16 @@ function observed<A, E, R>(
       state.parent = span;
       state.attributes.trace_id = span.traceId;
       state.attributes.span_id = span.spanId;
+
       return program.pipe(
         Effect.onExit((exit) => {
           state.completed = true;
           const failure = Exit.isFailure(exit) ? safeFailure(exit.cause) : undefined;
+
           const status =
             failure?.status ??
             (Exit.isSuccess(exit) && exit.value instanceof Response ? exit.value.status : 200);
+
           const attributes = {
             operation,
             status,
@@ -59,13 +64,19 @@ function observed<A, E, R>(
             storage_duration_ms:
               Math.round((state.metrics.storage_duration_ms - metrics.storage_duration_ms) * 100) /
               100,
-            ...(failure
-              ? { error_type: failure.error_type, expected_error: failure.expected }
-              : {}),
-          };
+          } satisfies Attributes;
+
+          if (failure) {
+            Object.assign(attributes, {
+              error_type: failure.error_type,
+              expected_error: failure.expected,
+            });
+          }
+
           for (const [key, value] of Object.entries(state.attributes)) span.attribute(key, value);
           span.attribute("http.response.status_code", status);
           span.attribute("outcome", attributes.outcome);
+
           if (status >= 500) {
             const type = failure?.error_type ?? "ServerResponseError";
             captureServerException(
@@ -75,8 +86,10 @@ function observed<A, E, R>(
               attributes,
             );
           }
+
           if (state.attributes.route !== "/api/library" || status >= 400)
             captureServerEvent(state, event, attributes);
+
           return logWideEvent(state, event, attributes);
         }),
         Effect.withParentSpan(span),
@@ -100,6 +113,7 @@ export async function runObservedRequest<A, E>(
   const started = performance.now();
   const state = makeRequestTelemetry(requestHeaders, method, path);
   const parent = trace.getActiveSpan()?.spanContext();
+
   if (parent)
     state.parent = Tracer.externalSpan({
       traceId: parent.traceId,
@@ -110,6 +124,7 @@ export async function runObservedRequest<A, E>(
   after(() => session.drain().then(() => undefined));
   const context = await session.build().catch(() => session.build(false));
   state.context = context;
+
   const exit = await telemetryContext.run(state, () =>
     runtime.runPromiseExit(
       observed(
@@ -122,6 +137,7 @@ export async function runObservedRequest<A, E>(
       { signal: options.signal },
     ),
   );
+
   // ManagedRuntime can fail during service acquisition before the observed program starts.
   if (!state.completed && Exit.isFailure(exit)) {
     await Effect.runPromiseExit(
@@ -134,6 +150,7 @@ export async function runObservedRequest<A, E>(
       ).pipe(Effect.provide(context)),
     );
   }
+
   return { exit, state };
 }
 
@@ -143,12 +160,15 @@ export function runObservedTool<A, E>(
   signal: AbortSignal,
 ) {
   const request = telemetryContext.getStore();
+
   if (!request?.context) return runtime.runPromiseExit(program, { signal });
+
   const state: RequestTelemetry = {
     ...request,
     completed: false,
     attributes: { ...request.attributes, mcp_tool: name },
   };
+
   return runtime.runPromiseExit(
     observed(state, program, `mcp.${name}`, "chronicon_mcp_tool_completed").pipe(
       Effect.provide(request.context),
@@ -163,11 +183,14 @@ export function telemetryResponseHeaders(
   extraHeaders?: HeadersInit,
 ) {
   const responseHeaders = new Headers(response.headers);
+
   if (extraHeaders)
     for (const [key, value] of new Headers(extraHeaders)) responseHeaders.set(key, value);
   responseHeaders.set("x-chronicon-request-id", String(state.attributes.request_id));
+
   if (state.attributes.trace_id)
     responseHeaders.set("x-chronicon-trace-id", String(state.attributes.trace_id));
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -183,6 +206,7 @@ export async function runObservedPage<A, E>(
   principal?: Principal,
 ) {
   const requestHeaders = await headers();
+
   const { exit } = await runObservedRequest(
     requestHeaders,
     "GET",
@@ -193,6 +217,8 @@ export async function runObservedPage<A, E>(
       event: "chronicon_page_data_completed",
     },
   );
+
   if (Exit.isFailure(exit)) throw Cause.squash(exit.cause);
+
   return exit.value;
 }

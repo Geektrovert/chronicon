@@ -14,6 +14,7 @@ const migrationLayer = Auth.layer.pipe(
   Layer.provideMerge(Layer.mergeAll(databaseLayer, EmailDelivery.layer)),
   Layer.provideMerge(AppConfig.layer),
 );
+
 const main = Effect.gen(function* () {
   const auth = yield* Auth;
   const sql = yield* SqlClient.SqlClient;
@@ -139,4 +140,5 @@ const main = Effect.gen(function* () {
     ),
   ),
 );
+
 BunRuntime.runMain(main, { disableErrorReporting: true });

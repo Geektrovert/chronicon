@@ -15,8 +15,10 @@ export type AuthPageProps = {
 async function AccountForm({ searchParams, create }: AuthPageProps) {
   await connection();
   const query = await searchParams;
-  const next = signInDestination(typeof query.next === "string" ? query.next : null);
+  const next = signInDestination(Array.isArray(query.next) ? null : (query.next ?? null));
+
   if (await pagePrincipal()) redirect(next);
+
   return <SignIn create={create} next={next} />;
 }
 

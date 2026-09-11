@@ -64,10 +64,12 @@ const readInputFile = Effect.fn("Cli.readInputFile")(function* (
     "Unable to read the input file. Check its path and permissions.",
     () => stat(file),
   );
+
   if (!info.isFile() || info.size > limit)
     return yield* new CliError({
       message: `Use a regular file of ${limit.toLocaleString("en")} bytes or less.`,
     });
+
   return yield* attempt("Unable to read the input file. Check its path and permissions.", () =>
     readFile(file, "utf8"),
   );
@@ -75,13 +77,17 @@ const readInputFile = Effect.fn("Cli.readInputFile")(function* (
 
 function required(value: string | undefined, flag: string) {
   if (!value) throw new CliError({ message: `Provide ${flag}. Run chronicon --help for usage.` });
+
   return value;
 }
+
 function revision(value: string | undefined, flag: string, minimum: number) {
   const raw = required(value, flag);
   const number = Number(raw);
+
   if (!/^\d+$/.test(raw) || !Number.isSafeInteger(number) || number < minimum)
     throw new CliError({ message: `${flag} must be an integer of at least ${minimum}.` });
+
   return number;
 }
 
@@ -97,34 +103,44 @@ const projectSchema = Schema.Struct({
   createdAt: Schema.String,
   revision: Schema.Int,
 });
-const objectSchema = Schema.Record(Schema.String, Schema.Unknown);
+
+const objectSchema = Schema.Record(Schema.String, Schema.Json);
+
+type CliJsonObject = Schema.Schema.Type<typeof Schema.JsonObject>;
+
 const withAssociation = Schema.Struct({ association: Schema.NullOr(associationSchema) });
 
 const readJsonInputFile = Effect.fn("Cli.readJsonInputFile")(function* (file: string) {
   const content = yield* readInputFile(file);
+
   const parsed = yield* Effect.try({
     try: () => json(content),
     catch: () => new CliError({ message: "The input file must contain a JSON object." }),
   });
+
   return yield* decode(objectSchema, parsed);
 });
 
 function reference(saved: Association | undefined, credential: Credential, explicit?: string) {
   if (explicit) return { id: explicit };
+
   if (!saved)
     throw new CliError({
       message: "Link a project with chronicon project link ID, or pass --project ID.",
     });
+
   if (saved.server !== credential.server || saved.workspaceId !== credential.workspaceId)
     throw new CliError({
       message:
         "This repository is linked to another server or account. Run chronicon project link ID --relink to replace its default.",
     });
+
   return { id: saved.projectId };
 }
 
-const print = (value: unknown) => Console.log(JSON.stringify(value, null, 2));
-const persistPublished = (result: unknown, saved: Association | undefined, relink: boolean) =>
+const print = (value: Schema.Json) => Console.log(JSON.stringify(value, null, 2));
+
+const persistPublished = (result: Schema.Json, saved: Association | undefined, relink: boolean) =>
   Effect.gen(function* () {
     if (!Schema.is(withAssociation)(result) || (saved && !relink) || !result.association) return;
     yield* saveAssociation(result.association, relink).pipe(
@@ -167,10 +183,13 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
       }),
     catch: () => new CliError({ message: "Unknown or incomplete option. Run chronicon --help." }),
   });
+
   const [command, action, subject] = positionals;
+
   if (values.help || !command) return yield* Console.log(help);
   const saved = yield* readAssociation;
   const configuredServer = yield* Config.string("CHRONICON_SERVER").pipe(Config.withDefault(""));
+
   const server = yield* Effect.try({
     try: () =>
       serverOrigin(
@@ -182,31 +201,40 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
           "Use --server https://HOST with no path, query, or credentials. HTTP is allowed only on localhost.",
       }),
   });
+
   if (command === "login") return yield* login(server, !!values["no-browser"]);
   const credential = yield* readCredential(server);
+
   if (command === "logout") return yield* logout(credential);
+
   if (command === "whoami")
     return yield* print(yield* http(server, "/api/account", { key: credential.key }));
-  const call = (tool: string, input: Record<string, unknown>) =>
+
+  const call = (tool: string, input: Schema.JsonObject) =>
     callTool(server, credential.key, tool, input);
+
   if (command === "project") {
     if (action === "list") return yield* print(yield* call("list_projects", {}));
+
     if (action === "link") {
       const selected = required(subject, "a project ID");
       const projects = yield* decode(Schema.Array(projectSchema), yield* call("list_projects", {}));
       const exact = projects.find((project) => project.id === selected);
       const matches = exact ? [exact] : projects.filter((project) => project.slug === selected);
+
       if (matches.length > 1)
         return yield* new CliError({
           message:
             "Several teams have this project slug. Use the project ID from chronicon project list.",
         });
       const project = matches[0];
+
       if (!project)
         return yield* new CliError({
           message:
             "This account cannot access that project. Run chronicon project list to choose one.",
         });
+
       const association: Association = {
         version: 1,
         server,
@@ -214,11 +242,15 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
         projectId: project.id,
         projectSlug: project.slug,
       };
+
       yield* saveAssociation(association, !!values.relink);
+
       return yield* print(association);
     }
+
     if (action === "create") {
       const slug = required(subject, "a project slug");
+
       if (
         saved &&
         !values.relink &&
@@ -229,6 +261,7 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
         return yield* new CliError({
           message: "This repository already has a default project. Add --relink to replace it.",
         });
+
       const result = yield* http(server, "/api/projects", {
         method: "POST",
         key: credential.key,
@@ -238,25 +271,34 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
           description: values.description || "",
         },
       });
+
       yield* print(result);
+
       return yield* persistPublished(result, undefined, !!values.relink);
     }
+
     if (action === "update") {
       const project = reference(saved, credential, values.project);
+
+      const body = {
+        id: project.id,
+        name: required(values.name, "--name"),
+        expectedRevision: revision(values["expected-revision"], "--expected-revision", 1),
+      };
+
+      if (values.description !== undefined)
+        Object.assign(body, { description: values.description });
+
       return yield* print(
         yield* http(server, "/api/projects", {
           method: "PATCH",
           key: credential.key,
-          body: {
-            id: project.id,
-            name: required(values.name, "--name"),
-            ...(values.description === undefined ? {} : { description: values.description }),
-            expectedRevision: revision(values["expected-revision"], "--expected-revision", 1),
-          },
+          body,
         }),
       );
     }
   }
+
   if (command === "docs") {
     const project =
       action === "read" && values.id
@@ -264,27 +306,34 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
         : values.project || saved
           ? reference(saved, credential, values.project)
           : undefined;
-    if (action === "list")
-      return yield* print(
-        yield* call("find_documents", {
-          ...(project ? { project } : {}),
-          ...(values.query ? { query: values.query } : {}),
-        }),
+
+    if (action === "list") {
+      const input = Object.assign(
+        {},
+        project ? { project } : undefined,
+        values.query ? { query: values.query } : undefined,
       );
-    if (action === "read")
-      return yield* print(
-        yield* call("read_document", {
-          ...(values.id
-            ? { id: values.id }
-            : {
-                project: project || reference(saved, credential),
-                slug: required(subject, "a document slug"),
-              }),
-          ...(values.revision ? { revision: revision(values.revision, "--revision", 1) } : {}),
-        }),
-      );
+
+      return yield* print(yield* call("find_documents", input));
+    }
+
+    if (action === "read") {
+      const input: CliJsonObject = values.id
+        ? { id: values.id }
+        : {
+            project: project || reference(saved, credential),
+            slug: required(subject, "a document slug"),
+          };
+
+      if (values.revision)
+        Object.assign(input, { revision: revision(values.revision, "--revision", 1) });
+
+      return yield* print(yield* call("read_document", input));
+    }
+
     if (action === "upsert") {
       const html = yield* readInputFile(required(values.file, "--file"), 2_000_000);
+
       const result = yield* call("upsert_document", {
         project: project || reference(saved, credential),
         slug: required(subject, "a document slug"),
@@ -299,40 +348,50 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
         html,
         expectedRevision: revision(values["expected-revision"], "--expected-revision", 0),
       });
+
       yield* print(result);
+
       return yield* persistPublished(result, saved, false);
     }
   }
+
   if (command === "design") {
     const project = reference(saved, credential, values.project);
+
     if (action === "read") {
       const result = yield* call("read_project_design", { project });
+
       if (values.json) return yield* print(result);
       const design = yield* decode(objectSchema, result);
+
       return yield* Console.log(yield* decode(Schema.String, design.markdown));
     }
+
     if (action === "update") {
       if (values.file && values.input)
         return yield* new CliError({
           message: "Use --file for Markdown or --input for JSON, not both.",
         });
+
       const input = values.input
         ? yield* readJsonInputFile(values.input)
         : { markdown: yield* readInputFile(required(values.file, "--file or --input"), 100_000) };
-      return yield* print(
-        yield* call("update_project_design", {
-          ...input,
-          project,
-          ...(values["expected-revision"] !== undefined
-            ? { expectedRevision: revision(values["expected-revision"], "--expected-revision", 0) }
-            : {}),
-        }),
-      );
+
+      const request = { ...input, project };
+
+      if (values["expected-revision"] !== undefined)
+        Object.assign(request, {
+          expectedRevision: revision(values["expected-revision"], "--expected-revision", 0),
+        });
+
+      return yield* print(yield* call("update_project_design", request));
     }
   }
+
   if (command === "call") {
     const tool = required(action, "a tool name");
     const input = { ...(yield* readJsonInputFile(required(values.input, "--input"))) };
+
     if (
       [
         "read_document",
@@ -348,7 +407,9 @@ export const run = Effect.fn("Cli.run")(function* (args: string[]) {
       input.project = reference(saved, credential, values.project);
     const result = yield* call(tool, input);
     yield* print(result);
+
     return yield* persistPublished(result, saved, !!values.relink);
   }
+
   return yield* new CliError({ message: "Unknown command. Run chronicon --help." });
 });

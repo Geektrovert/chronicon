@@ -12,10 +12,11 @@ export function NavigationLink({
   ...props
 }: ComponentProps<typeof Link>) {
   const [intent, setIntent] = useState(false);
+
   return (
     <Link
       {...props}
-      prefetch={prefetch ?? (intent ? true : undefined)}
+      prefetch={prefetch ?? intent}
       onPointerEnter={(event) => {
         setIntent(true);
         onPointerEnter?.(event);

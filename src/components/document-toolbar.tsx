@@ -47,6 +47,7 @@ export function DocumentToolbar({
   const { updateDocument, pendingDocuments } = useWorkspace();
   const pending = pendingDocuments.includes(document.id);
   const canEdit = document.accessRole === "edit" || document.accessRole === "full_access";
+
   return (
     <TooltipProvider delay={400}>
       <Toolbar className="document-toolbar">
@@ -57,7 +58,7 @@ export function DocumentToolbar({
             value={revision?.value ?? String(document.revision)}
             disabled={!revision || loading}
             onValueChange={(value) => {
-              if (typeof value === "string") revision?.onValueChange(value);
+              if (value !== null) revision?.onValueChange(value);
             }}
           >
             <SelectTrigger

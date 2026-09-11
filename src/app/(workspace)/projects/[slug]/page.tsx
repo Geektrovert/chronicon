@@ -6,6 +6,7 @@ import { pagePrincipal, projectPageData, projectLibraryPageData } from "@/server
 export async function generateMetadata({ params }: PageProps<"/projects/[slug]">) {
   if (!(await pagePrincipal())) return { title: "Sign in" };
   const { slug } = await params;
+
   return { title: (await projectPageData(slug)).name };
 }
 
@@ -13,6 +14,7 @@ export async function generateMetadata({ params }: PageProps<"/projects/[slug]">
 export default async function Page({ params }: PageProps<"/projects/[slug]">) {
   const { slug } = await params;
   const { project, library } = await projectLibraryPageData(slug);
+
   return (
     <ProjectScope library={library}>
       <LibraryView key={project.id} projectId={project.id} />

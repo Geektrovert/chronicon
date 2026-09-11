@@ -6,10 +6,11 @@ import { Effect } from "effect";
 import { runObservedPage } from "@/server/request-telemetry";
 import { readPublicProject } from "@/server/actions/public";
 import { LoadingState } from "@/components/ui/loading-state";
+
 // oxlint-disable-next-line effecttsgo/async-function -- Next server page boundary.
 async function PublicProjectPage({ params }: PageProps<"/public/projects/[id]">) {
-  await connection();
-  const { id } = await params;
+  const [{ id }] = await Promise.all([params, connection()]);
+
   const data = await runObservedPage(
     "page.public_project",
     "/public/projects/[id]",
@@ -19,10 +20,12 @@ async function PublicProjectPage({ params }: PageProps<"/public/projects/[id]">)
       ),
     ),
   );
+
   if (!data) notFound();
+
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-12">
-      <Link href="/" className="text-sm text-muted-foreground">
+      <Link href="/" prefetch={false} className="text-sm text-muted-foreground">
         Chronicon
       </Link>
       <h1 className="content-title mt-10 text-3xl">{data.project.name}</h1>

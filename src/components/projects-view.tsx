@@ -15,16 +15,20 @@ export function ProjectsView() {
   const [query, setQuery] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
   const phrase = query.trim().toLocaleLowerCase();
+
   const projects = library.projects
     .filter((project) =>
       `${project.name} ${project.slug} ${project.description}`.toLocaleLowerCase().includes(phrase),
     )
     .toSorted((a, b) => a.name.localeCompare(b.name));
+
   const counts = new Map<string, number>();
+
   for (const document of library.documents) {
     if (!document.archived)
       counts.set(document.projectId, (counts.get(document.projectId) ?? 0) + 1);
   }
+
   return (
     <main id="main" className="projects-main">
       <PageHeader
@@ -56,6 +60,7 @@ export function ProjectsView() {
         <div className="project-directory">
           {projects.map((project) => {
             const count = counts.get(project.id) ?? 0;
+
             return (
               <article key={project.id} className="project-directory-item">
                 <div className="project-directory-identity">

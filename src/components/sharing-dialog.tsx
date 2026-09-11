@@ -28,6 +28,7 @@ export function SharingButton({
   name: string;
 }) {
   const [open, setOpen] = useState(false);
+
   return (
     <>
       <Button variant="outline" aria-label={`Share ${type}`} onClick={() => setOpen(true)}>
@@ -69,6 +70,7 @@ function SharingDialog({
   useEffect(() => {
     if (!open) return;
     capture("sharing_opened", { resource_type: type });
+
     return run(loadSharing(type, id), { onSuccess: setData, onError: setError });
   }, [open, type, id, run]);
 
@@ -80,17 +82,21 @@ function SharingDialog({
       runAction(changeSharing(type, id, input)).then((result) => {
         if (Result.isFailure(result)) {
           setError(result.failure);
+
           return;
         }
+
         setData(result.success);
         setNotice(message);
         refresh();
+
         if (input.action === "invite") form.reset();
       }),
     );
   }
 
   const form = useForm({
+    // SAFETY: The literal is one of the AccessRole values accepted by the invitation form.
     defaultValues: { email: "", role: "view" as AccessRole },
     onSubmit: ({ value }) => change({ action: "invite", ...value }, "Access updated."),
   });

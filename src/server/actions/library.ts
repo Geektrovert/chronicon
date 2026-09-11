@@ -7,20 +7,25 @@ import { AppError } from "../errors";
 
 const listLibrary = Effect.fn("Library.list")(function* (principal: Principal, projectId?: string) {
   const sql = yield* PgClient.PgClient;
+
   const keyScope =
     principal.projectIds === null
       ? sql`TRUE`
       : principal.projectIds.length
         ? sql`p.id IN ${sql.in(principal.projectIds)}`
         : sql`FALSE`;
+
   const organizationScope =
     principal.access === "agent"
       ? sql`p."organizationId" = ${principal.organizationId}`
       : sql`TRUE`;
+
   const projectScope = projectId
     ? sql`p.id = ${projectId}`
     : sql`(p."organizationId" = ${principal.organizationId} OR pa.role IS NOT NULL)`;
+
   const documentScope = projectId ? sql`p.id = ${projectId}` : sql`TRUE`;
+
   const listProjects = SqlSchema.findAll({
     Request: Schema.Void,
     Result: projectSchema,
@@ -33,9 +38,11 @@ const listLibrary = Effect.fn("Library.list")(function* (principal: Principal, p
         AND (owner_member.id IS NOT NULL OR pa.role IS NOT NULL)
       ORDER BY p.name`,
   });
+
   const projects = yield* listProjects(undefined).pipe(databaseError("list projects"));
   const projectIds = projects.map((project) => project.id);
   const selectedProjects = projectIds.length ? sql`p.id IN ${sql.in(projectIds)}` : sql`FALSE`;
+
   const listDocuments = SqlSchema.findAll({
     Request: Schema.Void,
     Result: documentSchema,
@@ -51,7 +58,9 @@ const listLibrary = Effect.fn("Library.list")(function* (principal: Principal, p
       WHERE ${keyScope} AND ${organizationScope} AND ${documentScope} AND ((${selectedProjects} AND (owner_member.id IS NOT NULL OR pa.role IS NOT NULL)) OR da.role IS NOT NULL)
       ORDER BY d."updatedAt" DESC`,
   });
+
   const documents = yield* listDocuments(undefined).pipe(databaseError("list documents"));
+
   return { projects, documents };
 });
 
@@ -62,10 +71,12 @@ export const loadProjectLibrary = Effect.fn("Library.project")(function* (
   projectId: string,
 ) {
   const library = yield* listLibrary(principal, projectId);
+
   if (!library.projects.length)
     return yield* new AppError({
       status: 404,
       message: "Project not found. Check the project and account.",
     });
+
   return library;
 });

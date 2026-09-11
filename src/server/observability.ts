@@ -30,10 +30,14 @@ import {
 } from "./errors";
 
 type Attribute = string | number | boolean;
+
 export type Attributes = Record<string, Attribute>;
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const telemetryUuid = (value: string | null | undefined) =>
   value && uuidPattern.test(value) ? value : undefined;
+
 const identifier = (value: string) => (/^[a-z0-9:_-]{1,128}$/i.test(value) ? value : undefined);
 
 const staticRoutes = new Set([
@@ -60,6 +64,7 @@ const staticRoutes = new Set([
   "/api/cli/authorize",
   "/api/cli/token",
 ]);
+
 const authRoutes = new Set([
   "sign-in/email",
   "sign-up/email",
@@ -91,11 +96,15 @@ const authRoutes = new Set([
 // Only fixed route templates leave the server. Dynamic segments and query strings never do.
 export function telemetryRoute(path: string) {
   const pathname = path.split("?")[0] ?? "/";
+
   if (staticRoutes.has(pathname)) return pathname;
+
   if (pathname.startsWith("/api/auth/")) {
     const operation = pathname.slice("/api/auth/".length);
+
     return authRoutes.has(operation) ? pathname : "/api/auth/[operation]";
   }
+
   const patterns = [
     [/^\/api\/documents\/[^/]+$/, "/api/documents/[id]"],
     [/^\/api\/projects\/[^/]+\/design\.md$/, "/api/projects/[id]/design.md"],
@@ -109,26 +118,31 @@ export function telemetryRoute(path: string) {
     [/^\/[^/]+\/d\/[^/]+\/?$/, "/[username]/d/[documentSlug]"],
     [/^\/public\/projects\/[^/]+$/, "/public/projects/[id]"],
   ] as const;
+
   return patterns.find(([pattern]) => pattern.test(pathname))?.[1] ?? "/[unmatched]";
 }
 
 export function telemetryConfiguration() {
   const key = readConfig("NEXT_PUBLIC_POSTHOG_KEY");
   const setting = readConfig("NEXT_PUBLIC_POSTHOG_ENABLED");
+
   const enabled =
     setting === "true" || (setting !== "false" && readConfig("NODE_ENV") === "production");
+
   const host = posthogHosts(readConfig("NEXT_PUBLIC_POSTHOG_HOST")).ingestion;
+
   return { key, enabled: enabled && key.startsWith("phc_"), host };
 }
 
 const readConfig = (name: string, fallback = "") =>
   Effect.runSync(Config.string(name).pipe(Config.withDefault(fallback)));
 
-export function serviceAttributes(): Attributes {
+export function serviceAttributes() {
   const environment =
     readConfig("NEXT_PUBLIC_APP_ENV") ||
     readConfig("VERCEL_ENV") ||
     readConfig("NODE_ENV", "development");
+
   return {
     app: "chronicon",
     service_name: "chronicon",
@@ -138,7 +152,7 @@ export function serviceAttributes(): Attributes {
     release:
       readConfig("NEXT_PUBLIC_APP_RELEASE") || readConfig("VERCEL_GIT_COMMIT_SHA", "development"),
     event_source: "server",
-  };
+  } satisfies Attributes;
 }
 
 export type RequestTelemetry = {
@@ -155,12 +169,14 @@ export type RequestTelemetry = {
     storage_duration_ms: number;
   };
 };
+
 export const CurrentTelemetry = Context.Reference<RequestTelemetry | undefined>(
   "chronicon/RequestTelemetry",
   {
     defaultValue: () => undefined,
   },
 );
+
 export const telemetryContext = new AsyncLocalStorage<RequestTelemetry>();
 
 export function annotateAuthenticatedUser(
@@ -170,22 +186,29 @@ export function annotateAuthenticatedUser(
 ) {
   const state = telemetryContext.getStore();
   const id = identifier(userId);
+
   if (!state || !id || !state.trackingAllowed) return;
-  Object.assign(state.attributes, {
+
+  const attributes = {
     user_id: id,
     posthogDistinctId: `chronicon:user:${id}`,
     distinct_id: `chronicon:user:${id}`,
     access,
     authenticated: true,
-    ...(organizationId && identifier(organizationId) ? { organization_id: organizationId } : {}),
-  });
+  } satisfies Attributes;
+
+  if (organizationId && identifier(organizationId))
+    Object.assign(state.attributes, attributes, { organization_id: organizationId });
+  else Object.assign(state.attributes, attributes);
 }
 
 export const annotatePrincipal = (principal: Principal) =>
   Effect.gen(function* () {
     const state = yield* CurrentTelemetry;
+
     if (!state || !state.trackingAllowed) return;
     const id = identifier(principal.ownerId);
+
     if (!id) return;
     Object.assign(state.attributes, {
       user_id: id,
@@ -200,50 +223,72 @@ export const annotatePrincipal = (principal: Principal) =>
 export const annotateTelemetry = (attributes: Attributes) =>
   Effect.gen(function* () {
     const state = yield* CurrentTelemetry;
+
     if (state) Object.assign(state.attributes, attributes);
   });
 
 export function safeFailure(cause: Cause.Cause<unknown>) {
   const found = Cause.findErrorOption(cause);
   const error = Option.isSome(found) ? found.value : undefined;
+
   if (Schema.is(AppError)(error))
     return { status: error.status, error_type: "AppError", expected: error.status < 500 };
+
   if (Cause.hasInterruptsOnly(cause))
     return { status: 499, error_type: "Interrupted", expected: true };
+
   if (Schema.is(DatabaseError)(error))
     return { status: 500, error_type: "DatabaseError", expected: false };
+
   if (Schema.is(StorageError)(error))
     return { status: 500, error_type: "StorageError", expected: false };
+
   if (Schema.is(AuthenticationError)(error))
     return { status: 500, error_type: "AuthenticationError", expected: false };
+
   if (Schema.is(ConfigurationError)(error))
     return { status: 500, error_type: "ConfigurationError", expected: false };
+
   return { status: 500, error_type: "UnexpectedError", expected: false };
 }
 
 // Retain source locations for symbolication, excluding messages, causes and source context.
-export function telemetryError(error: unknown, type = "UnexpectedError") {
+export type TelemetryError = Schema.Schema.Type<typeof Schema.Unknown>;
+
+export function telemetryError(error: TelemetryError, type = "UnexpectedError") {
   const safe = new Error(type);
   safe.name = type;
   safe.stack = `${type}: ${type}`;
-  const stack: unknown =
-    error && typeof error === "object" ? Reflect.get(error, "stack") : undefined;
-  if (typeof stack === "string") {
+
+  const stack =
+    error instanceof Error
+      ? error.stack
+      : Schema.is(Schema.JsonObject)(error) && Schema.is(Schema.String)(error.stack)
+        ? error.stack
+        : undefined;
+
+  if (Schema.is(Schema.String)(stack)) {
     const frames = stack
       .split("\n")
       .slice(1)
       .flatMap((line) => {
         const frame = line.match(/^\s+at (?:[A-Za-z0-9_.$<> ]+ \()?(.+):(\d+):(\d+)\)?$/);
+
         if (!frame) return [];
         const location = frame[1]!.replace(/^file:\/\//, "").split("?")[0]!;
+
         if (!location.startsWith(`${process.cwd()}/`)) return [];
         const relative = location.slice(process.cwd().length + 1);
+
         if (!/^(?:src|\.next|node_modules)\/[A-Za-z0-9_./@~%[\]-]+$/.test(relative)) return [];
+
         return [`    at app:///${relative}:${frame[2]}:${frame[3]}`];
       })
       .slice(0, 40);
+
     if (frames.length) safe.stack = `${type}: ${type}\n${frames.join("\n")}`;
   }
+
   return safe;
 }
 
@@ -253,19 +298,25 @@ export function makeRequestTelemetry(
   path: string,
 ): RequestTelemetry {
   const config = telemetryConfiguration();
+
   const trackingAllowed =
     headers.get("x-chronicon-telemetry") !== "off" && headers.get("dnt") !== "1";
+
   // oxlint-disable-next-line effecttsgo/crypto-random-uuid -- The synchronous HTTP boundary needs an unguessable ID before the Effect runtime exists.
   const requestId = telemetryUuid(headers.get("x-chronicon-request-id")) ?? crypto.randomUUID();
+
   const anonymousId = trackingAllowed
     ? telemetryUuid(headers.get("x-chronicon-distinct-id"))
     : undefined;
+
   const sessionId = trackingAllowed
     ? telemetryUuid(headers.get("x-chronicon-session-id"))
     : undefined;
+
   const trace = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/.exec(
     headers.get("traceparent") ?? "",
   );
+
   const parent =
     trace && !/^0+$/.test(trace[1]!) && !/^0+$/.test(trace[2]!)
       ? Tracer.externalSpan({
@@ -274,6 +325,21 @@ export function makeRequestTelemetry(
           sampled: (Number.parseInt(trace[3]!, 16) & 1) === 1,
         })
       : undefined;
+
+  const attributes = {
+    ...serviceAttributes(),
+    request_id: requestId,
+    method: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"].includes(method)
+      ? method
+      : "OTHER",
+    route: telemetryRoute(path),
+    authenticated: false,
+    distinct_id: anonymousId ?? `chronicon:request:${requestId}`,
+    posthogDistinctId: anonymousId ?? `chronicon:request:${requestId}`,
+  } satisfies Attributes;
+
+  if (sessionId) Object.assign(attributes, { sessionId, $session_id: sessionId });
+
   return {
     trackingAllowed,
     metrics: {
@@ -282,18 +348,7 @@ export function makeRequestTelemetry(
       storage_operation_count: 0,
       storage_duration_ms: 0,
     },
-    attributes: {
-      ...serviceAttributes(),
-      request_id: requestId,
-      method: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"].includes(method)
-        ? method
-        : "OTHER",
-      route: telemetryRoute(path),
-      authenticated: false,
-      distinct_id: anonymousId ?? `chronicon:request:${requestId}`,
-      posthogDistinctId: anonymousId ?? `chronicon:request:${requestId}`,
-      ...(sessionId ? { sessionId, $session_id: sessionId } : {}),
-    },
+    attributes,
     parent,
     posthog:
       config.enabled && trackingAllowed
@@ -333,13 +388,18 @@ export function captureServerEvent(
 }
 
 const reportedErrors = new WeakSet<object>();
+
 export function captureServerException(
   state: RequestTelemetry,
-  error: unknown,
+  error: TelemetryError,
   type: string,
   attributes: Attributes = {},
 ) {
-  if (!state.posthog || (error instanceof Object && reportedErrors.has(error))) return;
+  const errorObject =
+    error instanceof Error || Schema.is(Schema.JsonObject)(error) ? error : undefined;
+
+  if (!state.posthog || (errorObject && reportedErrors.has(errorObject))) return;
+
   try {
     state.posthog.captureException(
       telemetryError(error, type),
@@ -350,7 +410,8 @@ export function captureServerException(
         $process_person_profile: state.attributes.authenticated,
       },
     );
-    if (error instanceof Object) reportedErrors.add(error);
+
+    if (errorObject) reportedErrors.add(errorObject);
   } catch {
     // Preserve the original failure even if the reporting SDK fails.
   }
@@ -359,20 +420,23 @@ export function captureServerException(
 export const recordOperation = (event: string, attributes: Attributes = {}) =>
   Effect.gen(function* () {
     const state = yield* CurrentTelemetry;
+
     if (!state) return;
     Object.assign(state.attributes, attributes);
     captureServerEvent(state, event, { outcome: "success" });
   });
 
 export const logWideEvent = (state: RequestTelemetry, event: string, attributes: Attributes) => {
-  const fields: Attributes = { ...state.attributes, ...attributes, event };
-  const status = Number(fields.status ?? 200);
+  const status = Number(attributes.status ?? state.attributes.status ?? 200);
+  const fields = { ...state.attributes, ...attributes, event } satisfies Attributes;
+
   const log =
     status >= 500
       ? Effect.logError(event)
       : status >= 400
         ? Effect.logWarning(event)
         : Effect.logInfo(event);
+
   return log.pipe(Effect.annotateLogs(fields));
 };
 
@@ -425,13 +489,17 @@ const safeMessages = new Set([
   "Could not remove an uncommitted upload.",
   "telemetry.trace_flush_failed",
 ]);
+
 function safeLogEntry(entry: Logger.Options<unknown>) {
   const messages: unknown[] = Array.isArray(entry.message) ? entry.message : [entry.message];
   const first = messages[0];
+
   const message =
-    typeof first === "string" && safeMessages.has(first) ? first : "chronicon_diagnostic";
+    Schema.is(Schema.String)(first) && safeMessages.has(first) ? first : "chronicon_diagnostic";
+
   return { ...entry, message, cause: Cause.empty };
 }
+
 export const diagnosticLogger = Logger.make((entry) => {
   try {
     Logger.consoleJson.log(safeLogEntry(entry));
@@ -442,14 +510,18 @@ export const diagnosticLogger = Logger.make((entry) => {
 
 export function logOperationalError(event: string, attributes: Attributes = {}) {
   const state = telemetryContext.getStore();
+
   if (state)
     Object.assign(state.attributes, attributes, {
       diagnostic_count: Number(state.attributes.diagnostic_count ?? 0) + 1,
     });
+
   const log = Effect.logError(event).pipe(
     Effect.annotateLogs({ ...serviceAttributes(), ...state?.attributes, ...attributes }),
   );
+
   const correlatedLog = state?.parent ? log.pipe(Effect.withParentSpan(state.parent)) : log;
+
   try {
     Effect.runSync(
       state?.context
@@ -463,6 +535,7 @@ export function logOperationalError(event: string, attributes: Attributes = {}) 
 
 function safeTracer(underlying: Tracer.Tracer, state: RequestTelemetry) {
   let count = 0;
+
   return Tracer.make({
     span(options) {
       const name =
@@ -471,31 +544,43 @@ function safeTracer(underlying: Tracer.Tracer, state: RequestTelemetry) {
         )
           ? options.name
           : "effect.operation";
+
       const span =
         count++ < 1000
           ? underlying.span({ ...options, name, links: [] })
           : new Tracer.NativeSpan({ ...options, name, links: [], sampled: false });
+
       if (count > 1000) state.attributes.dropped_span_count = count - 1000;
+
       for (const [key, value] of Object.entries(state.attributes))
         if (spanAttributeKeys.has(key)) span.attribute(key, value);
       const end = span.end.bind(span);
       const attribute = span.attribute.bind(span);
       span.attribute = (key, value) => {
-        if (spanAttributeKeys.has(key) && ["string", "number", "boolean"].includes(typeof value))
+        if (
+          spanAttributeKeys.has(key) &&
+          (Schema.is(Schema.String)(value) ||
+            Schema.is(Schema.Finite)(value) ||
+            Schema.is(Schema.Boolean)(value))
+        )
           attribute(key, value);
       };
+
       span.event = () => undefined;
       span.addLinks = () => undefined;
       span.end = (endTime, exit) => {
         const elapsed = Number(endTime - options.startTime) / 1_000_000;
+
         if (options.name === "sql.execute") {
           state.metrics.db_query_count += 1;
           state.metrics.db_duration_ms += elapsed;
         }
+
         if (["Storage.put", "Storage.read", "Storage.remove"].includes(options.name)) {
           state.metrics.storage_operation_count += 1;
           state.metrics.storage_duration_ms += elapsed;
         }
+
         if (Exit.isFailure(exit)) {
           const failure = safeFailure(exit.cause);
           attribute("error.type", failure.error_type);
@@ -505,6 +590,7 @@ function safeTracer(underlying: Tracer.Tracer, state: RequestTelemetry) {
           );
         } else end(endTime, Exit.void);
       };
+
       return span;
     },
   });
@@ -512,8 +598,10 @@ function safeTracer(underlying: Tracer.Tracer, state: RequestTelemetry) {
 
 export function collectorEndpoint(value: string | undefined) {
   if (!value) return undefined;
+
   try {
     const url = new URL(value);
+
     return !url.username &&
       !url.password &&
       !url.search &&
@@ -530,6 +618,7 @@ export function collectorEndpoint(value: string | undefined) {
 export function collectorHeaders(signal: "LOGS" | "TRACES") {
   const input =
     readConfig(`OTEL_EXPORTER_OTLP_${signal}_HEADERS`) || readConfig("OTEL_EXPORTER_OTLP_HEADERS");
+
   try {
     return Object.fromEntries(
       input
@@ -537,6 +626,7 @@ export function collectorHeaders(signal: "LOGS" | "TRACES") {
         .filter(Boolean)
         .map((pair) => {
           const separator = pair.indexOf("=");
+
           return [
             decodeURIComponent(pair.slice(0, separator).trim()),
             decodeURIComponent(pair.slice(separator + 1).trim()),
@@ -550,24 +640,29 @@ export function collectorHeaders(signal: "LOGS" | "TRACES") {
 
 export function requestObservabilityLayer(state: RequestTelemetry, exportTelemetry = true) {
   const config = telemetryConfiguration();
+
   const resource = {
     serviceName: "chronicon",
     serviceVersion: String(state.attributes.release),
     attributes: serviceAttributes(),
   };
+
   const options = {
     resource,
     exportInterval: "1 second" as const,
     maxBatchSize: 100,
     shutdownTimeout: "3 seconds" as const,
   };
+
   const exporters = exportTelemetry && config.enabled && readConfig("OTEL_SDK_DISABLED") !== "true";
   const logsEnabled = readConfig("POSTHOG_LOGS_ENABLED") !== "false";
   const tracesEnabled = readConfig("POSTHOG_TRACES_ENABLED") !== "false";
   const logCollector = collectorEndpoint(readConfig("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT"));
   const traceCollector = collectorEndpoint(readConfig("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"));
+
   const logs = Effect.gen(function* () {
     const sinks: Array<Logger.Logger<unknown, unknown>> = [diagnosticLogger];
+
     if (exporters && logsEnabled)
       sinks.push(
         yield* OtlpLogger.make({
@@ -576,6 +671,7 @@ export function requestObservabilityLayer(state: RequestTelemetry, exportTelemet
           headers: { Authorization: `Bearer ${config.key}` },
         }).pipe(Effect.provide(Logger.layer([diagnosticLogger]))),
       );
+
     if (exporters && logCollector)
       sinks.push(
         yield* OtlpLogger.make({
@@ -585,13 +681,17 @@ export function requestObservabilityLayer(state: RequestTelemetry, exportTelemet
         }).pipe(Effect.provide(Logger.layer([diagnosticLogger]))),
       );
     let count = 0;
+
     return Logger.make((entry) => {
       if (count++ >= 1000) {
         state.attributes.dropped_log_count = count - 1000;
+
         return;
       }
+
       // Causes in either the cause field or message arguments can include SQL and credentials.
       const safeEntry = safeLogEntry(entry);
+
       for (const sink of sinks) {
         try {
           sink.log(safeEntry);
@@ -601,6 +701,7 @@ export function requestObservabilityLayer(state: RequestTelemetry, exportTelemet
       }
     });
   });
+
   const tracer = Effect.gen(function* () {
     const underlying =
       exporters && tracesEnabled
@@ -612,8 +713,10 @@ export function requestObservabilityLayer(state: RequestTelemetry, exportTelemet
               : { Authorization: `Bearer ${config.key}` },
           }).pipe(Effect.provide(Logger.layer([diagnosticLogger])))
         : Tracer.make({ span: (options) => new Tracer.NativeSpan(options) });
+
     return safeTracer(underlying, state);
   });
+
   return Layer.mergeAll(Logger.layer([logs]), Layer.effect(Tracer.Tracer, tracer)).pipe(
     Layer.provideMerge(OtlpExporter.layerFlusher),
     Layer.provide(OtlpSerialization.layerJson),

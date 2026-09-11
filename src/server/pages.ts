@@ -16,6 +16,7 @@ import { runObservedPage } from "./request-telemetry";
 export const pagePrincipal = cache(async () => {
   await connection();
   const requestHeaders = await headers();
+
   return runObservedPage(
     "page.authenticate",
     "/",
@@ -31,7 +32,9 @@ export const pagePrincipal = cache(async () => {
 // oxlint-disable-next-line effecttsgo/async-function -- Redirect at the Next page boundary, outside the Effect runtime.
 export async function requirePageOwner(pathname: string) {
   const principal = await pagePrincipal();
+
   if (!principal) redirect(`/sign-in?next=${encodeURIComponent(pathname)}`);
+
   return principal;
 }
 
@@ -39,7 +42,9 @@ export async function requirePageOwner(pathname: string) {
 export const workspaceData = cache(async () => {
   await connection();
   const principal = await pagePrincipal();
+
   if (!principal) return null;
+
   return {
     userId: principal.ownerId,
     name: principal.name,
@@ -50,11 +55,14 @@ export const workspaceData = cache(async () => {
 // oxlint-disable-next-line effecttsgo/async-function -- Translate domain results into Next navigation at the page boundary.
 export const projectPageData = cache(async (slug: string) => {
   const workspace = await workspaceData();
+
   if (!workspace) redirect(`/sign-in?next=${encodeURIComponent(`/projects/${slug}`)}`);
   const project = workspace.library.projects.find((project) => project.id === slug);
+
   if (project) return project;
   // External publishers can create a project before this browser's library refreshes.
   const principal = await requirePageOwner(`/projects/${slug}`);
+
   const current = await runObservedPage(
     "page.project",
     "/projects/[slug]",
@@ -68,19 +76,24 @@ export const projectPageData = cache(async (slug: string) => {
     ),
     principal,
   );
+
   if (!current) notFound();
+
   return current;
 });
 
 // oxlint-disable-next-line effecttsgo/async-function -- Metadata and the immediate heading reuse the authorized library.
 export const documentPageHeader = cache(async (id: string) => {
   const workspace = await workspaceData();
+
   if (!workspace) redirect(`/sign-in?next=${encodeURIComponent(`/documents/${id}`)}`);
   const document = workspace.library.documents.find((document) => document.id === id);
   const project = workspace.library.projects.find((project) => project.id === document?.projectId);
+
   if (document && project) return { document, project };
   // External publishers can add documents before the library cache refreshes.
   const principal = await requirePageOwner(`/documents/${id}`);
+
   const current = await runObservedPage(
     "page.document_header",
     "/documents/[id]",
@@ -91,14 +104,18 @@ export const documentPageHeader = cache(async (id: string) => {
     ),
     principal,
   );
+
   if (!current) notFound();
+
   return current;
 });
 
 // oxlint-disable-next-line effecttsgo/async-function -- Translate domain results into Next navigation at the page boundary.
 export const documentPageData = cache(async (id: string) => {
   const principal = await pagePrincipal();
+
   if (!principal) redirect(`/sign-in?next=${encodeURIComponent(`/documents/${id}`)}`);
+
   const report = await runObservedPage(
     "page.document",
     "/documents/[id]",
@@ -109,7 +126,9 @@ export const documentPageData = cache(async (id: string) => {
     ),
     principal,
   );
+
   if (!report) notFound();
+
   return report;
 });
 
@@ -117,6 +136,7 @@ export const documentPageData = cache(async (id: string) => {
 export const projectLibraryPageData = cache(async (reference: string) => {
   const project = await projectPageData(reference);
   const principal = await requirePageOwner(`/projects/${project.id}`);
+
   const library = await runObservedPage(
     "page.project_library",
     "/projects/[slug]",
@@ -127,6 +147,8 @@ export const projectLibraryPageData = cache(async (reference: string) => {
     ),
     principal,
   );
+
   if (!library) notFound();
+
   return { project: library.projects[0]!, library };
 });

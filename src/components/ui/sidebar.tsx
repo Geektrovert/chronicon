@@ -21,6 +21,7 @@ export function SidebarFrame({ layout, children }: { layout: SidebarLayout; chil
     "--sidebar-rail-width": `${sidebarSizes.rail}px`,
     "--sidebar-max-width": `min(${sidebarSizes.max}px, ${sidebarSizes.viewportFraction * 100}vw)`,
   };
+
   return (
     <div className="workspace" data-sidebar-collapsed={layout.collapsed} style={style}>
       {children}
@@ -85,6 +86,7 @@ function SidebarResizeHandle({
   const run = useTask();
   const descriptionId = useId();
   const width = layout.collapsed ? sidebarSizes.rail : Math.min(layout.width, maximumWidth);
+
   return (
     <>
       <div
@@ -117,6 +119,7 @@ function SidebarResizeHandle({
         onKeyDown={(event) => {
           if (event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing)
             return;
+
           const next = sidebarLayoutFromKey(
             event.key,
             layout,
@@ -124,6 +127,7 @@ function SidebarResizeHandle({
             getComputedStyle(event.currentTarget).direction === "rtl" ? "rtl" : "ltr",
             event.shiftKey,
           );
+
           if (!next) return;
           event.preventDefault();
           onResizeEnd(next);

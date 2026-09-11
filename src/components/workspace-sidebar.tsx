@@ -80,6 +80,7 @@ export function WorkspaceSidebar({
   const activeDocument = library.documents.find((doc) => pathname === `/documents/${doc.id}`);
   const collectionPath = pathname.match(/^\/projects\/[^/]+/)?.[0] ?? pathname;
   const documentProject = library.projects.find((item) => item.id === activeDocument?.projectId);
+
   const [scope, setScope] = useState({
     pathname,
     collection: pathname.startsWith("/documents/")
@@ -91,15 +92,18 @@ export function WorkspaceSidebar({
       : collectionPath,
     limit: 40,
   });
+
   const project =
     library.projects.find((item) => scope.collection === `/projects/${item.id}`) ??
     library.projects.find((item) => scope.collection === `/projects/${item.slug}`);
+
   const currentProject = documentProject ?? project;
 
   // Keep the originating collection while opening its documents. Direct links
   // and Back navigation outside that collection return to an appropriate list.
   if (scope.pathname !== pathname) {
     let collection = scope.collection;
+
     if (!pathname.startsWith("/documents/")) collection = collectionPath;
     else if (
       activeDocument &&
@@ -112,6 +116,7 @@ export function WorkspaceSidebar({
   }
 
   const projectsById = new Map(library.projects.map((item) => [item.id, item]));
+
   const documents = library.documents
     .filter(
       (document) =>
@@ -120,10 +125,12 @@ export function WorkspaceSidebar({
         (scope.collection !== "/starred" || document.starred),
     )
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
+
   const visibleCount = Math.max(
     scope.limit,
     documents.findIndex((document) => document.id === activeDocument?.id) + 1,
   );
+
   const projectOptions = [
     { value: "all", label: "All projects" },
     ...library.projects.map((item) => ({ value: item.id, label: item.name })),

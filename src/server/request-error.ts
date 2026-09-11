@@ -1,5 +1,5 @@
 import type { Instrumentation } from "next";
-import { Cause, Effect, Tracer } from "effect";
+import { Cause, Effect, Schema, Tracer } from "effect";
 import { trace } from "@opentelemetry/api";
 import {
   captureServerException,
@@ -17,6 +17,7 @@ export const reportRequestError: Instrumentation.onRequestError = async (
   context,
 ) => {
   const requestHeaders = new Headers();
+
   for (const key of [
     "x-chronicon-request-id",
     "x-chronicon-session-id",
@@ -26,30 +27,37 @@ export const reportRequestError: Instrumentation.onRequestError = async (
     "traceparent",
   ]) {
     const value = request.headers[key];
-    if (typeof value === "string") requestHeaders.set(key, value);
+
+    if (Schema.is(Schema.String)(value)) requestHeaders.set(key, value);
   }
+
   const state = makeRequestTelemetry(requestHeaders, request.method, request.path);
   const failure = safeFailure(Cause.fail(error));
   const span = trace.getActiveSpan()?.spanContext();
+
   if (span)
     state.parent = Tracer.externalSpan({
       traceId: span.traceId,
       spanId: span.spanId,
       sampled: (span.traceFlags & 1) === 1,
     });
+
   if (state.parent)
     Object.assign(state.attributes, {
       trace_id: state.parent.traceId,
       span_id: state.parent.spanId,
     });
+
   const attributes = {
     error_type: failure.error_type,
     status: failure.status,
     outcome: "error",
     route_type: context.routeType,
   };
+
   captureServerException(state, error, failure.error_type, attributes);
   const session = createTelemetrySession(state);
+
   try {
     const services = await session.build();
     const log = logWideEvent(state, "chronicon_server_error", attributes);

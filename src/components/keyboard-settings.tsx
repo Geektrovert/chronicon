@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import {
@@ -29,6 +30,7 @@ export function KeyboardSettings({
   const [recording, setRecording] = useState<ShortcutAction>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
   function save(value: Keybindings) {
     if (busy) return;
     setBusy(true);
@@ -42,7 +44,9 @@ export function KeyboardSettings({
       onSettled: () => setBusy(false),
     });
   }
+
   const form = useForm({ defaultValues: bindings, onSubmit: ({ value }) => save(value) });
+
   return (
     <Dialog
       open
@@ -79,17 +83,24 @@ export function KeyboardSettings({
                       onBlur={() => setRecording(undefined)}
                       onKeyDown={(event) => {
                         if (recording !== action.id || event.nativeEvent.isComposing) return;
+
                         if (event.key === "Tab") {
                           setRecording(undefined);
+
                           return;
                         }
+
                         event.preventDefault();
                         event.stopPropagation();
+
                         if (event.key === "Escape") {
                           setRecording(undefined);
+
                           return;
                         }
+
                         const binding = bindingFromEvent(event);
+
                         if (binding) {
                           field.handleChange(binding);
                           setRecording(undefined);

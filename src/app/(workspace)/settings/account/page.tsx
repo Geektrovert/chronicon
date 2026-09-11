@@ -11,12 +11,14 @@ export const metadata = { title: "Account settings" };
 // oxlint-disable-next-line effecttsgo/async-function -- Authenticate inside the page's streaming boundary.
 async function AuthenticatedAccountSettings() {
   const principal = await requirePageOwner("/settings/account");
+
   const profile = await runObservedPage(
     "page.account_settings",
     "/settings/account",
     readPublicProfile(principal),
     principal,
   );
+
   return <AccountSettings initialProfile={profile} emailVerified={principal.emailVerified} />;
 }
 

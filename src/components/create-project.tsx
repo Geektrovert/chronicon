@@ -1,4 +1,5 @@
 "use client";
+
 import { Form } from "./ui/form";
 import { useForm, useStore } from "@tanstack/react-form";
 import { Field, FieldLabel, FieldError, FieldDescription } from "./ui/field";
@@ -12,6 +13,7 @@ import { slugify, type Project } from "@/lib/model";
 import { createProject } from "@/client/actions/library";
 import { runAction } from "@/client/runtime";
 import { capture } from "@/client/telemetry";
+
 export function CreateProject({
   open,
   onOpenChange,
@@ -26,6 +28,7 @@ export function CreateProject({
   useEffect(() => {
     if (open) capture("project_create_opened");
   }, [open]);
+
   const form = useForm({
     defaultValues: { name: "", slug: "", description: "" },
     onSubmit: ({ value }) => {
@@ -42,8 +45,10 @@ export function CreateProject({
           startTransition(() => {
             if (Result.isFailure(result)) {
               setError(result.failure);
+
               return;
             }
+
             onCreated(result.success);
             onOpenChange(false);
             form.reset();
@@ -52,7 +57,9 @@ export function CreateProject({
       );
     },
   });
+
   const name = useStore(form.store, (state) => state.values.name);
+
   return (
     <Dialog
       open={open}

@@ -7,9 +7,12 @@ import { databaseError } from "../../src/server/database";
 export class OwnerSetupError extends Schema.TaggedError<OwnerSetupError>()("OwnerSetupError", {
   message: Schema.String,
 }) {}
+
 export const passwordSchema = Schema.String.check(Schema.isMinLength(12), Schema.isMaxLength(128));
+
 export const configuredOwnerEmail = Effect.gen(function* () {
   const config = yield* AppConfig;
+
   return yield* Schema.decodeEffect(ownerEmailSchema)(config.ownerEmail).pipe(
     Effect.mapError(
       () =>
@@ -19,9 +22,11 @@ export const configuredOwnerEmail = Effect.gen(function* () {
     ),
   );
 });
+
 export const requireEmptyWorkspace = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient;
   const users = yield* sql`SELECT id FROM "user" LIMIT 1`.pipe(databaseError("check owner"));
+
   if (users.length)
     return yield* new OwnerSetupError({
       message:
@@ -42,11 +47,13 @@ export const provisionOwner = Effect.fn("Owner.provision")(function* (
     ),
   );
   yield* requireEmptyWorkspace;
+
   const passwordHash = yield* Effect.tryPromise({
     try: () => hashPassword(Redacted.value(password)),
     catch: () =>
       new OwnerSetupError({ message: "Unable to hash the password. No account was created." }),
   });
+
   return yield* sql.withTransaction(
     Effect.gen(function* () {
       yield* sql`LOCK TABLE "user" IN SHARE ROW EXCLUSIVE MODE`.pipe(
@@ -71,6 +78,7 @@ export const provisionOwner = Effect.fn("Owner.provision")(function* (
         VALUES (${`default_member_${id}`}, ${organizationId}, ${id}, 'owner', ${now})`.pipe(
         databaseError("create team owner"),
       );
+
       return { id, email };
     }),
   );

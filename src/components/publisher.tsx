@@ -1,4 +1,5 @@
 "use client";
+
 import { Form, FieldGroup } from "./ui/form";
 import { useForm, useStore } from "@tanstack/react-form";
 import { Field, FieldLabel, FieldError, FieldDescription } from "./ui/field";
@@ -60,6 +61,7 @@ export function Publisher({
   useEffect(() => {
     if (open) capture("publisher_opened", { revision_publish: revisionPublish });
   }, [open, revisionPublish]);
+
   const form = useForm({
     defaultValues: {
       title: initial?.document.title ?? "",
@@ -96,32 +98,40 @@ export function Publisher({
           startTransition(() => {
             if (Result.isFailure(result)) {
               setError(result.failure);
+
               return;
             }
+
             onOpenChange(false);
             onPublished(result.success.document);
+
             if (!initial) {
               form.reset();
             }
+
             setPreview(false);
           });
         }),
       );
     },
   });
+
   const { html, title } = useStore(form.store, (state) => state.values);
   const setHTML = (value: string) => form.setFieldValue("html", value);
+
   function fileSelected(file?: File) {
     if (!file) return;
     run(readHtmlFile(file), {
       onSuccess: (content) => {
         setHTML(content.html);
         setError("");
+
         if (!title) form.setFieldValue("title", content.title);
       },
       onError: setError,
     });
   }
+
   return (
     <Dialog
       open={open}
@@ -174,9 +184,11 @@ export function Publisher({
                       label="Project"
                       name="project"
                       readOnly={!!initial}
-                      options={projects
-                        .filter((p) => !initial || p.id === initial.document.projectId)
-                        .map((p) => ({ value: p.id, label: p.name }))}
+                      options={projects.flatMap((p) =>
+                        !initial || p.id === initial.document.projectId
+                          ? [{ value: p.id, label: p.name }]
+                          : [],
+                      )}
 
                       value={field.state.value}
                       onValueChange={field.handleChange}

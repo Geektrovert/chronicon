@@ -10,7 +10,9 @@ import { LoadingState } from "./ui/loading-state";
 export function ProjectScope({ library, children }: { library: Library; children: ReactNode }) {
   const { library: workspaceLibrary, setProjectScope } = useWorkspace();
   useEffect(() => setProjectScope(library), [library, setProjectScope]);
+
   if (!workspaceLibrary.projects.some((project) => project.id === library.projects[0]?.id))
     return <LoadingState>Loading project…</LoadingState>;
+
   return children;
 }

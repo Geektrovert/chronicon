@@ -15,6 +15,7 @@ export const posthogTracePath = ["/i/v1/traces", "/p8"] as const;
 
 export function posthogHosts(configuredHost: string) {
   const region = /^(https:\/\/)?eu(\.i)?\.posthog\.com\/?$/.test(configuredHost) ? "eu" : "us";
+
   return {
     ingestion: `https://${region}.i.posthog.com`,
     assets: `https://${region}-assets.i.posthog.com`,

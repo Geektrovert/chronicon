@@ -31,20 +31,27 @@ const sharingContext = Effect.fn("Sharing.context")(function* (
   reference: typeof sharingReference.Type,
 ) {
   yield* ownerAccess(principal);
+
   if (reference.type === "project") {
     const project = yield* findProject(principal, { id: reference.id });
+
     return { project, document: null, role: yield* projectRole(principal, project) };
   }
+
   const { project, document } = yield* findDocumentContext(principal, reference.id);
+
   return { project, document, role: yield* documentRole(principal, document, project) };
 });
+
 const manageContext = Effect.fn("Sharing.manageContext")(function* (
   principal: Principal,
   reference: typeof sharingReference.Type,
 ) {
   const context = yield* sharingContext(principal, reference);
+
   if (context.document) yield* requireDocumentSharing(principal, context.document, context.project);
   else yield* requireProjectSharing(principal, context.project);
+
   return context;
 });
 
@@ -55,9 +62,11 @@ export const readSharing = Effect.fn("Sharing.read")(function* (
   const sql = yield* PgClient.PgClient;
   const config = yield* AppConfig;
   const { project, document, role } = yield* sharingContext(principal, reference);
+
   if (!role) return yield* new AppError({ status: 404, message: "Content not found." });
   const canManage = role === "full_access" && principal.emailVerified;
   const canReadParent = !document || !!(yield* projectRole(principal, project));
+
   const members = canManage
     ? yield* SqlSchema.findAll({
         Request: Schema.Void,
@@ -72,6 +81,7 @@ export const readSharing = Effect.fn("Sharing.read")(function* (
       UNION ALL SELECT u.id AS "userId", u.name, u.email, a.role, false AS inherited, u.id <> ${principal.ownerId} AS "canRemove" FROM project_access a JOIN "user" u ON u.id = a."userId" WHERE a."projectId" = ${project.id} AND u.id <> ${project.ownerId}`,
       })(undefined).pipe(databaseError("read sharing members"))
     : [];
+
   const invitations = canManage
     ? yield* SqlSchema.findAll({
         Request: Schema.Void,
@@ -80,6 +90,7 @@ export const readSharing = Effect.fn("Sharing.read")(function* (
           sql`SELECT id, email, role FROM sharing_invitation WHERE status = 'pending' AND "expiresAt" > CURRENT_TIMESTAMP AND ${document ? sql`"documentId" = ${document.id}` : sql`"projectId" = ${project.id}`} ORDER BY "createdAt"`,
       })(undefined).pipe(databaseError("read sharing invitations"))
     : [];
+
   return {
     visibility: document?.visibility ?? project.visibility,
     revision: document?.sharingRevision ?? null,
@@ -99,6 +110,7 @@ export const changeSharing = Effect.fn("Sharing.change")(
     const emailDelivery = yield* EmailDelivery;
     const initial = yield* manageContext(principal, input);
     const uuid = (yield* Crypto.Crypto).randomUUIDv4.pipe(Effect.orDie);
+
     const result = yield* sql
       .withTransaction(
         Effect.gen(function* () {
@@ -108,6 +120,7 @@ export const changeSharing = Effect.fn("Sharing.change")(
           const { project, document } = yield* manageContext(principal, input);
           const table = document ? "document_access" : "project_access";
           const column = document ? "documentId" : "projectId";
+
           if (input.action === "visibility") {
             if (document && input.type === "document")
               yield* updateDocumentSharing(principal, document, project, {
@@ -125,6 +138,7 @@ export const changeSharing = Effect.fn("Sharing.change")(
                 status: 400,
                 message: "Ask someone else with full access to remove your access.",
               });
+
             if (input.userId === project.ownerId)
               return yield* new AppError({
                 status: 400,
@@ -142,12 +156,14 @@ export const changeSharing = Effect.fn("Sharing.change")(
             );
           } else {
             const email = input.email.trim().toLowerCase();
+
             const user = yield* SqlSchema.findOneOption({
               Request: Schema.String,
               Result: Schema.Struct({ id: Schema.String }),
               execute: (email) =>
                 sql`SELECT id FROM "user" WHERE lower(email) = ${email} AND "emailVerified" = true`,
             })(email).pipe(databaseError("find shared account"));
+
             if (Option.isSome(user)) {
               if (user.value.id === project.ownerId)
                 return yield* new AppError({
@@ -197,13 +213,16 @@ export const changeSharing = Effect.fn("Sharing.change")(
             VALUES (${id}, ${input.type}, ${input.id}, ${email}, ${input.role}, ${principal.ownerId}, 'pending', CURRENT_TIMESTAMP + interval '7 days')`.pipe(
                 databaseError("create sharing invitation"),
               );
+
               return { id, email, resourceName: document?.title ?? project.name };
             }
           }
+
           return null;
         }),
       )
       .pipe(Effect.catchTag("SqlError", () => new DatabaseError({ operation: "change sharing" })));
+
     if (result)
       yield* Effect.tryPromise({
         try: () =>
@@ -221,6 +240,7 @@ export const changeSharing = Effect.fn("Sharing.change")(
               "The invitation was saved, but email delivery could not be confirmed. Invite this email again to send a new link.",
           }),
       });
+
     return yield* readSharing(principal, input);
   },
   (effect, principal, input) =>

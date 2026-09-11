@@ -1,9 +1,13 @@
 import { captureError, initializeTelemetry } from "./client/telemetry";
 
 initializeTelemetry();
-window.addEventListener("error", (event) => {
-  if (event.error) captureError(event.error, { source: "window" });
+
+globalThis.addEventListener?.("error", (event) => {
+  if (event instanceof ErrorEvent && event.error instanceof Error)
+    captureError(event.error, { source: "window" });
 });
-window.addEventListener("unhandledrejection", (event) => {
-  captureError(event.reason, { source: "unhandled_rejection" });
+
+globalThis.addEventListener?.("unhandledrejection", (event) => {
+  if (event instanceof PromiseRejectionEvent && event.reason instanceof Error)
+    captureError(event.reason, { source: "unhandled_rejection" });
 });

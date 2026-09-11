@@ -12,11 +12,13 @@ export const POST = (request: Request) =>
       return yield* exchangeCli(yield* decodeInput(cliExchange, yield* readJSON(request)));
     }),
   );
+
 export const DELETE = (request: Request) =>
   route(
     request,
     Effect.gen(function* () {
       yield* sameOrigin(request);
+
       return yield* revokeCli(yield* authenticate(request.headers));
     }),
   );

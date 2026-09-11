@@ -4,11 +4,12 @@ export class ClientError extends Schema.TaggedError<ClientError>()("ClientError"
   message: Schema.String,
   status: Schema.optionalKey(Schema.Finite),
 }) {}
+
 export const decodeClient = <S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
-  input: unknown,
+  input: Schema.Json,
 ) =>
-  Schema.decodeUnknownEffect(schema)(input).pipe(
+  Schema.decodeEffect(schema)(input).pipe(
     Effect.mapError(
       () => new ClientError({ message: "Check the submitted fields and try again." }),
     ),

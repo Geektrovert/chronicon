@@ -7,6 +7,7 @@ export const metadata = { title: "Appearance settings" };
 // oxlint-disable-next-line effecttsgo/async-function -- Authenticate at the Next page boundary.
 export default async function Page() {
   await requirePageOwner("/settings/appearance");
+
   return (
     <SettingsPage>
       <AppearanceSettings />

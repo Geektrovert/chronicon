@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Coffee,
   ShoppingCart,
@@ -61,6 +62,7 @@ import {
   Tv01Icon,
 } from "@hugeicons/core-free-icons";
 import { useGallery } from "./gallery-context";
+
 const lucide = {
   coffee: Coffee,
   cart: ShoppingCart,
@@ -73,6 +75,7 @@ const lucide = {
   car: Car,
   tv: Tv,
 };
+
 const tabler = {
   coffee: IconCoffee,
   cart: IconShoppingCart,
@@ -85,6 +88,7 @@ const tabler = {
   car: IconCar,
   tv: IconDeviceTv,
 };
+
 const phosphor = {
   coffee: CoffeeIcon,
   cart: ShoppingCartIcon,
@@ -97,6 +101,7 @@ const phosphor = {
   car: CarIcon,
   tv: TelevisionIcon,
 };
+
 const remixicon = {
   coffee: RiCupLine,
   cart: RiShoppingCartLine,
@@ -109,6 +114,7 @@ const remixicon = {
   car: RiCarLine,
   tv: RiTvLine,
 };
+
 const hugeicons = {
   coffee: Coffee01Icon,
   cart: ShoppingCart01Icon,
@@ -121,7 +127,9 @@ const hugeicons = {
   car: Car01Icon,
   tv: Tv01Icon,
 };
+
 export type DesignIconName = keyof typeof lucide;
+
 export function DesignIcon({
   name,
   className = "size-5",
@@ -130,6 +138,7 @@ export function DesignIcon({
   className?: string;
 }) {
   const library = useGallery().settings.iconLibrary;
+
   if (library === "hugeicons")
     return (
       <HugeiconsIcon
@@ -140,5 +149,6 @@ export function DesignIcon({
       />
     );
   const Icon = { lucide, tabler, phosphor, remixicon }[library][name];
+
   return <Icon className={className} aria-hidden="true" />;
 }

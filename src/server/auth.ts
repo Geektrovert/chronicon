@@ -17,7 +17,7 @@ import { annotateAuthenticatedUser, logOperationalError, telemetryError } from "
 function emailCall(work: () => void | Promise<void>) {
   return Promise.resolve()
     .then(work)
-    .catch((error: unknown) => {
+    .catch((error: Error | Schema.Json) => {
       throw new APIError("SERVICE_UNAVAILABLE", {
         message: Schema.is(AppError)(error)
           ? error.message
@@ -26,8 +26,8 @@ function emailCall(work: () => void | Promise<void>) {
     });
 }
 
-function bodyField(body: unknown, field: string): unknown {
-  return body && typeof body === "object" ? Reflect.get(body, field) : undefined;
+function bodyField(body: Schema.Json, field: string): Schema.Json | undefined {
+  return Schema.is(Schema.JsonObject)(body) ? body[field] : undefined;
 }
 
 function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery["Service"]) {
@@ -64,10 +64,10 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
         },
         update: {
           before: (user, context) => {
-            const revision =
-              typeof user.username === "string"
-                ? usernamePrecondition(context?.headers)
-                : undefined;
+            const revision = Schema.is(Schema.String)(user.username)
+              ? usernamePrecondition(context?.headers)
+              : undefined;
+
             return Promise.resolve({
               data: revision === undefined ? user : { ...user, usernameRevision: revision },
             });
@@ -86,40 +86,52 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
     hooks: {
       after: createAuthMiddleware((context) => {
         const session = context.context.newSession ?? context.context.session;
+
         if (session) {
+          // oxlint-disable-next-line typescript/no-unsafe-assignment -- Better Auth's session extension is typed any; the value is validated before use.
           const organizationId: unknown = session.session.activeOrganizationId;
           annotateAuthenticatedUser(
             session.user.id,
-            typeof organizationId === "string" ? organizationId : undefined,
+            Schema.is(Schema.String)(organizationId) ? organizationId : undefined,
           );
         }
+
         return Promise.resolve();
       }),
       before: createAuthMiddleware((context) => {
+        // oxlint-disable-next-line typescript/no-unsafe-assignment -- Better Auth exposes middleware bodies as any; the following guard establishes the JSON boundary.
+        const rawBody: unknown = context.body;
+        const body = Schema.is(Schema.Json)(rawBody) ? rawBody : null;
+
         if (
           context.path === "/sign-up/email" &&
-          (bodyField(context.body, "username") !== undefined ||
-            bodyField(context.body, "displayUsername") !== undefined)
+          (bodyField(body, "username") !== undefined ||
+            bodyField(body, "displayUsername") !== undefined)
         )
           throw new APIError("BAD_REQUEST", {
             message: "Choose a username in Account settings after signing up.",
           });
-        if (context.path === "/update-user" && bodyField(context.body, "username") !== undefined) {
-          const handle = bodyField(context.body, "username");
-          if (typeof handle !== "string" || !Schema.is(usernameSchema)(handle.toLowerCase()))
+
+        if (context.path === "/update-user" && bodyField(body, "username") !== undefined) {
+          const handle = bodyField(body, "username");
+
+          if (!Schema.is(Schema.String)(handle) || !Schema.is(usernameSchema)(handle.toLowerCase()))
             throw new APIError("BAD_REQUEST", {
               message: "Use 3–40 lowercase letters, numbers, or hyphens.",
             });
+
           return getSessionFromCtx(context).then((session) => {
             if (!session?.user.emailVerified)
               throw new APIError("FORBIDDEN", {
                 message: "Verify your email before choosing a public username.",
               });
             const revision = usernamePrecondition(context.headers);
+
             if (revision !== undefined && revision !== session.user.usernameRevision)
               throw new APIError("CONFLICT", {
                 message: "Your username changed. Reload settings before saving.",
               });
+
             return canUseUsername(pool, handle, session.user.id).then((available) => {
               if (!available)
                 throw new APIError("CONFLICT", {
@@ -128,16 +140,20 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
             });
           });
         }
+
         if (context.path === "/is-username-available") {
-          const handle = bodyField(context.body, "username");
-          if (typeof handle !== "string" || !Schema.is(usernameSchema)(handle.toLowerCase()))
+          const handle = bodyField(body, "username");
+
+          if (!Schema.is(Schema.String)(handle) || !Schema.is(usernameSchema)(handle.toLowerCase()))
             return Promise.resolve(context.json({ available: false }));
+
           return getSessionFromCtx(context).then((session) =>
             canUseUsername(pool, handle, session?.user.id).then((available) =>
               available ? undefined : context.json({ available: false }),
             ),
           );
         }
+
         if (context.path === "/organization/update-member-role") {
           return getSessionFromCtx(context).then((session) => {
             if (!session?.user.emailVerified)
@@ -146,27 +162,29 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
               });
           });
         }
+
         if (context.path === "/organization/invite-member") {
           return getSessionFromCtx(context).then((session) => {
             if (!session?.user.emailVerified)
               throw new APIError("FORBIDDEN", {
                 message: "Verify your email before inviting people to your team.",
               });
-            const role = bodyField(context.body, "role");
+            const role = bodyField(body, "role");
+
             if (role !== "member" && role !== "admin")
               throw new APIError("BAD_REQUEST", { message: "Choose a member or admin team role." });
+
             return emailCall(email.requireConfigured);
           });
         }
+
         if (context.path === "/organization/leave") {
           return getSessionFromCtx(context).then((session) => {
-            if (
-              session &&
-              bodyField(context.body, "organizationId") === defaultTeamId(session.user.id)
-            )
+            if (session && bodyField(body, "organizationId") === defaultTeamId(session.user.id))
               throw new APIError("FORBIDDEN", { message: "You cannot leave your default team." });
           });
         }
+
         return Promise.resolve();
       }),
     },
@@ -198,8 +216,10 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
               throw new APIError("FORBIDDEN", {
                 message: "Verify your email before inviting people to your team.",
               });
+
             if (!["member", "admin"].includes(invitation.role))
               throw new APIError("BAD_REQUEST", { message: "Choose a member or admin team role." });
+
             return Promise.resolve();
           },
           beforeAddMember: ({ user, member }) => {
@@ -207,8 +227,10 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
               throw new APIError("FORBIDDEN", {
                 message: "Members must verify their email before joining a team.",
               });
+
             if (!["member", "admin"].includes(member.role))
               throw new APIError("FORBIDDEN", { message: "Choose a member or admin team role." });
+
             return Promise.resolve();
           },
           beforeRemoveMember: ({ member, organization: team }) => {
@@ -216,6 +238,7 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
               throw new APIError("FORBIDDEN", {
                 message: "The default team owner cannot be removed.",
               });
+
             return Promise.resolve();
           },
           beforeUpdateMemberRole: ({ member, newRole, organization: team }) => {
@@ -223,6 +246,7 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
               throw new APIError("FORBIDDEN", {
                 message: "The default team owner cannot be changed.",
               });
+
             return Promise.resolve();
           },
         },
@@ -248,31 +272,35 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
     ],
   });
 }
+
 export const authCall = <A>(work: () => Promise<A>) =>
   Effect.tryPromise({
     try: work,
     catch: (error) => {
       if (Schema.is(AppError)(error)) return error;
+
       if (error instanceof APIError)
         return new AppError({
           status: error.statusCode,
           message:
             error.statusCode < 500 ? error.message : "Authentication is unavailable. Try again.",
         });
-      const details = error && typeof error === "object" ? error : {};
-      const constraint: unknown = Reflect.get(details, "constraint");
+      const details = Schema.is(Schema.JsonObject)(error) ? error : undefined;
+      const constraint = details?.constraint;
+
       if (constraint === "chronicon_username_revision")
         return new AppError({
           status: 409,
           message: "Your username changed. Reload settings before saving.",
         });
+
       if (constraint === "chronicon_username_unavailable")
         return new AppError({
           status: 409,
           message: "That username is taken or reserved. Choose another.",
         });
-      const rawMessage: unknown = Reflect.get(details, "message");
-      const message = typeof rawMessage === "string" ? rawMessage : "";
+      const rawMessage = details?.message;
+      const message = Schema.is(Schema.String)(rawMessage) ? rawMessage : "";
       logOperationalError("Authentication failed internally", {
         error_category: message.startsWith("Database schema mismatch")
           ? "auth_schema_mismatch"
@@ -280,9 +308,11 @@ export const authCall = <A>(work: () => Promise<A>) =>
         error_type: "AuthenticationError",
         error_location: telemetryError(error).stack?.split("\n")[1] ?? "unavailable",
       });
+
       return new AuthenticationError();
     },
   });
+
 export class Auth extends Context.Service<Auth, ReturnType<typeof makeAuth>>()(
   "chronicon/server/Auth",
 ) {
@@ -292,6 +322,7 @@ export class Auth extends Context.Service<Auth, ReturnType<typeof makeAuth>>()(
       const config = yield* AppConfig;
       const pool = yield* DatabasePool;
       const email = yield* EmailDelivery;
+
       return yield* Effect.try({
         try: () => makeAuth(config, pool, email),
         catch: () => new AuthenticationError(),

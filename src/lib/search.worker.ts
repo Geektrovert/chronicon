@@ -1,14 +1,20 @@
 import { Effect, Ref, Schema } from "effect";
 import { buildSearch } from "./search";
 import { searchRequest } from "./search-protocol";
+
 const index = Ref.makeUnsafe<ReturnType<typeof buildSearch> | undefined>(undefined);
-const handle = Effect.fnUntraced(function* (input: unknown) {
+
+const handle = Effect.fnUntraced(function* (input: Schema.Json) {
   const message = yield* Schema.decodeUnknownEffect(searchRequest)(input);
+
   if (message.type === "index") {
     yield* Ref.set(index, buildSearch(message.library));
+
     return { type: "ready" as const };
   }
+
   const current = yield* Ref.get(index);
+
   return {
     type: "results" as const,
     id: message.id,
@@ -20,7 +26,8 @@ const handle = Effect.fnUntraced(function* (input: unknown) {
         .map((result) => String(result.id)) ?? [],
   };
 });
-self.onmessage = (event: MessageEvent<unknown>) => {
+
+self.onmessage = (event: MessageEvent<Schema.Json>) => {
   self.postMessage(
     Effect.runSync(
       handle(event.data).pipe(

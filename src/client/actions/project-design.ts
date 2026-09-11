@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { designDetail, updateDesignBody } from "@/lib/project-design/model";
 import { decodeClient } from "../errors";
 import { request } from "./request";
@@ -6,11 +6,13 @@ import { observeAction } from "../observe-action";
 
 export const loadProjectDesign = (projectId: string) =>
   request(designDetail, `/api/projects/${encodeURIComponent(projectId)}/design`);
+
 export const saveProjectDesign = Effect.fn("Client.saveProjectDesign")(function* (
   projectId: string,
-  input: unknown,
+  input: Schema.Json,
 ) {
   const body = yield* decodeClient(updateDesignBody, input);
+
   return yield* request(designDetail, `/api/projects/${encodeURIComponent(projectId)}/design`, {
     method: "PUT",
     body,

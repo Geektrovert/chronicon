@@ -9,6 +9,7 @@ export const metadata = { title: "Team settings" };
 // oxlint-disable-next-line effecttsgo/async-function -- Authenticate inside the page's streaming boundary.
 async function AuthenticatedTeamSettings() {
   await requirePageOwner("/settings/team");
+
   return <TeamSettings />;
 }
 

@@ -15,6 +15,7 @@ export class DatabasePool extends Context.Service<DatabasePool, Pool>()("chronic
     DatabasePool,
     Effect.gen(function* () {
       const config = yield* AppConfig;
+
       return yield* Effect.acquireRelease(
         Effect.sync(() => {
           const pool = new Pool({
@@ -24,7 +25,9 @@ export class DatabasePool extends Context.Service<DatabasePool, Pool>()("chronic
             connectionTimeoutMillis: 10_000,
             application_name: "chronicon",
           });
+
           pool.on("error", onPoolError);
+
           return pool;
         }),
         (pool) =>

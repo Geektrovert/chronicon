@@ -21,6 +21,7 @@ export function InvitationAccept({ id, type }: { id: string; type: "team" | "res
   );
   const invitationPath = `/invitations/${encodeURIComponent(id)}?type=${type}`;
   const pending = invitation?.status === "pending";
+
   return (
     <main className="signin-page">
       <Brand />

@@ -25,11 +25,13 @@ const resourceInvitation = Schema.Struct({
   resourceName: Schema.String,
   inviterName: Schema.String,
 });
+
 const findResourceInvitation = Effect.fn("Invitations.findResource")(function* (
   principal: Principal,
   id: string,
 ) {
   const sql = yield* PgClient.PgClient;
+
   const found = yield* SqlSchema.findOneOption({
     Request: Schema.String,
     Result: resourceInvitation,
@@ -41,17 +43,21 @@ const findResourceInvitation = Effect.fn("Invitations.findResource")(function* (
       FROM sharing_invitation i LEFT JOIN project p ON p.id = i."projectId" LEFT JOIN document d ON d.id = i."documentId"
       JOIN "user" u ON u.id = i."inviterId" WHERE i.id = ${id} AND i.email = ${principal.email?.toLowerCase() ?? ""}`,
   })(id).pipe(databaseError("find resource invitation"));
+
   if (Option.isNone(found))
     return yield* new AppError({
       status: 404,
       message: "Invitation not found. Sign in with the email that received it.",
     });
+
   return found.value;
 });
+
 const authorizeResourceInvitation = Effect.fn("Invitations.authorizeResource")(function* (
   invitation: typeof resourceInvitation.Type,
 ) {
   const sql = yield* PgClient.PgClient;
+
   const inviter = yield* SqlSchema.findOneOption({
     Request: Schema.String,
     Result: Schema.Struct({
@@ -63,11 +69,13 @@ const authorizeResourceInvitation = Effect.fn("Invitations.authorizeResource")(f
     execute: (id) =>
       sql`SELECT id, name, email, "emailVerified" FROM "user" WHERE id = ${id} AND coalesce(banned, false) = false`,
   })(invitation.inviterId).pipe(databaseError("check invitation sender"));
+
   if (Option.isNone(inviter))
     return yield* new AppError({
       status: 403,
       message: "This invitation is no longer valid. Ask for a new invitation.",
     });
+
   const sender: Principal = {
     ownerId: inviter.value.id,
     name: inviter.value.name,
@@ -78,13 +86,17 @@ const authorizeResourceInvitation = Effect.fn("Invitations.authorizeResource")(f
     projectIds: null,
     canWrite: true,
   };
+
   const target = invitation.documentId ?? invitation.projectId;
+
   if (!target)
     return yield* new AppError({ status: 404, message: "Shared content no longer exists." });
+
   if (invitation.type === "document") {
     const context = yield* findDocumentContext(sender, target);
     yield* requireDocumentSharing(sender, context.document, context.project);
   } else yield* requireProjectSharing(sender, yield* findProject(sender, { id: target }));
+
   return target;
 });
 
@@ -94,9 +106,11 @@ export const readInvitation = Effect.fn("Invitations.read")(function* (
   type: typeof invitationTypeSchema.Type,
 ) {
   yield* ownerAccess(principal);
+
   if (type === "resource") {
     const invitation = yield* findResourceInvitation(principal, id);
     const pending = invitation.status === "pending" && !invitation.expired;
+
     const senderAvailable = pending
       ? yield* authorizeResourceInvitation(invitation).pipe(
           Effect.as(true),
@@ -107,8 +121,10 @@ export const readInvitation = Effect.fn("Invitations.read")(function* (
           ),
         )
       : false;
+
     // Old invitation tokens must not reveal later title or account-name changes.
     const disclose = principal.emailVerified && pending && senderAvailable;
+
     const status =
       invitation.status === "pending"
         ? invitation.expired
@@ -117,6 +133,7 @@ export const readInvitation = Effect.fn("Invitations.read")(function* (
             ? "pending"
             : "cancelled"
         : invitation.status;
+
     return {
       type,
       resourceName: disclose ? invitation.resourceName : "Shared content",
@@ -127,7 +144,9 @@ export const readInvitation = Effect.fn("Invitations.read")(function* (
       requiresEmailVerification: !principal.emailVerified,
     };
   }
+
   const sql = yield* PgClient.PgClient;
+
   const found = yield* SqlSchema.findOneOption({
     Request: Schema.String,
     Result: Schema.Struct({
@@ -146,6 +165,7 @@ export const readInvitation = Effect.fn("Invitations.read")(function* (
       FROM invitation i JOIN organization o ON o.id = i."organizationId"
       JOIN "user" u ON u.id = i."inviterId" WHERE i.id = ${id} AND lower(i.email) = ${principal.email?.toLowerCase() ?? ""}`,
   })(id).pipe(databaseError("find team invitation"));
+
   if (Option.isNone(found))
     return yield* new AppError({
       status: 404,
@@ -154,6 +174,7 @@ export const readInvitation = Effect.fn("Invitations.read")(function* (
   const { senderAvailable, ...invitation } = found.value;
   const pending = invitation.status === "pending" && senderAvailable;
   const disclose = principal.emailVerified && pending;
+
   return {
     ...invitation,
     type,
@@ -172,35 +193,44 @@ export const acceptInvitation = Effect.fn("Invitations.accept")(
     type: typeof invitationTypeSchema.Type,
   ) {
     yield* ownerAccess(principal);
+
     if (!principal.emailVerified)
       return yield* new AppError({
         status: 403,
         message: "Verify your email before accepting this invitation.",
       });
+
     if (type === "team") {
       const auth = yield* Auth;
       const invitation = yield* readInvitation(principal, id, type);
+
       if (invitation.status !== "pending")
         return yield* new AppError({
           status: 400,
           message: "This invitation is no longer pending. Ask for a new invitation.",
         });
+
       const accepted = yield* authCall(() =>
         auth.api.acceptInvitation({ headers, body: { invitationId: id } }),
       );
+
       yield* authCall(() =>
         auth.api.setActiveOrganization({
           headers,
           body: { organizationId: accepted.member.organizationId },
         }),
       );
+
       return { redirectUrl: "/settings/team" };
     }
+
     const sql = yield* PgClient.PgClient;
+
     return yield* sql
       .withTransaction(
         Effect.gen(function* () {
           const initial = yield* findResourceInvitation(principal, id);
+
           const projectId =
             initial.projectId ??
             (yield* sql<{
@@ -208,6 +238,7 @@ export const acceptInvitation = Effect.fn("Invitations.accept")(
             }>`SELECT "projectId" FROM document WHERE id = ${initial.documentId}`.pipe(
               databaseError("find invited project"),
             ))[0]?.projectId;
+
           if (!projectId)
             return yield* new AppError({
               status: 404,
@@ -217,6 +248,7 @@ export const acceptInvitation = Effect.fn("Invitations.accept")(
             databaseError("lock invitation project"),
           );
           const invitation = yield* findResourceInvitation(principal, id);
+
           if (invitation.status !== "pending" || invitation.expired)
             return yield* new AppError({
               status: 400,
@@ -235,6 +267,7 @@ export const acceptInvitation = Effect.fn("Invitations.accept")(
           yield* sql`UPDATE sharing_invitation SET status = 'accepted' WHERE id = ${id}`.pipe(
             databaseError("accept resource invitation"),
           );
+
           return {
             redirectUrl:
               invitation.type === "document" ? `/documents/${target}` : `/projects/${target}`,

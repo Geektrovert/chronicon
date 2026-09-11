@@ -10,6 +10,7 @@ export const searchRequest = Schema.Union([
     projectId: Schema.optionalKey(Schema.String),
   }),
 ]);
+
 export const searchResponse = Schema.Union([
   Schema.Struct({ type: Schema.Literal("ready") }),
   Schema.Struct({

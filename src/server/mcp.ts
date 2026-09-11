@@ -38,6 +38,7 @@ function standard<S extends Schema.ConstraintDecoder<unknown>>(
     },
   };
 }
+
 // Only the protocol callbacks convert Effect to Promise.
 function handler(
   principal: Principal,
@@ -62,12 +63,14 @@ function handler(
           },
     );
   }
+
   return createMcpHandler(
     () => {
       const server = new McpServer(
         { name: "Chronicon", version: "0.3.0" },
         { instructions: agentInstructions(origin, principal.ownerId) },
       );
+
       server.registerTool(
         "list_projects",
         {
@@ -108,16 +111,21 @@ function handler(
             "read_document",
             Effect.gen(function* () {
               if (input.id)
-                return yield* readDocumentByReference(principal, {
-                  id: input.id,
-                  ...(input.revision === undefined ? {} : { revision: input.revision }),
-                });
+                return yield* readDocumentByReference(
+                  principal,
+                  input.revision === undefined
+                    ? { id: input.id }
+                    : { id: input.id, revision: input.revision },
+                );
+
               if (input.project && input.slug)
-                return yield* readDocumentByReference(principal, {
-                  project: input.project,
-                  slug: input.slug,
-                  ...(input.revision === undefined ? {} : { revision: input.revision }),
-                });
+                return yield* readDocumentByReference(
+                  principal,
+                  input.revision === undefined
+                    ? { project: input.project, slug: input.slug }
+                    : { project: input.project, slug: input.slug, revision: input.revision },
+                );
+
               return yield* new AppError({
                 status: 400,
                 message: "Provide a document ID or a project reference and document slug.",
@@ -139,6 +147,7 @@ function handler(
             "upsert_document",
             Effect.gen(function* () {
               const result = yield* publishDocument(principal, input);
+
               return {
                 association: result.association,
                 id: result.document.id,
@@ -215,19 +224,23 @@ function handler(
         (input, ctx) =>
           tool("update_project_design", updateProjectDesign(principal, input), ctx.mcpReq.signal),
       );
+
       return server;
     },
     { legacy: "stateless" },
   );
 }
+
 const handle = Effect.fn("Mcp.handle")(function* (
   request: Request,
   cache: ReturnType<typeof requestLibraryInvalidation>,
 ) {
   const config = yield* AppConfig;
   const origin = request.headers.get("origin");
+
   if (origin && origin !== config.origin)
     return yield* new AppError({ status: 403, message: "Origin not allowed." });
+
   if (
     !request.headers.get("authorization")?.startsWith("Bearer chronicon_") &&
     !request.headers.has("x-api-key")
@@ -240,12 +253,14 @@ const handle = Effect.fn("Mcp.handle")(function* (
   const principal = yield* authenticate(request.headers);
   // Bound the body before letting the SDK parse JSON and classify protocol errors.
   const body = yield* readBody(request);
+
   const boundedRequest = new Request(request.url, {
     method: "POST",
     headers: request.headers,
     body,
     signal: request.signal,
   });
+
   return yield* Effect.tryPromise({
     try: () => handler(principal, config.origin, cache).fetch(boundedRequest),
     catch: () =>
@@ -255,15 +270,19 @@ const handle = Effect.fn("Mcp.handle")(function* (
       }),
   });
 });
+
 export function mcpRoute(request: Request) {
   const cache = requestLibraryInvalidation();
+
   return runObservedRequest(request.headers, request.method, "/api/mcp", handle(request, cache), {
     signal: request.signal,
   }).then(({ exit, state }) => {
     if (Exit.isSuccess(exit)) {
       return telemetryResponseHeaders(exit.value, state, privateHeaders);
     }
+
     const error = failure(exit.cause);
+
     return telemetryResponseHeaders(
       Response.json(
         { jsonrpc: "2.0", id: null, error: { code: -32000, message: error.message } },

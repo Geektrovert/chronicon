@@ -9,6 +9,7 @@ class SearchSnapshot extends Context.Service<SearchSnapshot, Library>()(
 
 const makeSearch = Effect.gen(function* () {
   const crypto = yield* Crypto.Crypto;
+
   const indexes = yield* Cache.make({
     capacity: 8,
     timeToLive: "10 minutes",
@@ -16,6 +17,7 @@ const makeSearch = Effect.gen(function* () {
     lookup: (_fingerprint: string) =>
       SearchSnapshot.use((library) => Effect.sync(() => buildSearch(library))),
   });
+
   const search = Effect.fn("Search.search")(function* (
     library: Library,
     query: string,
@@ -26,13 +28,16 @@ const makeSearch = Effect.gen(function* () {
       Effect.provideService(Crypto.Crypto, crypto),
       Effect.orDie,
     );
+
     const index = yield* Cache.get(indexes, fingerprint).pipe(
       Effect.provideService(SearchSnapshot, library),
     );
+
     return index.search(query, {
       filter: (result) => !projectId || result.projectId === projectId,
     });
   });
+
   return { search };
 });
 

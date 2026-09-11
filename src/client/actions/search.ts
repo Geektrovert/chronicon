@@ -14,7 +14,9 @@ export const watchSearchWorker = Effect.fn("Client.watchSearchWorker")(function*
     }),
     (worker) => Effect.sync(() => worker.terminate()),
   );
+
   receive.worker(worker);
+
   const messages = Stream.fromEventListener<MessageEvent<unknown>>(worker, "message").pipe(
     Stream.runForEach((event) =>
       Effect.gen(function* () {
@@ -23,6 +25,7 @@ export const watchSearchWorker = Effect.fn("Client.watchSearchWorker")(function*
             () => new ClientError({ message: "Search returned invalid data. Reload the page." }),
           ),
         );
+
         if (message.type === "ready") receive.ready();
         else if (message.type === "error")
           return yield* new ClientError({ message: message.message });
@@ -30,10 +33,12 @@ export const watchSearchWorker = Effect.fn("Client.watchSearchWorker")(function*
       }),
     ),
   );
+
   const errors = Stream.fromEventListener(worker, "error").pipe(
     Stream.runForEach(() =>
       Effect.fail(new ClientError({ message: "Search stopped. Reload the page." })),
     ),
   );
+
   yield* Effect.all([messages, errors], { concurrency: "unbounded" });
 }, Effect.scoped);

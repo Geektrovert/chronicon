@@ -1,4 +1,5 @@
 "use client";
+
 import { startTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { revealPreviewFragment, watchPreviewNavigation } from "@/client/actions/preview";
@@ -20,10 +21,12 @@ export function ReportPreview({
   const run = useTask();
   useEffect(() => {
     if (!frame.current) return;
+
     return run(
       watchPreviewNavigation(frame.current, (href) => {
         capture("document_preview_navigation");
         const url = new URL(href, window.location.origin);
+
         if (url.pathname === window.location.pathname && frame.current)
           run(revealPreviewFragment(frame.current, url.hash));
         onNavigate?.();
@@ -31,6 +34,7 @@ export function ReportPreview({
       }),
     );
   }, [onNavigate, router, run]);
+
   // Keep explicit inheritance out of CSS processing, which normalizes it to "normal".
   return (
     <iframe

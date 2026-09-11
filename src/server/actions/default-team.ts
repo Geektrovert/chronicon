@@ -6,6 +6,7 @@ export const defaultTeamId = (userId: string) => `default_${userId}`;
 // and stable IDs make repeated bootstrap calls safe across concurrent requests.
 export function ensureDefaultTeam(pool: Pool, user: { id: string; name: string }) {
   const organizationId = defaultTeamId(user.id);
+
   return pool
     .query(
       `WITH team AS (

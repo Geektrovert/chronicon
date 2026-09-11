@@ -11,6 +11,7 @@ export const POST = (request: Request) =>
     Effect.gen(function* () {
       yield* sameOrigin(request);
       const principal = yield* authenticate(request.headers);
+
       return yield* approveCli(
         principal,
         yield* decodeInput(cliAuthorization, yield* readJSON(request)),

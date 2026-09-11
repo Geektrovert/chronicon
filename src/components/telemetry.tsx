@@ -15,5 +15,6 @@ export function TelemetryIdentity({ userId }: { userId: string }) {
     identifyUser(userId);
     capture("workspace_opened");
   }, [userId]);
+
   return null;
 }

@@ -17,10 +17,15 @@ export const infrastructureLayer = Layer.mergeAll(Auth.layer, SearchService.laye
   Layer.provideMerge(Logger.layer([Logger.consoleJson])),
   Layer.provideMerge(Layer.sync(References.CurrentLogAnnotations, serviceAttributes)),
 );
+
 const makeRuntime = () => ManagedRuntime.make(infrastructureLayer);
+
 export type AppServices = Layer.Success<typeof infrastructureLayer>;
+
+// SAFETY: This process-wide registry is an optional property used only to reuse the warm service graph.
 const shared = globalThis as typeof globalThis & {
   chroniconRuntime?: ReturnType<typeof makeRuntime>;
 };
+
 // One service graph per warm process, including Next development reloads.
 export const runtime = (shared.chroniconRuntime ??= makeRuntime());

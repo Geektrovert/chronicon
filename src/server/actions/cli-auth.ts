@@ -30,8 +30,10 @@ export const approveCli = Effect.fn("Cli.approve")(function* (
       // Bound outstanding approvals per account and serialize concurrent approvals.
       yield* sql`SELECT id FROM "user" WHERE id = ${principal.ownerId} FOR UPDATE`;
       yield* sql`DELETE FROM cli_authorization WHERE "expiresAt" < now()`;
+
       const active =
         yield* sql`SELECT "codeHash" FROM cli_authorization WHERE "userId" = ${principal.ownerId}`;
+
       if (active.length >= 5)
         return yield* new AppError({
           status: 429,
@@ -50,6 +52,7 @@ export const approveCli = Effect.fn("Cli.approve")(function* (
   redirect.searchParams.set("code", code);
   redirect.searchParams.set("state", input.state);
   yield* recordOperation("chronicon_cli_authorized");
+
   return { redirect: redirect.href };
 });
 
@@ -59,6 +62,7 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
   const config = yield* AppConfig;
   const codeHash = yield* digest(input.code);
   const challenge = yield* digest(input.verifier);
+
   const grant = yield* SqlSchema.findOneOption({
     Request: Schema.Void,
     Result: Schema.Struct({ userId: Schema.String, organizationId: Schema.NullOr(Schema.String) }),
@@ -66,11 +70,13 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
         WHERE "codeHash" = ${codeHash} AND "redirectUri" = ${input.redirectUri}
         AND challenge = ${challenge} AND "expiresAt" > now() RETURNING "userId", "organizationId"`,
   })(undefined).pipe(databaseError("redeem CLI authorization"));
+
   if (Option.isNone(grant))
     return yield* new AppError({
       status: 400,
       message: "This login link has expired or was already used. Run chronicon login again.",
     });
+
   // Consume the grant before issuing a key so retries cannot create duplicate credentials.
   const key = yield* authCall(() =>
     auth.api.createApiKey({
@@ -86,12 +92,14 @@ export const exchangeCli = Effect.fn("Cli.exchange")(function* (input: typeof cl
       },
     }),
   );
+
   annotateAuthenticatedUser(
     grant.value.userId,
     grant.value.organizationId ?? defaultTeamId(grant.value.userId),
     "agent",
   );
   yield* recordOperation("chronicon_cli_connected");
+
   return {
     server: config.origin,
     workspaceId: grant.value.userId,
@@ -113,5 +121,6 @@ export const revokeCli = Effect.fn("Cli.revoke")(function* (principal: Principal
     databaseError("revoke CLI key"),
   );
   yield* recordOperation("chronicon_cli_disconnected");
+
   return { success: true };
 });

@@ -7,6 +7,7 @@ import { runObservedPage } from "@/server/request-telemetry";
 export async function GET(request: Request, { params }: RouteContext<"/public/documents/[id]">) {
   await connection();
   const { id } = await params;
+
   const path = await runObservedPage(
     "public.document_redirect",
     "/public/documents/[id]",
@@ -16,7 +17,9 @@ export async function GET(request: Request, { params }: RouteContext<"/public/do
       ),
     ),
   );
+
   const headers = { "Cache-Control": "private, no-store" };
+
   return path
     ? NextResponse.redirect(new URL(path, request.url), { status: 307, headers })
     : new NextResponse("Not found", { status: 404, headers });

@@ -5,52 +5,69 @@ export const slugSchema = Schema.String.check(
   Schema.isMaxLength(80),
   Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 );
+
 export const usernameSchema = Schema.String.check(
   Schema.isMinLength(3),
   Schema.isMaxLength(40),
   Schema.isPattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 );
+
 export const publicProfileSchema = Schema.Struct({
   username: usernameSchema,
   revision: Schema.Int.check(Schema.isGreaterThan(0)),
 });
+
 export const publicProfileInput = Schema.Struct({
   username: usernameSchema,
   expectedRevision: Schema.Int.check(Schema.isGreaterThan(0)),
 });
+
 export const publicDocumentAddressSchema = Schema.Struct({
   username: usernameSchema,
   slug: slugSchema,
   identifier: Schema.String.check(Schema.isPattern(/^[0-9a-f]{4}$/)),
 });
+
 const text = (max: number) => Schema.Trim.check(Schema.isMaxLength(max));
+
 const requiredText = (max: number) => text(max).check(Schema.isMinLength(1));
+
 const defaultText = (max: number) =>
   text(max).pipe(Schema.withDecodingDefaultKey(Effect.succeed("")));
+
 const documentKind = Schema.Literals(["report", "plan", "reference"]);
+
 export const visibilitySchema = Schema.Literals(["private", "public"]);
+
 export const documentSharingInput = Schema.Struct({
   visibility: visibilitySchema,
   expectedRevision: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
 });
+
 export const documentSharingSchema = Schema.Struct({
   visibility: visibilitySchema,
   revision: Schema.Int.check(Schema.isGreaterThan(0)),
   inheritedPublic: Schema.Boolean,
   publicUrl: Schema.NullOr(Schema.String),
 });
+
 export const accessRoleSchema = Schema.Literals(["full_access", "edit", "view"]);
+
 export type AccessRole = typeof accessRoleSchema.Type;
+
 export const projectInput = Schema.Struct({
   slug: slugSchema,
   name: requiredText(100),
   description: defaultText(400),
 });
+
 export const projectReference = Schema.Union([
   Schema.Struct({ id: Schema.NonEmptyString }),
   Schema.Struct({ slug: slugSchema }),
 ]);
+
 const upsertProject = Schema.Union([Schema.Struct({ id: Schema.NonEmptyString }), projectInput]);
+
 export const publishInput = Schema.Struct({
   project: upsertProject,
   slug: slugSchema,
@@ -64,6 +81,7 @@ export const publishInput = Schema.Struct({
   expectedRevision: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   sharing: Schema.optionalKey(documentSharingInput),
 });
+
 export const documentPatch = Schema.Struct({
   starred: Schema.optionalKey(Schema.Boolean),
   archived: Schema.optionalKey(Schema.Boolean),
@@ -74,6 +92,7 @@ export const documentPatch = Schema.Struct({
       value.starred !== undefined || value.archived !== undefined || value.sharing !== undefined,
   ),
 );
+
 export const keyInput = Schema.Struct({
   name: requiredText(60),
   projectIds: Schema.NullOr(Schema.Array(Schema.String)),
@@ -82,8 +101,11 @@ export const keyInput = Schema.Struct({
   share: Schema.optionalKey(Schema.Boolean),
   days: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 365 })),
 }).check(Schema.makeFilter((value) => !value.share || value.write));
+
 export const deleteKeyInput = Schema.Struct({ keyId: Schema.NonEmptyString });
+
 export const revisionNumber = Schema.Int.check(Schema.isGreaterThan(0));
+
 export const projectSchema = Schema.Struct({
   id: Schema.String,
   ownerId: Schema.String,
@@ -96,12 +118,14 @@ export const projectSchema = Schema.Struct({
   createdAt: Schema.String,
   revision: Schema.Int.check(Schema.isGreaterThan(0)),
 });
+
 export const projectUpdate = Schema.Struct({
   id: Schema.NonEmptyString,
   name: requiredText(100),
   description: Schema.optionalKey(text(400)),
   expectedRevision: Schema.Int.check(Schema.isGreaterThan(0)),
 });
+
 export const documentSchema = Schema.Struct({
   id: Schema.String,
   projectId: Schema.String,
@@ -121,6 +145,7 @@ export const documentSchema = Schema.Struct({
   createdAt: Schema.String,
   updatedAt: Schema.String,
 });
+
 export const revisionSchema = Schema.Struct({
   id: Schema.String,
   documentId: Schema.String,
@@ -131,13 +156,16 @@ export const revisionSchema = Schema.Struct({
   author: Schema.String,
   createdAt: Schema.String,
 });
+
 const revisionInfo = Schema.Struct({
   version: revisionNumber,
   bytes: Schema.Int,
   author: Schema.String,
   createdAt: Schema.String,
 });
+
 export const revisionHistorySchema = Schema.Struct({ id: Schema.String, ...revisionInfo.fields });
+
 export const documentDetailSchema = Schema.Struct({
   document: documentSchema,
   sharing: documentSharingSchema,
@@ -146,11 +174,14 @@ export const documentDetailSchema = Schema.Struct({
   history: Schema.Array(revisionHistorySchema),
   html: Schema.String,
 });
+
 export const libraryQuery = Schema.Struct({ projectId: Schema.optionalKey(Schema.NonEmptyString) });
+
 export const librarySchema = Schema.Struct({
   projects: Schema.Array(projectSchema),
   documents: Schema.Array(documentSchema),
 });
+
 export const publishResultSchema = Schema.Struct({
   document: documentSchema,
   sharing: documentSharingSchema,
@@ -158,15 +189,22 @@ export const publishResultSchema = Schema.Struct({
   unchanged: Schema.Boolean,
   url: Schema.String,
 });
+
 export const documentUpdateResultSchema = Schema.Struct({
   ...documentSchema.fields,
   sharing: documentSharingSchema,
 });
+
 export type PublishInput = typeof publishInput.Type;
+
 export type Project = typeof projectSchema.Type;
+
 export type Document = typeof documentSchema.Type;
+
 export type Library = typeof librarySchema.Type;
+
 export type DocumentDetail = typeof documentDetailSchema.Type;
+
 export type Principal = {
   readonly ownerId: string;
   readonly organizationId: string;

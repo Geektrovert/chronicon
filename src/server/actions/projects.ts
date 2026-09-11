@@ -14,9 +14,14 @@ export const findProject = Effect.fn("Library.findProject")(function* (
   write = false,
 ) {
   const sql = yield* PgClient.PgClient;
-  const byId = typeof reference !== "string" && "id" in reference;
-  const value =
-    typeof reference === "string" ? reference : "id" in reference ? reference.id : reference.slug;
+  const byId = !Schema.is(Schema.String)(reference) && "id" in reference;
+
+  const value = Schema.is(Schema.String)(reference)
+    ? reference
+    : "id" in reference
+      ? reference.id
+      : reference.slug;
+
   const lookupProject = SqlSchema.findOneOption({
     Request: Schema.String,
     Result: projectSchema,
@@ -25,7 +30,9 @@ export const findProject = Effect.fn("Library.findProject")(function* (
         ? sql`SELECT * FROM project WHERE id = ${value}`
         : sql`SELECT * FROM project WHERE "organizationId" = ${principal.organizationId} AND slug = ${value}`,
   });
+
   const project = yield* lookupProject(value).pipe(databaseError("find project"));
+
   return yield* projectAccess(principal, Option.getOrUndefined(project), write);
 });
 
@@ -35,20 +42,24 @@ const insertProject = Effect.fn("Library.insertProject")(function* (
 ) {
   const sql = yield* PgClient.PgClient;
   const uuid = (yield* Crypto.Crypto).randomUUIDv4.pipe(Effect.orDie);
+
   if (principal.projectIds || !principal.canWrite)
     return yield* new AppError({
       status: 403,
       message: "To create projects, use a key with All projects and Write access.",
     });
+
   const memberships =
     yield* sql`SELECT id FROM member WHERE "organizationId" = ${principal.organizationId} AND "userId" = ${principal.ownerId} FOR SHARE`.pipe(
       databaseError("check team membership"),
     );
+
   if (!memberships.length)
     return yield* new AppError({
       status: 403,
       message: "Join this team before creating a project.",
     });
+
   const project = {
     organizationId: principal.organizationId,
     visibility: "private",
@@ -58,9 +69,11 @@ const insertProject = Effect.fn("Library.insertProject")(function* (
     createdAt: DateTime.formatIso(yield* DateTime.now),
     revision: 1,
   };
+
   yield* sql`INSERT INTO project ${sql.insert(project)} ON CONFLICT ("organizationId", slug) DO NOTHING`.pipe(
     databaseError("create project"),
   );
+
   return yield* findProject(principal, input.slug);
 });
 
@@ -85,6 +98,7 @@ export const createProject = Effect.fn("Library.createProject")(
 export const updateProject = Effect.fn("Projects.update")(
   function* (principal: Principal, input: typeof projectUpdate.Type) {
     const sql = yield* PgClient.PgClient;
+
     return yield* sql
       .withTransaction(
         Effect.gen(function* () {
@@ -92,6 +106,7 @@ export const updateProject = Effect.fn("Projects.update")(
             databaseError("lock project"),
           );
           const current = yield* findProject(principal, { id: input.id }, true);
+
           const changed = yield* SqlSchema.findOneOption({
             Request: Schema.Void,
             Result: projectSchema,
@@ -99,11 +114,13 @@ export const updateProject = Effect.fn("Projects.update")(
               () => sql`UPDATE project SET name = ${input.name}, description = ${input.description ?? current.description}, revision = revision + 1
         WHERE id = ${input.id} AND revision = ${input.expectedRevision} RETURNING *`,
           })(undefined).pipe(databaseError("update project"));
+
           if (Option.isNone(changed))
             return yield* new AppError({
               status: 409,
               message: "This project changed. Read it again before updating.",
             });
+
           return { ...changed.value, accessRole: current.accessRole };
         }),
       )
@@ -132,20 +149,25 @@ export const resolvePublishProject = Effect.fn("Library.resolvePublishProject")(
   // The publisher checks the target document after locking this project.
   if ("id" in reference && expectedRevision > 0) {
     const sql = yield* PgClient.PgClient;
+
     const found = yield* SqlSchema.findOneOption({
       Request: Schema.String,
       Result: projectSchema,
       execute: (id) => sql`SELECT * FROM project WHERE id = ${id}`,
     })(reference.id).pipe(databaseError("find publishing project"));
+
     if (Option.isSome(found)) return found.value;
+
     return yield* new AppError({
       status: 404,
       message: "Project not found. Check the project and account.",
     });
   }
+
   return yield* findProject(principal, reference, true).pipe(
     Effect.catchTag("AppError", (error) => {
       if (error.status !== 404 || !("name" in reference) || expectedRevision !== 0) return error;
+
       return insertProject(principal, reference);
     }),
   );

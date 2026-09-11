@@ -6,15 +6,19 @@ const callback = Schema.String.check(
   Schema.makeFilter((value) => {
     if (!URL.canParse(value)) return false;
     const port = Number(new URL(value).port);
+
     return port >= 1024 && port <= 65535;
   }),
 );
+
 const randomValue = Schema.String.check(Schema.isPattern(/^[A-Za-z0-9_-]{43}$/));
+
 export const cliAuthorization = Schema.Struct({
   redirectUri: callback,
   state: randomValue,
   challenge: randomValue,
 });
+
 export const cliExchange = Schema.Struct({
   redirectUri: callback,
   code: randomValue,
@@ -24,12 +28,17 @@ export const cliExchange = Schema.Struct({
 export function signInDestination(next: string | null) {
   if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
   const url = new URL(next, "https://chronicon.invalid");
+
   if (url.origin !== "https://chronicon.invalid") return "/";
+
   if (url.pathname === "/cli/authorize") return url.pathname + url.search;
+
   if (/^\/invitations\/[^/]+\/?$/.test(url.pathname)) {
     const type = url.searchParams.get("type");
+
     return url.pathname + (type === "team" || type === "resource" ? `?type=${type}` : "");
   }
+
   return /^\/(?:$|starred\/?$|archive\/?$|settings(?:\/(?:appearance|team))?\/?$|projects(?:\/[^/]+(?:\/design)?)?\/?$|documents\/[^/]+\/?$)/.test(
     url.pathname,
   )

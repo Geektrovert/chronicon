@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { useTask } from "@/client/runtime";
 import { watchSearchWorker } from "@/client/actions/search";
@@ -15,6 +16,7 @@ export function useSearch(library: Library, query: string, projectId?: string) {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const lastSearch = useRef("");
+
   function retry() {
     capture("search_retry");
     lastSearch.current = "";
@@ -23,6 +25,7 @@ export function useSearch(library: Library, query: string, projectId?: string) {
     setIds([]);
     setAttempt((value) => value + 1);
   }
+
   useEffect(
     () =>
       run(
@@ -49,21 +52,25 @@ export function useSearch(library: Library, query: string, projectId?: string) {
     worker?.postMessage({ type: "index", library });
   }, [library, worker]);
   useEffect(() => {
-    worker?.postMessage({
-      type: "search",
-      id: ++latest.current,
-      query,
-      ...(projectId === undefined ? {} : { projectId }),
-    });
+    const message =
+      projectId === undefined
+        ? { type: "search" as const, id: ++latest.current, query }
+        : { type: "search" as const, id: ++latest.current, query, projectId };
+
+    worker?.postMessage(message);
   }, [query, projectId, library, ready, worker]);
   useEffect(() => {
     if (!query.trim()) {
       lastSearch.current = "";
+
       return;
     }
+
     if (!ready || error || completedSearch !== latest.current) return;
     const search = `${projectId ?? ""}:${query}`;
+
     if (lastSearch.current === search) return;
+
     const timer = window.setTimeout(() => {
       lastSearch.current = search;
       capture("search_completed", {
@@ -72,7 +79,9 @@ export function useSearch(library: Library, query: string, projectId?: string) {
         project_scoped: projectId !== undefined,
       });
     }, 700);
+
     return () => window.clearTimeout(timer);
   }, [query, projectId, ids, ready, error, completedSearch]);
+
   return { ready, ids, error, retry };
 }

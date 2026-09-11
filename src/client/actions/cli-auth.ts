@@ -10,5 +10,6 @@ export const authorizeCli = Effect.fn("Client.authorizeCli")(function* (
     method: "POST",
     body: input,
   }).pipe(observeAction("cli_authorize"));
+
   window.location.assign(result.redirect);
 });

@@ -29,11 +29,19 @@ const providerErrorSchema = Schema.Struct({
   name: Schema.optionalKey(Schema.String),
   message: Schema.String,
 });
+
 const providerReceiptSchema = Schema.Struct({ id: Schema.String });
+
+type ProviderError = { name?: string; message: string; statusCode: number };
+
+type DeliveryResult = { error: null } | { error: ProviderError };
 
 // The SDK logs raw provider errors in development. Keep the fixed Resend endpoint
 // and validate its response here so logs never include message content or headers.
-function deliverEmail(config: AppConfig["Service"], payload: CreateEmailOptions) {
+function deliverEmail(
+  config: AppConfig["Service"],
+  payload: CreateEmailOptions,
+): Promise<DeliveryResult> {
   // oxlint-disable-next-line effecttsgo/global-fetch -- Better Auth requires a Promise; this fixed provider boundary validates responses and suppresses SDK logging.
   return fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -44,24 +52,35 @@ function deliverEmail(config: AppConfig["Service"], payload: CreateEmailOptions)
       "User-Agent": "chronicon/0.1.0",
     },
     body: JSON.stringify(payload),
-  }).then((response) =>
-    response
-      .json()
-      .catch(() => null)
-      .then((body: unknown) => {
-        if (response.ok) {
+  }).then((response) => {
+    if (response.ok)
+      return response
+        .json()
+        .catch(() => null)
+        .then((body: Schema.Json) => {
           if (!Schema.is(providerReceiptSchema)(body))
             throw new Error("Missing email delivery receipt");
+
           return { error: null };
-        }
+        });
+
+    return response
+      .json()
+      .catch(() => null)
+      .then((body: Schema.Json) => {
         const error = Schema.is(providerErrorSchema)(body)
           ? body
           : { name: "provider_error", message: "" };
+
         return {
-          error: { ...error, name: error.name ?? "provider_error", statusCode: response.status },
+          error: {
+            name: error.name ?? "provider_error",
+            message: error.message,
+            statusCode: response.status,
+          },
         };
-      }),
-  );
+      });
+  });
 }
 
 function AccountEmail({ title, description, action, url, footer }: EmailContent) {
@@ -130,6 +149,7 @@ export function requireEmailDelivery(config: AppConfig["Service"]) {
 
 function sendEmail(config: AppConfig["Service"], email: string, content: EmailContent) {
   requireEmailDelivery(config);
+
   return render(<AccountEmail {...content} />)
     .catch(() => {
       logOperationalError("Email delivery failed", { stage: "render" });
@@ -180,13 +200,16 @@ function sendEmail(config: AppConfig["Service"], email: string, content: EmailCo
           "missing_required_field",
           "security_error",
         ];
-        const code = allowedNames.includes(result.error.name)
-          ? result.error.name
-          : "provider_error";
+
+        const providerName = result.error.name ?? "";
+        const code = allowedNames.includes(providerName) ? providerName : "provider_error";
+
         const providerMessage = result.error.message.toLowerCase();
+
         const domainNotVerified =
           providerMessage.includes("domain") &&
           (providerMessage.includes("not verified") || providerMessage.includes("unverified"));
+
         const senderNotAllowed =
           (providerMessage.includes("sender") ||
             providerMessage.includes("from address") ||
@@ -195,8 +218,10 @@ function sendEmail(config: AppConfig["Service"], email: string, content: EmailCo
             providerMessage.includes("not permitted") ||
             providerMessage.includes("not authorized") ||
             providerMessage.includes("restricted"));
+
         const keyDomainRestricted =
           providerMessage.includes("domain") && providerMessage.includes("restricted");
+
         logOperationalError("Email delivery failed", {
           stage: "provider",
           code,

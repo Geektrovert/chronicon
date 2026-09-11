@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm } from "@tanstack/react-form";
 import { useTheme } from "next-themes";
@@ -40,6 +41,7 @@ import "./studio.css";
 function randomItem<T>(items: readonly T[]) {
   return items[Effect.runSync(Random.nextIntBetween(0, items.length))];
 }
+
 function AppearanceControl({
   mode,
   onChange,
@@ -72,6 +74,7 @@ function AppearanceControl({
     </fieldset>
   );
 }
+
 export function ProjectDesignEditor({
   project,
   initial,
@@ -106,6 +109,7 @@ export function ProjectDesignEditor({
     (controlsOpen ? doneButton : customizeButton).current?.focus();
   }, [controlsOpen]);
   const previewMode = mode ?? (resolvedTheme === "dark" ? "dark" : "light");
+
   const form = useForm({
     defaultValues: restoredDraft?.values ?? { settings: saved.settings, guidance: saved.guidance },
     onSubmit: ({ value }) => {
@@ -119,8 +123,10 @@ export function ProjectDesignEditor({
         ).then((result) => {
           if (Result.isFailure(result)) {
             setError(result.failure);
+
             return;
           }
+
           baseline.current = result.success;
           drafts.delete(project.id);
           setRestoredDraft(undefined);
@@ -131,19 +137,24 @@ export function ProjectDesignEditor({
       );
     },
   });
+
   useEffect(() => {
     const rememberDraft = () => {
       const values = form.store.state.values;
+
       if (designChanged(values, baseline.current)) {
         drafts.set(project.id, { base: baseline.current, values });
       } else {
         drafts.delete(project.id);
       }
     };
+
     rememberDraft();
     const subscription = form.store.subscribe(rememberDraft);
+
     return () => subscription.unsubscribe();
   }, [drafts, form, project.id]);
+
   function reload() {
     capture("project_design_discard_started", { project_id: project.id });
     setOperation("reload");
@@ -153,8 +164,10 @@ export function ProjectDesignEditor({
       runAction(loadProjectDesign(project.id)).then((result) => {
         if (Result.isFailure(result)) {
           setError(result.failure);
+
           return;
         }
+
         baseline.current = result.success;
         drafts.delete(project.id);
         setRestoredDraft(undefined);
@@ -164,6 +177,7 @@ export function ProjectDesignEditor({
       }),
     );
   }
+
   return (
     <main id="main" className="design-studio">
       <Form
@@ -312,7 +326,9 @@ export function ProjectDesignEditor({
                 const unchanged = Struct.keys(field.state.value).every(
                   (key) => saved.settings[key] === field.state.value[key],
                 );
+
                 const tokens = unchanged ? saved.tokens : buildTokens(field.state.value);
+
                 return showGuidance ? (
                   <section className="design-guidance-panel" aria-label="Project design document">
                     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">

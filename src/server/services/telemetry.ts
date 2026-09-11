@@ -4,6 +4,7 @@ import { requestObservabilityLayer, type RequestTelemetry } from "../observabili
 
 export function createTelemetrySession(state: RequestTelemetry) {
   const scope = Scope.makeUnsafe("parallel");
+
   return {
     build: (exporters = true) =>
       Effect.runPromise(Layer.buildWithScope(requestObservabilityLayer(state, exporters), scope)),

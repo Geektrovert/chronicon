@@ -1,9 +1,10 @@
 "use client";
+
 import { Form, FieldGroup } from "./ui/form";
 import { useForm } from "@tanstack/react-form";
 import { Field, FieldLabel, FieldError, FieldDescription } from "./ui/field";
 import { SelectField } from "./ui/select-field";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { formatDate } from "@/lib/date";
 import { Check, Copy, KeyRound, Terminal, Trash2 } from "lucide-react";
 import type { Project } from "@/lib/model";
@@ -27,6 +28,7 @@ export function AgentSettings({
   useEffect(() => {
     if (open) capture("agent_connection_opened");
   }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="wide">
@@ -41,7 +43,14 @@ export function AgentSettings({
     </Dialog>
   );
 }
+
 function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
+  const origin = useSyncExternalStore(
+    () => () => {},
+    () => window.location.origin,
+    () => "",
+  );
+
   const run = useTask();
   const [keys, setKeys] = useState<ReadonlyArray<AgentKey>>([]);
   const [newKey, setNewKey] = useState("");
@@ -49,9 +58,11 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [revokeId, setRevokeId] = useState<string>();
+
   function reload() {
     run(loadKeys, { onSuccess: (data) => setKeys(data.apiKeys), onError: setError });
   }
+
   useEffect(
     () =>
       run(loadKeys, {
@@ -60,6 +71,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
       }),
     [run],
   );
+
   const form = useForm({
     defaultValues: { name: "", project: projects[0]?.id || "all", access: "write", days: "90" },
     onSubmit: ({ value }) => {
@@ -84,7 +96,9 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
       );
     },
   });
-  const endpoint = typeof window === "undefined" ? "" : `${window.location.origin}/api/mcp`;
+
+  const endpoint = origin ? `${origin}/api/mcp` : "";
+
   const config = JSON.stringify(
     {
       mcpServers: {
@@ -98,6 +112,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
     null,
     2,
   );
+
   return (
     <div className="settings-content">
       <div className="connection-address">

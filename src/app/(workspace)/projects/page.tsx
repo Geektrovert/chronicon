@@ -8,6 +8,7 @@ export const metadata = { title: "Projects" };
 // oxlint-disable-next-line effecttsgo/async-function -- Authenticate at the Next page boundary.
 async function AuthenticatedProjects() {
   await requirePageOwner("/projects");
+
   return <ProjectsView />;
 }
 

@@ -1,4 +1,5 @@
 "use client";
+
 import { KeyboardSettings } from "./keyboard-settings";
 import { bindingFromEvent, defaultBindings, shortcutActions } from "@/lib/keybindings";
 import { loadKeybindings } from "@/client/actions/keybindings";
@@ -56,10 +57,12 @@ const noPendingDocuments: ReadonlyArray<string> = [];
 // snapshot's current permissions even when its content revision is older.
 function reconcileLibrary(current: Library, incoming: Library): Library {
   const previous = new Map(current.documents.map((document) => [document.id, document]));
+
   return {
     projects: incoming.projects,
     documents: incoming.documents.map((document) => {
       const newer = previous.get(document.id);
+
       return newer && newer.updatedAt > document.updatedAt
         ? { ...newer, accessRole: document.accessRole, visibility: document.visibility }
         : document;
@@ -69,10 +72,13 @@ function reconcileLibrary(current: Library, incoming: Library): Library {
 
 function mergeDocuments(current: Library, incoming: ReadonlyArray<Document>): Library {
   const documents = new Map(current.documents.map((document) => [document.id, document]));
+
   for (const document of incoming) {
     const previous = documents.get(document.id);
+
     if (!previous || document.updatedAt >= previous.updatedAt) documents.set(document.id, document);
   }
+
   return {
     projects: current.projects,
     documents: [...documents.values()],
@@ -100,7 +106,9 @@ const WorkspaceContext = createContext<{
 
 export function useWorkspace() {
   const workspace = use(WorkspaceContext);
+
   if (!workspace) throw new Error("Workspace content requires the workspace layout.");
+
   return workspace;
 }
 
@@ -120,12 +128,15 @@ export function Workspace({
   const [confirmedLibrary, setLibrary] = useState(initialLibrary);
   const [projectScope, setProjectScope] = useState<Library | null>(null);
   const scopeProject = projectScope?.projects[0];
+
   const scopeActive =
     !!scopeProject &&
     (params.slug === scopeProject.id ||
       params.slug === scopeProject.slug ||
       (!!params.id && !!projectScope?.documents.some((document) => document.id === params.id)));
+
   const scopeId = scopeActive ? scopeProject?.id : undefined;
+
   const visibleLibrary =
     scopeActive && projectScope
       ? {
@@ -139,6 +150,7 @@ export function Workspace({
           ],
         }
       : confirmedLibrary;
+
   const [optimistic, updateOptimistic] = useOptimistic(
     { library: visibleLibrary, pendingDocuments: noPendingDocuments },
     (current, document: Document) => ({
@@ -151,25 +163,31 @@ export function Workspace({
       pendingDocuments: [...current.pendingDocuments, document.id],
     }),
   );
+
   const { library } = optimistic;
   const [, startUpdate] = useTransition();
   const [refreshing, startRefresh] = useTransition();
   const [previousLibrary, setPreviousLibrary] = useState(initialLibrary);
+
   if (initialLibrary !== previousLibrary) {
     setPreviousLibrary(initialLibrary);
     setLibrary((current) => reconcileLibrary(current, initialLibrary));
   }
+
   const projectId = params.slug
     ? (
         library.projects.find((project) => project.id === params.slug) ??
         library.projects.find((project) => project.slug === params.slug)
       )?.id
     : library.documents.find((document) => document.id === params.id)?.projectId;
+
   const [searchInput, setSearchInput] = useState({ pathname, query: "" });
   const query = searchInput.pathname === pathname ? searchInput.query : "";
+
   function setQuery(query: string) {
     setSearchInput({ pathname, query });
   }
+
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandGlobal, setCommandGlobal] = useState(true);
   const [projectOpen, setProjectOpen] = useState(false);
@@ -182,16 +200,20 @@ export function Workspace({
   const [maximumSidebarWidth, setMaximumSidebarWidth] = useState(sidebarSizes.max);
   const [mobileViewport, setMobileViewport] = useState(false);
   const [error, setError] = useState("");
+
   const search = useSearch(
     optimistic.library,
     query,
     commandOpen && commandGlobal ? undefined : projectId,
   );
+
   const { ids: resultIds, ready: searchReady, error: searchError, retry: retrySearch } = search;
   const project = library.projects.find((p) => p.id === projectId);
+
   const writableProjects = library.projects.filter(
     (item) => item.accessRole === "edit" || item.accessRole === "full_access",
   );
+
   function refresh() {
     setError("");
     startRefresh(() =>
@@ -210,10 +232,12 @@ export function Workspace({
       }),
     );
   }
+
   function publish() {
     if (writableProjects.length) setPublishOpen(true);
     else setProjectOpen(true);
   }
+
   const commitSidebarLayout = useCallback(
     (layout: SidebarLayout) => {
       setSidebarLayout(layout);
@@ -221,13 +245,17 @@ export function Workspace({
     },
     [run],
   );
+
   function toggleSidebar() {
     if (mobileViewport) {
       setMobileOpen((open) => !open);
+
       return;
     }
+
     commitSidebarLayout({ ...sidebarLayout, collapsed: !sidebarLayout.collapsed });
   }
+
   const documentChanged = useCallback((document: Document) => {
     setLibrary((current) =>
       current.projects.some((project) => project.id === document.projectId) ||
@@ -241,6 +269,7 @@ export function Workspace({
         : current,
     );
   }, []);
+
   function updateDocument(
     document: Document,
     patch: Partial<Pick<Document, "starred" | "archived">>,
@@ -249,6 +278,7 @@ export function Workspace({
     setError("");
     startUpdate(() => {
       updateOptimistic({ ...document, ...patch });
+
       return runAction(updateReport(document.id, patch)).then((result) => {
         startTransition(() => {
           if (Result.isSuccess(result)) documentChanged(result.success);
@@ -257,6 +287,7 @@ export function Workspace({
       });
     });
   }
+
   useEffect(() => run(loadKeybindings, { onSuccess: setBindings, onError: setError }), [run]);
   useEffect(() => run(loadSidebarLayout, { onSuccess: setSidebarLayout }), [run]);
   useEffect(
@@ -265,6 +296,7 @@ export function Workspace({
         watchSidebarViewport((mobile, maximumWidth) => {
           setMobileViewport(mobile);
           setMaximumSidebarWidth(maximumWidth);
+
           if (!mobile) setMobileOpen(false);
         }),
       ),
@@ -275,6 +307,7 @@ export function Workspace({
     const keydown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat || event.isComposing) return;
       const target = event.target;
+
       if (
         target instanceof Element &&
         target.closest(
@@ -283,17 +316,22 @@ export function Workspace({
       )
         return;
       const binding = bindingFromEvent(event);
+
       const action = shortcutActions.find(
         (item) => bindings[item.id] && bindings[item.id] === binding,
       )?.id;
+
       if (!action) return;
+
       if (
         document.querySelector('[role="dialog"], [role="alertdialog"]') &&
         !(action === "sidebar" && mobileOpen)
       )
         return;
       event.preventDefault();
+
       if (action !== "sidebar") setMobileOpen(false);
+
       switch (action) {
         case "search":
         case "projectSearch":
@@ -330,7 +368,9 @@ export function Workspace({
           break;
       }
     };
+
     window.addEventListener("keydown", keydown);
+
     return () => window.removeEventListener("keydown", keydown);
   });
   useEffect(
@@ -351,22 +391,26 @@ export function Workspace({
     [run, scopeId],
   );
   const documentsById = new Map(library.documents.map((d) => [d.id, d]));
+
   const commandResults = query.trim()
     ? resultIds.map((id) => documentsById.get(id)).filter((d): d is Document => !!d && !d.archived)
     : library.documents.filter(
         (d) => !d.archived && (commandGlobal || !projectId || d.projectId === projectId),
       );
+
   function openSearch() {
     setMobileOpen(false);
     setCommandGlobal(true);
     setQuery("");
     setCommandOpen(true);
   }
+
   function navigate(href: string) {
     setCommandOpen(false);
     setQuery("");
     router.push(href);
   }
+
   const navigationItems = [
     { href: "/projects", label: "Projects", description: "Browse projects", icon: Folders },
     ...(project
@@ -382,6 +426,7 @@ export function Workspace({
       .toLocaleLowerCase()
       .includes(query.trim().toLocaleLowerCase()),
   );
+
   const matchingProjects = commandGlobal
     ? library.projects.filter(
         (item) =>
@@ -391,6 +436,7 @@ export function Workspace({
             .includes(query.trim().toLocaleLowerCase()),
       )
     : [];
+
   return (
     <DesignDraftsProvider>
       <WorkspaceContext
@@ -470,6 +516,7 @@ export function Workspace({
             open={commandOpen}
             onOpenChange={(open) => {
               setCommandOpen(open);
+
               if (!open) setQuery("");
             }}
             title={commandGlobal ? "Search workspace" : "Search project"}

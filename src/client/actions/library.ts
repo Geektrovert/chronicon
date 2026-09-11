@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import {
   documentDetailSchema,
   documentUpdateResultSchema,
@@ -14,6 +14,7 @@ import { request } from "./request";
 import { observeAction } from "../observe-action";
 
 export const loadLibrary = request(librarySchema, "/api/library");
+
 export const loadProjectLibrary = (projectId: string) =>
   request(librarySchema, `/api/library?projectId=${encodeURIComponent(projectId)}`).pipe(
     // A denied scope must discard its preserved pages and drafts. The server
@@ -24,6 +25,7 @@ export const loadProjectLibrary = (projectId: string) =>
         : Effect.void,
     ),
   );
+
 export const readReport = (id: string, version?: string) =>
   request(
     documentDetailSchema,
@@ -35,14 +37,18 @@ export const readReport = (id: string, version?: string) =>
         : Effect.void,
     ),
   );
-export const createProject = Effect.fn("Client.createProject")(function* (input: unknown) {
+
+export const createProject = Effect.fn("Client.createProject")(function* (input: Schema.Json) {
   const body = yield* decodeClient(projectInput, input);
+
   return yield* request(projectSchema, "/api/projects", { method: "POST", body }).pipe(
     observeAction("project_create"),
   );
 });
-export const publishReport = Effect.fn("Client.publishReport")(function* (input: unknown) {
+
+export const publishReport = Effect.fn("Client.publishReport")(function* (input: Schema.Json) {
   const body = yield* decodeClient(publishInput, input);
+
   return yield* request(publishResultSchema, "/api/documents", { method: "POST", body }).pipe(
     observeAction("document_publish", {
       kind: body.kind,
@@ -53,11 +59,13 @@ export const publishReport = Effect.fn("Client.publishReport")(function* (input:
     }),
   );
 });
+
 export const updateReport = Effect.fn("Client.updateReport")(function* (
   id: string,
-  input: unknown,
+  input: Schema.Json,
 ) {
   const body = yield* decodeClient(documentPatch, input);
+
   return yield* request(documentUpdateResultSchema, `/api/documents/${encodeURIComponent(id)}`, {
     method: "PATCH",
     body,

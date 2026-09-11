@@ -11,14 +11,18 @@ const options = [
   { value: "dark", label: "Dark" },
   { value: "system", label: "System" },
 ];
+
 const subscribe = () => () => {};
+
 const clientReady = () => true;
+
 const serverReady = () => false;
 
 export function AppearanceSettings() {
   const { theme, setTheme } = useTheme();
   // The server cannot know this browser's preference. Keep the first render identical.
   const ready = useSyncExternalStore(subscribe, clientReady, serverReady);
+
   return (
     <Field className="max-w-sm">
       <FieldLabel htmlFor="appearance-theme">Theme</FieldLabel>

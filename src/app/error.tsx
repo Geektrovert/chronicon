@@ -1,8 +1,10 @@
 "use client";
+
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { captureError } from "@/client/telemetry";
+
 export default function ErrorPage({
   error,
   reset,
@@ -13,6 +15,7 @@ export default function ErrorPage({
   useEffect(() => {
     captureError(error, { boundary: "route", digest: error.digest });
   }, [error]);
+
   return (
     <main id="main" className="page-loading">
       <EmptyState

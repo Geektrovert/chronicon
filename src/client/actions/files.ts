@@ -5,18 +5,23 @@ import { observeAction } from "../observe-action";
 export const readHtmlFile = Effect.fn("Client.readHtmlFile")(function* (file: File) {
   if (file.size > 2_000_000)
     return yield* new ClientError({ message: "Choose an HTML file of 2 MB or less." });
+
   const html = yield* Effect.tryPromise({
     try: () => file.text(),
     catch: () => new ClientError({ message: "Unable to read that file. Try choosing it again." }),
   }).pipe(observeAction("html_import", { file_bytes: file.size }));
+
   const parsed = new DOMParser().parseFromString(html, "text/html");
+
   return { html, title: parsed.title || file.name.replace(/\.html?$/i, "").replace(/[-_]/g, " ") };
 });
+
 export const copyText = (text: string, message: string) =>
   Effect.tryPromise({
     try: () => navigator.clipboard.writeText(text),
     catch: () => new ClientError({ message }),
   });
+
 export const toggleFullscreen = Effect.tryPromise({
   try: () =>
     document.fullscreenElement
@@ -43,6 +48,7 @@ export const watchFullscreen = (onChange: (expanded: boolean) => void) =>
       }).pipe(Effect.ignore),
     ),
   );
+
 export const downloadHtml = Effect.fn("Client.downloadHtml")(function* (
   html: string,
   filename: string,

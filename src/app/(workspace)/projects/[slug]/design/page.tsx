@@ -15,12 +15,14 @@ async function DesignContent({ params }: PageProps<"/projects/[slug]/design">) {
   const { slug } = await params;
   const principal = await requirePageOwner(`/projects/${slug}/design`);
   const { project, library } = await projectLibraryPageData(slug);
+
   const design = await runObservedPage(
     "page.project_design",
     "/projects/[slug]/design",
     readProjectDesign(principal, { project: { id: project.id } }),
     principal,
   );
+
   return (
     <ProjectScope library={library}>
       <ProjectDesignEditor key={project.id} project={project} initial={design} />

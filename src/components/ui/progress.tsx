@@ -1,7 +1,9 @@
 "use client";
+
 // Adapted from shadcn/ui Base UI Progress (MIT).
 import { Progress as ProgressPrimitive } from "@base-ui/react/progress";
 import { cn } from "@/lib/utils";
+
 export function Progress({ className, value, ...props }: ProgressPrimitive.Root.Props) {
   return (
     <ProgressPrimitive.Root

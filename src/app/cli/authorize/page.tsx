@@ -12,12 +12,14 @@ export const metadata = {
   robots: { index: false, follow: false },
   referrer: "no-referrer" as const,
 };
+
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 // oxlint-disable-next-line effecttsgo/async-function -- Request-dependent React server component.
 async function Authorization({ searchParams }: Props) {
   await connection();
   const input = await searchParams;
+
   if (!Schema.is(cliAuthorization)(input))
     return (
       <main className="signin-page">
@@ -25,6 +27,7 @@ async function Authorization({ searchParams }: Props) {
       </main>
     );
   const principal = await pagePrincipal();
+
   if (!principal) {
     const next =
       "/cli/authorize?" +
@@ -33,8 +36,10 @@ async function Authorization({ searchParams }: Props) {
         state: input.state,
         challenge: input.challenge,
       }).toString();
+
     redirect(`/sign-in?next=${encodeURIComponent(next)}`);
   }
+
   return (
     <CliAuthorization
       input={input}

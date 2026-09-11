@@ -19,6 +19,7 @@ export const documentSharingState = Effect.fn("Sharing.documentState")(function*
   project: Project,
 ) {
   const inheritedPublic = project.visibility === "public";
+
   return {
     visibility: document.visibility,
     revision: document.sharingRevision,
@@ -41,6 +42,7 @@ export const requireDocumentSharingRevision = Effect.fn("Sharing.requireDocument
   ) {
     yield* requireDocumentSharing(principal, document, project);
     const revision = document?.sharingRevision ?? 0;
+
     if (input.expectedRevision !== revision)
       return yield* new AppError({
         status: 409,
@@ -56,8 +58,10 @@ export const updateDocumentSharing = Effect.fn("Sharing.updateDocument")(functio
   input: typeof documentSharingInput.Type,
 ) {
   yield* requireDocumentSharingRevision(principal, document, project, input);
+
   if (input.visibility === document.visibility) return document;
   const sql = yield* PgClient.PgClient;
+
   const saved = yield* SqlSchema.findOneOption({
     Request: Schema.Void,
     Result: documentSchema,
@@ -65,10 +69,12 @@ export const updateDocumentSharing = Effect.fn("Sharing.updateDocument")(functio
       sql`UPDATE document SET visibility = ${input.visibility}
           WHERE id = ${document.id} AND "sharingRevision" = ${input.expectedRevision} RETURNING *`,
   })(undefined).pipe(databaseError("update document sharing"));
+
   if (Option.isNone(saved))
     return yield* new AppError({
       status: 409,
       message: "Document sharing changed. Read the document before changing access.",
     });
+
   return { ...saved.value, starred: document.starred, accessRole: document.accessRole };
 });

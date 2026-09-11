@@ -8,6 +8,7 @@ import type { Principal } from "@/lib/model";
 export const readCachedLibrary = Effect.fn("Cache.readLibrary")((principal: Principal) =>
   loadLibrary(principal),
 );
+
 export class LibraryInvalidation extends Context.Service<
   LibraryInvalidation,
   { readonly invalidate: (ownerId: string) => void }

@@ -12,6 +12,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 async function PublicDocumentPage({ params }: PageProps<"/[username]/d/[documentSlug]">) {
   await connection();
   const reference = await params;
+
   const data = await runObservedPage(
     "page.public_document",
     "/[username]/d/[documentSlug]",
@@ -21,9 +22,12 @@ async function PublicDocumentPage({ params }: PageProps<"/[username]/d/[document
       ),
     ),
   );
+
   if (!data) notFound();
+
   if (data.publicPath !== `/${reference.username}/d/${reference.documentSlug}`)
     redirect(data.publicPath);
+
   return (
     <main className="flex min-h-screen flex-col">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b px-6 py-4">

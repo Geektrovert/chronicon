@@ -1,6 +1,7 @@
 "use client";
+
 // Adapted from shadcn/create Customizer and Picker (MIT).
-import { Circle, ChevronDown, Type, Shapes } from "lucide-react";
+import { Circle, ChevronDown, Type, LayoutGrid } from "lucide-react";
 import type { ReactNode } from "react";
 import {
   BASE_COLORS,
@@ -32,6 +33,7 @@ type Option<T extends string> = {
   description?: string;
   fontFamily?: string;
 };
+
 function Picker<T extends string>({
   label,
   value,
@@ -48,6 +50,7 @@ function Picker<T extends string>({
   icon?: ReactNode;
 }) {
   const current = options.find((option) => option.value === value)!;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -83,6 +86,7 @@ function Picker<T extends string>({
           value={value}
           onValueChange={(next) => {
             const option = options.find((option) => option.value === next);
+
             if (option) onChange(option.value);
           }}
         >
@@ -110,8 +114,10 @@ function Picker<T extends string>({
     </DropdownMenu>
   );
 }
+
 const colors = [...BASE_COLORS, ...ACCENT_COLORS].map((value) => {
   const theme = THEMES.find((theme) => theme.name === value)!;
+
   return {
     value,
     label: theme.title,
@@ -121,6 +127,7 @@ const colors = [...BASE_COLORS, ...ACCENT_COLORS].map((value) => {
       ],
   };
 });
+
 const ICON_LABELS = {
   lucide: "Lucide",
   tabler: "Tabler",
@@ -139,6 +146,7 @@ export function DesignCustomizer({
   disabled: boolean;
 }) {
   const availableThemes = getThemesForBaseColor(value.baseColor);
+
   return (
     <div className="design-pickers">
       <div className="design-picker-group">
@@ -203,7 +211,7 @@ export function DesignCustomizer({
           value={value.iconLibrary}
           disabled={disabled}
           options={ICON_LIBRARIES.map((value) => ({ value, label: ICON_LABELS[value] }))}
-          icon={<Shapes aria-hidden="true" />}
+          icon={<LayoutGrid aria-hidden="true" />}
           onChange={(iconLibrary) => onChange({ ...value, iconLibrary })}
         />
         <Picker

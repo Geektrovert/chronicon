@@ -4,13 +4,16 @@ import { run } from "./commands.ts";
 import { CliError } from "./errors.ts";
 
 const controller = new AbortController();
+
 process.once("SIGINT", () => controller.abort());
+
 process.once("SIGTERM", () => controller.abort());
 
 const program = run(process.argv.slice(2)).pipe(
   Effect.catchCause((cause) => {
     if (Cause.hasInterruptsOnly(cause)) return Effect.failCause(cause);
     const error = Cause.squash(cause);
+
     return Console.error(
       Schema.is(CliError)(error)
         ? error.message
@@ -24,6 +27,7 @@ const program = run(process.argv.slice(2)).pipe(
     );
   }),
 );
+
 void Effect.runPromise(program, { signal: controller.signal }).catch(() => {
   if (!controller.signal.aborted)
     process.stderr.write(

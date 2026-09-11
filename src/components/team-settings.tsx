@@ -22,6 +22,7 @@ export function TeamSwitcher({ compact }: { compact: boolean }) {
   const [busy, submit] = useTransition();
   useEffect(() => run(loadTeams, { onSuccess: setData, onError: setError }), [run]);
   const active = data?.teams.find((team) => team.id === data.activeTeamId);
+
   return (
     <div>
       <div className="sidebar-control-row">
@@ -89,15 +90,20 @@ export function TeamSettings() {
       runAction(changeTeam(input)).then((result) => {
         if (Result.isFailure(result)) {
           setError(result.failure);
+
           return;
         }
+
         setData(result.success);
         setNotice(message);
+
         if (input.action === "invite") form.reset();
       }),
     );
   }
+
   const form = useForm({
+    // SAFETY: The literal is one of the team invitation roles accepted by this form.
     defaultValues: { email: "", role: "member" as "member" | "admin" },
     onSubmit: ({ value }) => change({ action: "invite", ...value }, "Invitation sent."),
   });

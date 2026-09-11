@@ -1,4 +1,5 @@
 "use client";
+
 import { DocumentToolbar } from "./document-toolbar";
 import { DropdownMenuItem } from "./ui/dropdown-menu";
 import { startTransition, useEffect, useState } from "react";
@@ -23,33 +24,41 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
   const [report, setReport] = useState<DocumentDetail | null>(initialReport);
   const [version, setVersion] = useState<string>("");
   const [previousInitialReport, setPreviousInitialReport] = useState(initialReport);
+
   if (previousInitialReport !== initialReport) {
     setPreviousInitialReport(initialReport);
+
     if (!version && (!report || initialReport.document.updatedAt >= report.document.updatedAt))
       setReport(initialReport);
   }
+
   const [source, setSource] = useState(false);
   const [error, setError] = useState("");
   const [edit, setEdit] = useState(false);
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const libraryDocument = library.documents.find((document) => document.id === id);
+
   const libraryProject = library.projects.find(
     (project) => project.id === initialReport.document.projectId,
   );
+
   const [knownAccess, setKnownAccess] = useState({
     document: !!libraryDocument,
     project: !!libraryProject,
     revision: 0,
   });
+
   if (knownAccess.document !== !!libraryDocument || knownAccess.project !== !!libraryProject) {
     const lostGrant =
       (knownAccess.document && !libraryDocument) || (knownAccess.project && !libraryProject);
+
     setKnownAccess({
       document: !!libraryDocument,
       project: !!libraryProject,
       revision: knownAccess.revision + (lostGrant ? 1 : 0),
     });
+
     if (lostGrant) {
       // Remove the iframe, metadata, and edit draft before rechecking the remaining grant.
       setReport(null);
@@ -58,24 +67,31 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
       setError("");
     }
   }
+
   const loadedDocument = report?.document;
   const loadedVersion = report?.revision.version;
   useEffect(() => {
     if (loadedVersion === undefined) return;
     capture("document_viewed", { document_id: id, revision: loadedVersion });
   }, [id, loadedVersion]);
+
   const currentDocument =
     libraryDocument && loadedDocument && libraryDocument.updatedAt >= loadedDocument.updatedAt
       ? libraryDocument
       : loadedDocument;
+
   const selectedVersion = version || String(currentDocument?.revision ?? "");
+
   const canEdit =
     currentDocument?.accessRole === "edit" || currentDocument?.accessRole === "full_access";
+
   const currentProject = report?.project ? (libraryProject ?? report.project) : null;
+
   const missingProjectId =
     report?.project && !library.projects.some((project) => project.id === report.project?.id)
       ? report.project.id
       : undefined;
+
   const loading = loadedVersion !== undefined && Number(selectedVersion) !== loadedVersion;
   useEffect(() => run(watchFullscreen(setExpanded)), [run]);
   useEffect(() => {
@@ -83,6 +99,7 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
   }, [documentChanged, loadedDocument]);
   useEffect(() => {
     if (!knownAccess.revision) return;
+
     return run(readReport(id), {
       onSuccess: (data) => {
         setReport(data);
@@ -93,6 +110,7 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
   }, [knownAccess.revision, id, run]);
   useEffect(() => {
     if (!missingProjectId) return;
+
     return run(loadProjectLibrary(missingProjectId), {
       onSuccess: setProjectScope,
       onError: setError,
@@ -100,6 +118,7 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
   }, [missingProjectId, run, setProjectScope]);
   useEffect(() => {
     if (!loading || loadedVersion === undefined) return;
+
     return run(readReport(id, selectedVersion), {
       onSuccess: (data) => {
         startTransition(() => {
@@ -113,6 +132,7 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
       },
     });
   }, [id, selectedVersion, loading, loadedVersion, run]);
+
   if (!report || !currentDocument)
     return (
       <main id="main" className="viewer-main">
@@ -136,6 +156,7 @@ export function Viewer({ initialReport }: { initialReport: DocumentDetail }) {
         )}
       </main>
     );
+
   return (
     <main id="main" className="viewer-main">
       <DocumentToolbar

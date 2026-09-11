@@ -13,8 +13,10 @@ function PendingDocument({ heading }: { heading: Promise<DocumentHeading> }) {
   const { document, project } = use(heading);
   const { library, error } = useWorkspace();
   const libraryDocument = library.documents.find((item) => item.id === document.id);
+
   const current =
     libraryDocument && libraryDocument.updatedAt >= document.updatedAt ? libraryDocument : document;
+
   return (
     <main id="main" className="viewer-main">
       <DocumentToolbar document={current} project={project} />

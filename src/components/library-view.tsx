@@ -1,4 +1,5 @@
 "use client";
+
 import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import type { Document } from "@/lib/model";
@@ -29,11 +30,13 @@ export function LibraryView({
     pendingDocuments,
     refreshing,
   } = useWorkspace();
+
   const searchInput = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState("all");
   const [sort, setSort] = useState("updated");
   const project = library.projects.find((project) => project.id === projectId);
   const documentsById = new Map(library.documents.map((document) => [document.id, document]));
+
   const visible = (
     query.trim()
       ? search.ids
@@ -47,13 +50,16 @@ export function LibraryView({
       (section !== "starred" || document.starred) &&
       (kind === "all" || document.kind === kind),
   );
+
   if (!query.trim())
     visible.sort((a, b) =>
       sort === "title" ? a.title.localeCompare(b.title) : b.updatedAt.localeCompare(a.updatedAt),
     );
+
   function toggleStar(document: Document) {
     updateDocument(document, { starred: !document.starred });
   }
+
   return (
     <main id="main" className="library-main">
       <PageHeader

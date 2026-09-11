@@ -9,5 +9,6 @@ export default function TelemetryNavigation() {
   useEffect(() => {
     capturePage(pathname);
   }, [pathname]);
+
   return null;
 }

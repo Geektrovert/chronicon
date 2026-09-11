@@ -41,9 +41,11 @@ export function ProjectNavigation({
           const href = projectSectionHref(project, section);
           const legacyHref = `/projects/${project.slug}${section.path}`;
           const exact = pathname === href || pathname === legacyHref;
+
           const within = section.path
             ? pathname.startsWith(`${href}/`) || pathname.startsWith(`${legacyHref}/`)
             : pathname.startsWith("/documents/");
+
           return (
             <ButtonLink
               key={section.id}

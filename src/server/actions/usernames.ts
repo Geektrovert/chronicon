@@ -11,10 +11,13 @@ export function canUseUsername(pool: Pool, username: string, userId?: string) {
 
 export function usernamePrecondition(headers?: Headers) {
   const value = headers?.get("if-match");
+
   if (!value) return undefined;
   const match = /^"username-([1-9][0-9]*)"$/.exec(value);
   const revision = Number(match?.[1]);
+
   if (!Number.isSafeInteger(revision) || revision > 2_147_483_647)
     throw new APIError("BAD_REQUEST", { message: "Send a valid username revision in If-Match." });
+
   return revision;
 }

@@ -13,6 +13,7 @@ import { announceTeamChange } from "./session";
 import { observeAction } from "../observe-action";
 
 export type ResourceType = typeof resourceTypeSchema.Type;
+
 export const loadSharing = (type: ResourceType, id: string) =>
   request(sharingSchema, `/api/sharing?type=${type}&id=${encodeURIComponent(id)}`);
 
