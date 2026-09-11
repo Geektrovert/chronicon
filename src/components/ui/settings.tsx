@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ButtonLink } from "./button";
+import { PageHeader } from "./page-header";
 
 export function SettingsPage({
   children,
@@ -9,16 +10,8 @@ export function SettingsPage({
   section?: "appearance" | "team" | "account";
 }) {
   return (
-    <main
-      id="main"
-      tabIndex={-1}
-      className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8"
-      aria-label="Settings"
-    >
-      <nav
-        aria-label="Settings"
-        className="mb-8 flex flex-wrap items-center gap-4 border-b border-border pb-4"
-      >
+    <main id="main" tabIndex={-1} className="settings-main" aria-label="Settings">
+      <nav aria-label="Settings" className="settings-navigation">
         <span className="text-sm text-muted-foreground">Settings</span>
         <ButtonLink
           href="/settings/account"
@@ -45,9 +38,11 @@ export function SettingsPage({
           Team
         </ButtonLink>
       </nav>
-      <h1 className="sr-only">
-        {{ account: "Account settings", team: "Team settings", appearance: "Appearance" }[section]}
-      </h1>
+      <PageHeader
+        title={
+          { account: "Account settings", team: "Team settings", appearance: "Appearance" }[section]
+        }
+      />
       {children}
     </main>
   );

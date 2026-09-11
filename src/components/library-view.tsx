@@ -8,6 +8,7 @@ import { Button } from "./ui/button";
 import { Toolbar } from "./ui/toolbar";
 import { SearchField } from "./ui/search-field";
 import { SelectField } from "./ui/select-field";
+import { PageHeader } from "./ui/page-header";
 
 export function LibraryView({
   section = "all",
@@ -54,20 +55,18 @@ export function LibraryView({
   }
   return (
     <main id="main" className="library-main">
-      <header className="page-heading">
-        <div>
-          <h1>
-            {project
-              ? "Documents"
-              : section === "starred"
-                ? "Starred documents"
-                : section === "archived"
-                  ? "Archive"
-                  : "All documents"}
-          </h1>
-          {project?.description && <p>{project.description}</p>}
-        </div>
-      </header>
+      <PageHeader
+        title={
+          project
+            ? "Documents"
+            : section === "starred"
+              ? "Starred documents"
+              : section === "archived"
+                ? "Archive"
+                : "All documents"
+        }
+        description={project?.description}
+      />
       <Toolbar className="library-toolbar">
         <div className="search-field">
           <SearchField

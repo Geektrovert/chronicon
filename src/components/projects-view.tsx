@@ -8,6 +8,7 @@ import { Button, ButtonLink } from "./ui/button";
 import { EmptyState } from "./ui/empty-state";
 import { NavigationLink } from "./ui/navigation-link";
 import { SearchField } from "./ui/search-field";
+import { PageHeader } from "./ui/page-header";
 
 export function ProjectsView() {
   const { library, createProject } = useWorkspace();
@@ -26,16 +27,16 @@ export function ProjectsView() {
   }
   return (
     <main id="main" className="projects-main">
-      <header className="page-heading">
-        <div>
-          <h1>Projects</h1>
-          <p>Documents and design systems, organized by project.</p>
-        </div>
-        <Button onClick={createProject}>
-          <Plus />
-          Create project
-        </Button>
-      </header>
+      <PageHeader
+        title="Projects"
+        description="Documents and design systems, organized by project."
+        actions={
+          <Button onClick={createProject}>
+            <Plus />
+            Create project
+          </Button>
+        }
+      />
       {library.projects.length > 0 && (
         <div className="projects-search">
           <SearchField

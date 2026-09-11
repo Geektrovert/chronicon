@@ -18,7 +18,7 @@ export function ViewModeControl({
       <fieldset
         aria-label="Document view"
         disabled={disabled}
-        className="view-mode-control flex gap-1 rounded-xl bg-muted p-1"
+        className="view-mode-control flex gap-1"
       >
         <Tooltip>
           <TooltipTrigger

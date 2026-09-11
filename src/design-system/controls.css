@@ -1,0 +1,134 @@
+/* Base UI owns behavior. Materials apply only to workspace controls, never to
+   the independently themed project gallery or its portalled controls. */
+[data-slot="button"]:not(:where([data-design-preview], [data-design-preview] *)) {
+  border-radius: var(--radius-md);
+  transition-duration: var(--duration-press);
+  transition-timing-function: var(--ease-out);
+}
+[data-slot="button"][data-variant="default"]:not(
+    :where([data-design-preview], [data-design-preview] *)
+  ) {
+  background: var(--material-signal);
+  border-color: var(--signal);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-signal-key);
+}
+[data-slot="button"]:is([data-variant="outline"], [data-variant="secondary"]):not(
+    :where([data-design-preview], [data-design-preview] *)
+  ) {
+  background: var(--material-key);
+  border-color: var(--border);
+  color: var(--foreground);
+  box-shadow: var(--shadow-key);
+}
+[data-slot="button"][data-variant="link"]:not(
+    :where([data-design-preview], [data-design-preview] *)
+  ) {
+  color: var(--signal-deep);
+}
+[data-slot="button"][data-variant="navigation"][aria-current]:not(
+    :where([data-design-preview], [data-design-preview] *)
+  ) {
+  background: var(--accent);
+  color: var(--foreground);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+@media (hover: hover) {
+  [data-slot="button"]:is([data-variant="outline"], [data-variant="secondary"]):hover:not(
+      :disabled
+    ):not(:where([data-design-preview], [data-design-preview] *)) {
+    background: var(--material-key-hover);
+  }
+  [data-slot="button"][data-variant="default"]:hover:not(:disabled):not(
+      :where([data-design-preview], [data-design-preview] *)
+    ) {
+    background: var(--signal);
+  }
+}
+[data-slot="button"]:is(
+    [data-variant="default"],
+    [data-variant="outline"],
+    [data-variant="secondary"]
+  ):active:not(:disabled):not(:where([data-design-preview], [data-design-preview] *)) {
+  box-shadow: var(--shadow-key-pressed);
+}
+:is(
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="input-group"],
+  [data-slot="select-trigger"]
+):not(:where([data-design-preview], [data-design-preview] *)) {
+  background: var(--control-background);
+  box-shadow: var(--shadow-recess);
+}
+:is(
+  [data-slot="dialog-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+):not(:where([data-design-preview], [data-design-preview] *, .workspace-sidebar)) {
+  background: var(--popover);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-dialog);
+}
+[data-slot="dialog-content"]:not(
+  :where([data-design-preview], [data-design-preview] *, .workspace-sidebar)
+) {
+  padding: 24px;
+}
+[data-slot="dialog-title"]:not(:where([data-design-preview], [data-design-preview] *)) {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+}
+[data-slot="dialog-overlay"] {
+  background: var(--overlay);
+  backdrop-filter: none;
+}
+.view-mode-control,
+.design-mode-controls {
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--control-tray);
+  box-shadow: var(--shadow-recess);
+}
+.view-mode-control [aria-pressed="true"],
+.design-mode-controls [aria-pressed="true"] {
+  color: var(--signal-deep);
+}
+@media (pointer: coarse) {
+  :root {
+    --control-height: 2.75rem;
+  }
+}
+:is(
+    [data-slot="button"],
+    [data-slot="input"],
+    [data-slot="textarea"],
+    [data-slot="select-trigger"]
+  ):focus-visible:not(:where([data-design-preview], [data-design-preview] *)),
+[data-slot="input-group"]:has([data-slot="input-group-control"]:focus-visible):not(
+    :where([data-design-preview], [data-design-preview] *)
+  ) {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+@media (max-width: 820px) {
+  :is(
+    [data-slot="input"],
+    [data-slot="textarea"],
+    [data-slot="input-group-control"],
+    [data-slot="select-trigger"]
+  ):not(:where([data-design-preview], [data-design-preview] *)) {
+    font-size: 16px;
+  }
+}
+@media (forced-colors: active) {
+  [data-slot="button"][aria-current],
+  [data-slot="button"][aria-pressed="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

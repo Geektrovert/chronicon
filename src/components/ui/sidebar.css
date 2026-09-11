@@ -5,6 +5,16 @@
   --workspace-sidebar-width: var(--sidebar-rail-width);
 }
 .workspace-sidebar {
+  color-scheme: dark;
+  --foreground: var(--sidebar-foreground);
+  --muted-foreground: var(--sidebar-muted);
+  --border: var(--sidebar-border);
+  --muted: var(--sidebar-accent);
+  --accent: var(--sidebar-accent);
+  --input: var(--sidebar-border);
+  --ring: var(--signal);
+  --control-background: var(--display);
+  --shadow-recess: var(--shadow-display);
   position: fixed;
   inset-block: 0;
   inset-inline-start: 0;
@@ -13,8 +23,9 @@
   flex-direction: column;
   width: var(--workspace-sidebar-width);
   min-height: 0;
-  padding: 12px 10px 10px;
-  background: var(--sidebar);
+  padding: 16px 12px 12px;
+  background: var(--material-dark);
+  box-shadow: var(--shadow-sidebar);
   border-inline-end: 1px solid var(--border);
   color: var(--muted-foreground);
 }
@@ -83,8 +94,9 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-bottom: 8px;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--sidebar-border);
 }
 .sidebar-brand-row,
 .sidebar-control-row,
@@ -110,7 +122,7 @@
   flex-basis: 24px;
   width: 24px;
   height: 24px;
-  border-radius: 7px;
+  border-radius: 4px;
 }
 .sidebar-brand-row .brand-mark svg {
   width: 17px;
@@ -151,6 +163,11 @@
   display: flex;
   gap: 3px;
   margin-top: 8px;
+  padding: 4px;
+  border: 1px solid var(--display-edge);
+  border-radius: var(--radius-lg);
+  background: var(--material-display);
+  box-shadow: var(--shadow-display);
 }
 .workspace-sidebar .sidebar-library-link {
   position: relative;
@@ -169,11 +186,14 @@
   inset-block-end: 0;
   height: 2px;
   border-radius: 2px;
-  background: var(--foreground);
+  background: var(--signal);
 }
 .workspace-sidebar .sidebar-library-link svg {
   width: 14px;
   height: 14px;
+}
+.workspace-sidebar:not([data-collapsed="true"]) .sidebar-library-link svg {
+  display: none;
 }
 .sidebar-content {
   flex: 1;
@@ -183,14 +203,14 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
-  padding: 4px;
+  padding: 12px 4px;
   margin-inline: -4px;
   scroll-padding-block: 8px;
 }
 .sidebar-document-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 .workspace-sidebar .sidebar-document {
   position: relative;
@@ -202,7 +222,7 @@
   height: auto;
   min-height: 78px;
   padding: 12px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   white-space: normal;
   font-size: 13px;
   font-weight: 400;
@@ -215,7 +235,7 @@
   inset-block: 15px;
   width: 2px;
   border-radius: 2px;
-  background: var(--foreground);
+  background: var(--signal);
 }
 .sidebar-document-meta {
   display: flex;
@@ -251,7 +271,8 @@
 }
 .sidebar-footer {
   flex-shrink: 0;
-  padding-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sidebar-border);
 }
 .sidebar-footer-actions > :last-child {
   margin-inline-start: auto;
@@ -268,6 +289,9 @@
 .workspace-sidebar[data-collapsed="true"] .sidebar-library-link > span,
 .workspace-sidebar[data-collapsed="true"] .sidebar-content {
   display: none;
+}
+.workspace-sidebar[data-collapsed="true"] {
+  padding-inline: 9px;
 }
 .workspace-sidebar[data-collapsed="true"] .sidebar-control-row,
 .workspace-sidebar[data-collapsed="true"] .sidebar-library-nav,
@@ -311,4 +335,32 @@
   .desktop-sidebar {
     display: none;
   }
+}
+
+.workspace-sidebar .sidebar-search,
+.workspace-sidebar .sidebar-project-trigger {
+  border: 1px solid var(--display-edge);
+  background: var(--material-display);
+  box-shadow: var(--shadow-display);
+}
+.workspace-sidebar .sidebar-search:hover,
+.workspace-sidebar .sidebar-project-trigger:hover {
+  border-color: var(--sidebar-border);
+}
+.workspace-sidebar .sidebar-library-link[aria-current] {
+  background: var(--sidebar-accent);
+  box-shadow: var(--shadow-dark-key);
+}
+.workspace-sidebar .sidebar-document[aria-current="page"] {
+  background: var(--sidebar-accent);
+  box-shadow: var(--shadow-sidebar-selection);
+}
+.workspace-sidebar .sidebar-document:focus-visible {
+  outline-offset: -2px;
+}
+.workspace-sidebar[data-collapsed="true"] .sidebar-library-nav {
+  border: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
 }
