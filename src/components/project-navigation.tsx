@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, FileText, Menu, Palette } from "lucide-react";
+import { FileText, Menu, Palette } from "lucide-react";
 import type { Project } from "@/lib/model";
 import { Button, ButtonLink } from "./ui/button";
 import { SharingButton } from "./sharing-dialog";
@@ -27,28 +27,16 @@ export function ProjectNavigation({
 }) {
   return (
     <header className="project-header">
-      <div className="project-identity">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="mobile-menu"
-          aria-label="Open navigation"
-          onClick={openNavigation}
-        >
-          <Menu />
-        </Button>
-        <ButtonLink href="/projects" variant="link" size="sm" className="project-directory-link">
-          Projects
-        </ButtonLink>
-        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <span className="project-name" title={project.name}>
-          {project.name}
-        </span>
-        <div className="ml-auto">
-          <SharingButton type="project" id={project.id} name={project.name} />
-        </div>
-      </div>
-      <nav className="project-sections" aria-label={`${project.name} navigation`}>
+      <Button
+        variant="outline"
+        size="icon"
+        className="mobile-menu"
+        aria-label="Open navigation"
+        onClick={openNavigation}
+      >
+        <Menu />
+      </Button>
+      <nav className="project-sections segmented-control" aria-label={`${project.name} navigation`}>
         {projectSections.map((section) => {
           const href = projectSectionHref(project, section);
           const legacyHref = `/projects/${project.slug}${section.path}`;
@@ -61,7 +49,6 @@ export function ProjectNavigation({
               key={section.id}
               href={href}
               variant="navigation"
-              className="project-section-link"
               aria-current={exact ? "page" : within ? "location" : undefined}
             >
               <section.icon aria-hidden="true" />
@@ -70,6 +57,7 @@ export function ProjectNavigation({
           );
         })}
       </nav>
+      <SharingButton type="project" id={project.id} name={project.name} />
     </header>
   );
 }

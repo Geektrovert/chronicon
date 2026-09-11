@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import type { Document } from "@/lib/model";
 import { DocumentList } from "./document-list";
@@ -29,6 +29,7 @@ export function LibraryView({
     pendingDocuments,
     refreshing,
   } = useWorkspace();
+  const searchInput = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState("all");
   const [sort, setSort] = useState("updated");
   const project = library.projects.find((project) => project.id === projectId);
@@ -70,6 +71,7 @@ export function LibraryView({
       <Toolbar className="library-toolbar">
         <div className="search-field">
           <SearchField
+            inputRef={searchInput}
             id="library-search"
             label={`Search ${project?.name || "documents"}`}
             placeholder={`Search ${project ? "this project" : "documents"}…`}
@@ -141,6 +143,7 @@ export function LibraryView({
         clearFilters={() => {
           setQuery("");
           setKind("all");
+          searchInput.current?.focus();
         }}
         toggleStar={toggleStar}
         pendingDocuments={pendingDocuments}

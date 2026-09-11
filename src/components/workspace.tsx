@@ -454,7 +454,7 @@ export function Workspace({
             ) : (
               <header className="topbar">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   className="mobile-menu"
                   aria-label="Open navigation"

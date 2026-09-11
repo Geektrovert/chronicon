@@ -8,7 +8,7 @@ import { requestEmailVerification } from "@/client/actions/auth";
 import { changeTeam, loadTeams, switchTeam } from "@/client/actions/team";
 import { runAction, useTask } from "@/client/runtime";
 import type { Teams } from "@/lib/sharing";
-import { Button, ButtonLink } from "./ui/button";
+import { Button } from "./ui/button";
 import { Field, FieldDescription, FieldLabel } from "./ui/field";
 import { Form } from "./ui/form";
 import { Input } from "./ui/input";
@@ -61,11 +61,6 @@ export function TeamSwitcher({ compact }: { compact: boolean }) {
           </SelectContent>
         </Select>
       </div>
-      {!compact && (
-        <ButtonLink href="/settings/team" variant="navigation" size="sm">
-          Team members
-        </ButtonLink>
-      )}
       {error && (
         <p role="alert" className="error-text text-xs">
           {error}

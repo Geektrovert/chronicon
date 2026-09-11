@@ -174,7 +174,7 @@ export const readDocument = Effect.fn("Library.read")(function* (
     execute: (id) =>
       sql`SELECT id, version, bytes, author, "createdAt" FROM revision WHERE "documentId" = ${id} ORDER BY version DESC`,
   });
-  const { document } = yield* findDocument(principal, id);
+  const { document } = yield* findDocumentContext(principal, id);
   const found = yield* lookupRevision({
     documentId: id,
     version: version ?? document.revision,

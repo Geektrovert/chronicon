@@ -7,7 +7,10 @@ import { LoadingState } from "./ui/loading-state";
 import { Viewer } from "./viewer";
 import { useWorkspace } from "./workspace";
 
-function PendingDocument({ document, project }: { document: Document; project: Project | null }) {
+type DocumentHeading = { document: Document; project: Project | null };
+
+function PendingDocument({ heading }: { heading: Promise<DocumentHeading> }) {
+  const { document, project } = use(heading);
   const { library, error } = useWorkspace();
   const libraryDocument = library.documents.find((item) => item.id === document.id);
   const current =
@@ -32,16 +35,14 @@ function ResolvedDocument({ report }: { report: Promise<DocumentDetail> }) {
 }
 
 export function DocumentStream({
-  document,
-  project,
+  heading,
   report,
 }: {
-  document: Document;
-  project: Project | null;
+  heading: Promise<DocumentHeading>;
   report: Promise<DocumentDetail>;
 }) {
   return (
-    <Suspense fallback={<PendingDocument document={document} project={project} />}>
+    <Suspense fallback={<PendingDocument heading={heading} />}>
       <ResolvedDocument report={report} />
     </Suspense>
   );

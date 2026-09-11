@@ -48,7 +48,7 @@ function AppearanceControl({
   onChange: (mode: PreviewMode) => void;
 }) {
   return (
-    <fieldset aria-label="Preview appearance" className="design-mode-controls">
+    <fieldset aria-label="Preview appearance" className="design-mode-controls segmented-control">
       {(
         [
           { value: "light", label: "Light preview", Icon: Sun },
@@ -59,7 +59,7 @@ function AppearanceControl({
         <Button
           key={value}
           type="button"
-          variant={mode === value ? "outline" : "ghost"}
+          variant="ghost"
           size="icon-sm"
           aria-label={label}
           title={label}
@@ -175,13 +175,12 @@ export function ProjectDesignEditor({
         }}
       >
         <header className="design-studio-header">
-          <h1 className="min-w-0 text-sm font-semibold">Design system</h1>
+          <h1 className="content-title min-w-0">Design system</h1>
           <div className="flex items-center gap-2">
             <AppearanceControl mode={previewMode} onChange={setMode} />
             <Button
               type="button"
-              variant={showGuidance ? "secondary" : "ghost"}
-              size="sm"
+              variant="outline"
               aria-pressed={showGuidance}
               onClick={() => setShowGuidance(!showGuidance)}
             >
@@ -191,11 +190,7 @@ export function ProjectDesignEditor({
             </Button>
             <form.Subscribe selector={(state) => designChanged(state.values, saved)}>
               {(dirty) => (
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!canEdit || busy || (!dirty && saved.revision > 0)}
-                >
+                <Button type="submit" disabled={!canEdit || busy || (!dirty && saved.revision > 0)}>
                   {busy && operation === "save" ? "Saving…" : "Save design"}
                 </Button>
               )}
@@ -276,7 +271,6 @@ export function ProjectDesignEditor({
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 className="design-open-controls"
                 ref={customizeButton}
                 aria-expanded={controlsOpen}

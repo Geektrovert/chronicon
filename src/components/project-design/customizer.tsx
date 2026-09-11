@@ -58,7 +58,9 @@ function Picker<T extends string>({
       >
         <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
           <span className="text-xs font-normal text-muted-foreground">{label}</span>
-          <span className="max-w-full truncate text-sm font-medium">{current.label}</span>
+          <span className="max-w-full whitespace-normal break-words text-sm font-medium">
+            {current.label}
+          </span>
         </span>
         {current.swatch ? (
           <span

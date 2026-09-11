@@ -14,7 +14,7 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
-      className={cn("flex flex-1 text-left", className)}
+      className={cn("block min-w-0 flex-1 truncate text-left", className)}
       {...props}
     />
   );
@@ -29,6 +29,7 @@ function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
+      data-variant={variant}
       className={cn(
         variant === "navigation"
           ? buttonVariants({ variant: "navigation" })

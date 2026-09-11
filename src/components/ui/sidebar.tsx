@@ -162,7 +162,7 @@ export function SidebarAction({
       <TooltipTrigger
         render={
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             aria-label={label}
             className={cn("sidebar-action", className)}

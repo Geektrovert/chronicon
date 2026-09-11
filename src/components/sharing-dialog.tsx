@@ -30,13 +30,9 @@ export function SharingButton({
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        aria-label={`Share ${type}`}
-        onClick={() => setOpen(true)}
-      >
-        <Share2 aria-hidden="true" /> {type === "project" ? "Share project" : "Share"}
+      <Button variant="outline" aria-label={`Share ${type}`} onClick={() => setOpen(true)}>
+        <Share2 aria-hidden="true" />
+        <span className="sharing-label">{type === "project" ? "Share project" : "Share"}</span>
       </Button>
       <SharingDialog
         key={`${type}:${id}`}

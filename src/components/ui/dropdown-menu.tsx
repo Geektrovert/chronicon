@@ -45,6 +45,7 @@ export function DropdownMenuContent({
         align={align}
         side={side}
         sideOffset={sideOffset}
+        collisionAvoidance={{ side: "flip", align: "shift", fallbackAxisSide: "end" }}
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"

@@ -18,7 +18,7 @@ export function ViewModeControl({
       <fieldset
         aria-label="Document view"
         disabled={disabled}
-        className="view-mode-control flex gap-1"
+        className="view-mode-control segmented-control"
       >
         <Tooltip>
           <TooltipTrigger
@@ -26,7 +26,7 @@ export function ViewModeControl({
               <Button
                 type="button"
                 size="icon-sm"
-                variant={source ? "ghost" : "outline"}
+                variant="ghost"
                 aria-pressed={!source}
                 aria-label="Preview"
                 disabled={disabled}
@@ -44,7 +44,7 @@ export function ViewModeControl({
               <Button
                 type="button"
                 size="icon-sm"
-                variant={source ? "outline" : "ghost"}
+                variant="ghost"
                 aria-pressed={source}
                 aria-label="Source"
                 disabled={disabled}

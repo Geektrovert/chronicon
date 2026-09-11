@@ -3,7 +3,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { Archive, Folder, MoreHorizontal, Pencil, RotateCcw, Star } from "lucide-react";
 import type { Document, Project } from "@/lib/model";
-import { Breadcrumb } from "./ui/breadcrumb";
 import { Button } from "./ui/button";
 import { Toolbar } from "./ui/toolbar";
 import { NavigationLink } from "./ui/navigation-link";
@@ -51,23 +50,7 @@ export function DocumentToolbar({
   return (
     <TooltipProvider delay={400}>
       <Toolbar className="document-toolbar">
-        <div className="document-identity">
-          <Breadcrumb
-            parent={project ? { href: `/projects/${project.id}`, label: project.name } : undefined}
-            title={document.title}
-          />
-          {author && (
-            <span className="document-author" title={`Published by ${author}`}>
-              <span aria-hidden="true" className="text-muted-foreground">
-                .
-              </span>
-              <span className="truncate">
-                <span className="sr-only">Published by </span>
-                {author}
-              </span>
-            </span>
-          )}
-        </div>
+        <h1 className="sr-only">{document.title}</h1>
         <div className="document-view-controls">
           <Select
             items={revision?.options}
@@ -123,7 +106,7 @@ export function DocumentToolbar({
             <TooltipTrigger
               render={
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   className="document-star"
                   aria-label={document.starred ? "Unstar document" : "Star document"}
@@ -143,7 +126,7 @@ export function DocumentToolbar({
             <DropdownMenuTrigger
               render={
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   aria-label="Document actions"
                   title="Document actions"
@@ -158,7 +141,7 @@ export function DocumentToolbar({
                   <span className="content-title block text-foreground">{document.title}</span>
                   <span className="mt-1 block break-words">
                     {project?.name ?? "Shared document"}
-                    {author && ` . ${author}`}
+                    {author && ` · ${author}`}
                   </span>
                 </DropdownMenuLabel>
                 {canEdit && (

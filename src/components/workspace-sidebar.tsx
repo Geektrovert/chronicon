@@ -4,12 +4,9 @@ import { startTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DateTime } from "effect";
 import {
-  Archive,
   Code2,
-  FileText,
   Folder,
   FolderPlus,
-  Folders,
   Keyboard,
   LogOut,
   PanelLeftClose,
@@ -186,34 +183,14 @@ export function WorkspaceSidebar({
                 <SquarePen />
               </SidebarAction>
             </div>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <ButtonLink
-                    href="/projects"
-                    variant="navigation"
-                    className="sidebar-projects-link"
-                    aria-label="Projects"
-                    aria-current={
-                      pathname === "/projects" ? "page" : currentProject ? "location" : undefined
-                    }
-                    onNavigate={close}
-                  />
-                }
-              >
-                <Folders aria-hidden="true" />
-                <span className="sidebar-control-label">Projects</span>
-              </TooltipTrigger>
-              <TooltipContent>Projects</TooltipContent>
-            </Tooltip>
             <div className="sidebar-control-row">
               <Select
                 items={projectOptions}
-                value={currentProject?.id ?? "all"}
+                value={currentProject?.id ?? (pathname === "/projects" ? "all" : null)}
                 onValueChange={(value) => {
                   if (!value) return;
                   const selected = projectsById.get(value);
-                  const href = selected ? `/projects/${selected.id}` : "/";
+                  const href = selected ? `/projects/${selected.id}` : "/projects";
                   setScope({ pathname, collection: href, limit: 40 });
                   close();
                   startTransition(() => router.push(href));
@@ -226,7 +203,7 @@ export function WorkspaceSidebar({
                   title={compact ? (currentProject?.name ?? "All projects") : undefined}
                 >
                   <Folder aria-hidden="true" />
-                  <SelectValue className="sidebar-control-label" />
+                  <SelectValue className="sidebar-control-label" placeholder="Choose project" />
                 </SelectTrigger>
                 <SelectContent
                   align="start"
@@ -248,43 +225,6 @@ export function WorkspaceSidebar({
                 <FolderPlus />
               </SidebarAction>
             </div>
-            <nav className="sidebar-library-nav" aria-label="Library">
-              {[
-                {
-                  href: "/",
-                  label: "All documents",
-                  short: "All",
-                  icon: FileText,
-                },
-                { href: "/starred", label: "Starred documents", short: "Starred", icon: Star },
-                { href: "/archive", label: "Archive", short: "Archive", icon: Archive },
-              ].map((item) => (
-                <Tooltip key={item.label}>
-                  <TooltipTrigger
-                    render={
-                      <ButtonLink
-                        variant="navigation"
-                        className="sidebar-library-link"
-                        href={item.href}
-                        onNavigate={close}
-                        aria-label={item.label}
-                        aria-current={
-                          pathname === item.href
-                            ? "page"
-                            : scope.collection === item.href
-                              ? "location"
-                              : undefined
-                        }
-                      />
-                    }
-                  >
-                    <item.icon aria-hidden="true" />
-                    <span>{item.short}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>{item.label}</TooltipContent>
-                </Tooltip>
-              ))}
-            </nav>
           </SidebarHeader>
           <SidebarContent
             id={mobile ? "mobile-sidebar-documents" : "sidebar-documents"}
@@ -358,8 +298,8 @@ export function WorkspaceSidebar({
                   render={
                     <ButtonLink
                       href="/settings/appearance"
-                      variant="navigation"
-                      className="w-auto justify-center"
+                      variant="outline"
+                      className="sidebar-action"
                       size="icon"
                       aria-label="Settings"
                       aria-current={pathname.startsWith("/settings") ? "page" : undefined}

@@ -80,7 +80,6 @@ export function ProjectsView() {
                       key={section.id}
                       href={projectSectionHref(project, section)}
                       variant="outline"
-                      size="sm"
                       aria-label={`${section.label} for ${project.name}`}
                     >
                       <section.icon aria-hidden="true" />

@@ -1,7 +1,7 @@
 .design-studio {
   height: 100dvh;
   min-height: 0;
-  padding: 0 20px 20px;
+  padding: 0 32px 24px;
 }
 .design-studio-form {
   height: 100%;
@@ -15,10 +15,6 @@
   gap: 16px;
   min-height: 68px;
   flex-shrink: 0;
-}
-.design-mode-controls {
-  display: flex;
-  gap: 2px;
 }
 .design-studio-body {
   display: grid;
@@ -118,9 +114,14 @@
 .design-close-controls[data-slot="button"] {
   display: none;
 }
+@media (max-width: 1100px) {
+  .design-studio {
+    padding-inline: 24px;
+  }
+}
 @media (max-width: 767px) {
   .design-studio {
-    padding: 0 10px 10px;
+    padding: 0 12px 16px;
   }
   .design-studio-header {
     min-height: 62px;
@@ -174,7 +175,7 @@
     display: none;
   }
   .design-studio-header h1 {
-    white-space: nowrap;
+    font-size: 14px;
   }
   .design-mobile-appearance {
     display: block;

@@ -11,8 +11,7 @@ export function SettingsPage({
 }) {
   return (
     <main id="main" tabIndex={-1} className="settings-main" aria-label="Settings">
-      <nav aria-label="Settings" className="settings-navigation">
-        <span className="text-sm text-muted-foreground">Settings</span>
+      <nav aria-label="Settings" className="settings-navigation segmented-control">
         <ButtonLink
           href="/settings/account"
           variant="navigation"

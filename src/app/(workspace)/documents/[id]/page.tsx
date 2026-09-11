@@ -11,6 +11,5 @@ export async function generateMetadata({ params }: PageProps<"/documents/[id]">)
 // oxlint-disable-next-line effecttsgo/async-function -- Next route params and server data are awaited at the page boundary.
 export default async function Page({ params }: PageProps<"/documents/[id]">) {
   const { id } = await params;
-  const heading = await documentPageHeader(id);
-  return <DocumentStream key={id} {...heading} report={documentPageData(id)} />;
+  return <DocumentStream key={id} heading={documentPageHeader(id)} report={documentPageData(id)} />;
 }
