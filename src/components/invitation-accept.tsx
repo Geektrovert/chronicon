@@ -37,7 +37,7 @@ export function InvitationAccept({ id, type }: { id: string; type: "team" | "res
             <p className="content-description text-muted-foreground">
               {invitation.inviterName} invited you to {invitation.resourceName}.
             </p>
-            <p className="text-sm">For {invitation.email}</p>
+            <p className="text-sm">Sent to {invitation.email}</p>
             {pending ? (
               invitation.requiresEmailVerification ? (
                 <div className="space-y-3">
@@ -53,7 +53,9 @@ export function InvitationAccept({ id, type }: { id: string; type: "team" | "res
                           (result) => {
                             if (Result.isFailure(result)) setError(result.failure);
                             else
-                              setNotice("Verification email sent. Open its link to return here.");
+                              setNotice(
+                                "Verification email sent. Follow the link in your inbox to return here.",
+                              );
                           },
                         ),
                       );
@@ -81,7 +83,7 @@ export function InvitationAccept({ id, type }: { id: string; type: "team" | "res
               <p className="text-sm text-muted-foreground">
                 {invitation.status === "accepted"
                   ? "You already accepted this invitation."
-                  : "This invitation is no longer available. Ask the person who invited you for a new invitation."}
+                  : "This invitation is no longer available. Ask the sender for a new invitation."}
               </p>
             )}
             {invitation.status === "accepted" && (

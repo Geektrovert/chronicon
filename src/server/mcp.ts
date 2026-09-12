@@ -165,7 +165,7 @@ function handler(
         "update_document",
         {
           description:
-            "Change an existing document's public-link sharing without uploading HTML. Supply sharing {visibility,expectedRevision} from read_document. Requires a Write key and the issuing user's verified email and full access. Returns current sharing; publicUrl is null when private or archived. A public parent project still grants public access. On conflict, read before deciding whether to change access again.",
+            "Change an existing document's public link access without uploading HTML. Supply sharing {visibility,expectedRevision} from read_document. Requires a Write key, verified email, and full access for the key's account. Returns current sharing. A public parent project keeps unarchived documents public even when their own visibility is private. publicUrl is null when there is no public access or the document is archived. On conflict, read the current sharing before changing access again.",
           inputSchema: standard(
             Schema.Struct({ id: Schema.NonEmptyString, sharing: documentSharingInput }),
           ),
@@ -206,7 +206,7 @@ function handler(
         "read_project_design",
         {
           description:
-            "Read a project's design.md, settings, light/dark tokens and revision on demand for design work.",
+            "Read a project's design.md, settings, light and dark tokens, and revision when needed for design work.",
           inputSchema: standard(readDesignInput),
           annotations: { readOnlyHint: true },
         },
@@ -217,7 +217,7 @@ function handler(
         "update_project_design",
         {
           description:
-            "Save settings or design guidance with the current expectedRevision, using 0 before the first save. In full markdown, edit only guidance outside the generated block; change tokens through settings. On conflict, read and merge before retrying.",
+            "Save settings or design guidance with the current expectedRevision, using 0 before the first save. When sending markdown, edit only guidance outside the generated block. Change tokens through settings. On conflict, read and merge before retrying.",
           inputSchema: standard(updateDesignInput),
           annotations: { destructiveHint: false },
         },

@@ -52,7 +52,7 @@ export function ProjectsView() {
             onValueChange={setQuery}
           />
           <output className="text-xs text-muted-foreground">
-            {projects.length} {projects.length === 1 ? "project" : "projects"}
+            {projects.length === 1 ? "1 project" : `${projects.length} projects`}
           </output>
         </div>
       )}
@@ -75,11 +75,14 @@ export function ProjectsView() {
                       <p className="content-description">{project.description}</p>
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {count} {count === 1 ? "document" : "documents"}
+                      {count === 1 ? "1 document" : `${count} documents`}
                     </span>
                   </div>
                 </div>
-                <nav className="project-directory-actions" aria-label={`${project.name} features`}>
+                <nav
+                  className="project-directory-actions"
+                  aria-label={`${project.name} navigation`}
+                >
                   {projectSections.map((section) => (
                     <ButtonLink
                       key={section.id}

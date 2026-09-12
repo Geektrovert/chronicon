@@ -112,7 +112,8 @@ export function CreateProject({
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
                 <FieldDescription id="project-slug-hint">
-                  Used in links and agent commands. Use lowercase words separated by hyphens.
+                  Used in links and agent commands. Use lowercase words or numbers separated by
+                  hyphens.
                 </FieldDescription>
               </Field>
             )}

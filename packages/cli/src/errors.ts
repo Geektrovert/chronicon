@@ -14,7 +14,10 @@ export const decode = <S extends Schema.ConstraintDecoder<unknown>>(
 ) =>
   Schema.decodeEffect(schema)(value, { onExcessProperty: "error" }).pipe(
     Effect.mapError(
-      () => new CliError({ message: "Invalid data. Check the command input or update the CLI." }),
+      () =>
+        new CliError({
+          message: "Unable to read this data. Check the command input and CLI version.",
+        }),
     ),
   );
 

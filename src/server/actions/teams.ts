@@ -110,7 +110,10 @@ export const changeTeam = Effect.fn("Teams.change")(function* (
     );
   } else {
     if (!current.invitations.some((invite) => invite.id === input.invitationId))
-      return yield* new AppError({ status: 404, message: "Invitation not found." });
+      return yield* new AppError({
+        status: 404,
+        message: "Invitation not found. Reload the member list to check its status.",
+      });
     yield* authCall(() =>
       auth.api.cancelInvitation({ headers, body: { invitationId: input.invitationId } }),
     );

@@ -28,7 +28,7 @@ export function ViewModeControl({
                 size="icon-sm"
                 variant="ghost"
                 aria-pressed={!source}
-                aria-label="Preview"
+                aria-label="Preview document"
                 disabled={disabled}
                 onClick={() => onSourceChange(false)}
               >
@@ -36,7 +36,7 @@ export function ViewModeControl({
               </Button>
             }
           />
-          <TooltipContent side="bottom">Preview</TooltipContent>
+          <TooltipContent side="bottom">Preview document</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger
@@ -46,7 +46,7 @@ export function ViewModeControl({
                 size="icon-sm"
                 variant="ghost"
                 aria-pressed={source}
-                aria-label="Source"
+                aria-label="View HTML source"
                 disabled={disabled}
                 onClick={() => onSourceChange(true)}
               >
@@ -54,7 +54,7 @@ export function ViewModeControl({
               </Button>
             }
           />
-          <TooltipContent side="bottom">Source</TooltipContent>
+          <TooltipContent side="bottom">View HTML source</TooltipContent>
         </Tooltip>
       </fieldset>
     </TooltipProvider>

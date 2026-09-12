@@ -52,7 +52,7 @@ export const authenticate = Effect.fn("Access.authenticate")(
 
       if (Option.isNone(owner) || owner.value.banned)
         return yield* deny(
-          "This key's account no longer exists. Sign in with an active account and create a new key.",
+          "This key's account is unavailable. Sign in with an active account and create a new key.",
         );
 
       const metadata = yield* Schema.decodeUnknownEffect(keyMetadata)(result.key.metadata).pipe(
@@ -196,12 +196,15 @@ export const projectAccess = Effect.fn("Access.project")(function* (
   if (!project || !role)
     return yield* new AppError({
       status: 404,
-      message: "Project not found. Check the project and account.",
+      message:
+        "Project not found. Check the link or reference and confirm your account has access.",
     });
 
   if (write && (!principal.canWrite || role === "view"))
     return yield* deny(
-      "You have view access to this project. Ask someone with full access for edit access.",
+      principal.canWrite
+        ? "You have view access to this project. Ask someone with full access for edit access."
+        : "This key is read-only. Create a key with Write access from Connect an agent.",
     );
   yield* annotateTelemetry({ project_id: project.id, organization_id: project.organizationId });
 
@@ -219,12 +222,15 @@ export const documentAccess = Effect.fn("Access.document")(function* (
   if (!role)
     return yield* new AppError({
       status: 404,
-      message: "Document not found. Check the document and account.",
+      message:
+        "Document not found. Check the link or reference and confirm your account has access.",
     });
 
   if (write && (!principal.canWrite || role === "view"))
     return yield* deny(
-      "You have view access to this document. Ask someone with full access for edit access.",
+      principal.canWrite
+        ? "You have view access to this document. Ask someone with full access for edit access."
+        : "This key is read-only. Create a key with Write access from Connect an agent.",
     );
   yield* annotateTelemetry({
     document_id: document.id,

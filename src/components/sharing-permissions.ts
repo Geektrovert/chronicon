@@ -19,11 +19,11 @@ export function linkAccessDescription(
 ) {
   if (data.visibility === "public")
     return type === "project"
-      ? "Anyone with the public link can read this project and its documents without signing in."
-      : "Anyone with the public link can read this document without signing in. Publishing a document does not publish its project.";
+      ? "Anyone with the link can read this project and its documents without signing in."
+      : "Anyone with the link can read this document without signing in. Making this document public does not change its project's access.";
 
   if (data.inheritedPublic)
-    return "This document is publicly readable because its project is public. Make the project private to restrict access.";
+    return "This document is public because its project is public. Make the project private to restrict access.";
 
   return type === "document"
     ? "People added to this document or its project can read it."

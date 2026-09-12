@@ -58,8 +58,8 @@ export function KeyboardSettings({
         <DialogHeader>
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>
-            Select a shortcut, then press the new keys. Escape cancels. Choose Save shortcuts to
-            apply changes in this browser.
+            Select a shortcut, then press the new keys. Press Escape to cancel. Select Save
+            shortcuts to apply changes in this browser.
           </DialogDescription>
         </DialogHeader>
         <Form
@@ -109,7 +109,7 @@ export function KeyboardSettings({
                       }}
                     >
                       {recording === action.id
-                        ? "Press shortcut…"
+                        ? "Press new keys…"
                         : formatBinding(field.state.value)}
                     </Button>
                     <Button

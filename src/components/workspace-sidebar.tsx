@@ -117,6 +117,10 @@ export function WorkspaceSidebar({
 
   const projectsById = new Map(library.projects.map((item) => [item.id, item]));
 
+  const canPublish = library.projects.some(
+    (item) => item.accessRole === "edit" || item.accessRole === "full_access",
+  );
+
   const documents = library.documents
     .filter(
       (document) =>
@@ -183,7 +187,7 @@ export function WorkspaceSidebar({
                 )}
               </SidebarAction>
               <SidebarAction
-                label={library.projects.length ? "Publish document" : "Create project"}
+                label={canPublish ? "Publish document" : "Create project"}
                 shortcut={formatBinding(bindings.document)}
                 onClick={publish}
               >
@@ -277,7 +281,7 @@ export function WorkspaceSidebar({
             {!documents.length && (
               <p className="sidebar-empty">
                 {scope.collection === "/starred"
-                  ? "No starred documents"
+                  ? "Star a document to find it here."
                   : scope.collection === "/archive"
                     ? "No archived documents"
                     : "No documents yet"}

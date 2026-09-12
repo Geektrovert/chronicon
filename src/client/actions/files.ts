@@ -8,7 +8,7 @@ export const readHtmlFile = Effect.fn("Client.readHtmlFile")(function* (file: Fi
 
   const html = yield* Effect.tryPromise({
     try: () => file.text(),
-    catch: () => new ClientError({ message: "Unable to read that file. Try choosing it again." }),
+    catch: () => new ClientError({ message: "Unable to read this file. Choose it again." }),
   }).pipe(observeAction("html_import", { file_bytes: file.size }));
 
   const parsed = new DOMParser().parseFromString(html, "text/html");

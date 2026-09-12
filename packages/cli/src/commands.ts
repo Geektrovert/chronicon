@@ -49,9 +49,9 @@ Options: --server ORIGIN, --project ID, --summary TEXT, --kind plan|report|refer
          --tags tag1,tag2, --relink, --json, --help
 
 SLUG is a short name such as implementation-plan.
-Use --expected-revision 0 for new documents. Read before updating: each update
+Use --expected-revision 0 for new documents. Read before updating. Each update
 replaces all HTML and metadata. If the revision changed, read and merge before saving.
-Data commands print JSON; design read prints Markdown unless --json is supplied.
+Data commands print JSON. design read prints Markdown unless you pass --json.
 Use light/dark CSS variables, @media (prefers-color-scheme: dark), and
 :root { color-scheme: light dark } so HTML previews follow the site's appearance.
 `;

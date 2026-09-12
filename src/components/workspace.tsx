@@ -539,12 +539,12 @@ export function Workspace({
                     <>
                       <p className="break-words">{searchError}</p>
                       <Button variant="ghost" onClick={retrySearch}>
-                        Try again
+                        Retry search
                       </Button>
                     </>
                   ) : searchReady ? (
                     <>
-                      <p className="break-words">No results for "{query.trim()}".</p>
+                      <p className="break-words">{`No results for "${query.trim()}".`}</p>
                       <Button variant="ghost" onClick={() => setQuery("")}>
                         Clear search
                       </Button>
@@ -612,7 +612,7 @@ export function Workspace({
               <span>↵ Open</span>
               {projectId && (
                 <Button variant="ghost" size="sm" onClick={() => setCommandGlobal(!commandGlobal)}>
-                  {commandGlobal ? "Search this project" : "Search everywhere"}
+                  {commandGlobal ? "Search this project" : "Search workspace"}
                 </Button>
               )}
             </div>

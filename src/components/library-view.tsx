@@ -35,6 +35,14 @@ export function LibraryView({
   const [kind, setKind] = useState("all");
   const [sort, setSort] = useState("updated");
   const project = library.projects.find((project) => project.id === projectId);
+
+  const readOnly =
+    !!project && project.accessRole !== "edit" && project.accessRole !== "full_access";
+
+  const canPublish = library.projects.some(
+    (item) => item.accessRole === "edit" || item.accessRole === "full_access",
+  );
+
   const documentsById = new Map(library.documents.map((document) => [document.id, document]));
 
   const visible = (
@@ -79,8 +87,8 @@ export function LibraryView({
           <SearchField
             inputRef={searchInput}
             id="library-search"
-            label={`Search ${project?.name || "documents"}`}
-            placeholder={`Search ${project ? "this project" : "documents"}…`}
+            label={project ? `Search documents in ${project.name}` : "Search documents"}
+            placeholder={project ? "Search this project…" : "Search documents…"}
             value={query}
             onValueChange={setQuery}
           />
@@ -115,10 +123,10 @@ export function LibraryView({
             />
           </label>
         </div>
-        {(!project || project.accessRole === "edit" || project.accessRole === "full_access") && (
+        {!readOnly && (
           <Button onClick={publish}>
             <Plus size={16} />
-            {library.projects.length ? "Publish document" : "Create project"}
+            {canPublish ? "Publish document" : "Create project"}
           </Button>
         )}
       </Toolbar>
@@ -126,7 +134,7 @@ export function LibraryView({
         <div className="inline-error" role="alert">
           {error || search.error}
           <Button variant="ghost" onClick={error ? refresh : search.retry}>
-            Try again
+            {error ? "Refresh documents" : "Retry search"}
           </Button>
         </div>
       )}
@@ -146,6 +154,7 @@ export function LibraryView({
         query={query}
         section={section}
         filtered={kind !== "all"}
+        readOnly={readOnly}
         clearFilters={() => {
           setQuery("");
           setKind("all");

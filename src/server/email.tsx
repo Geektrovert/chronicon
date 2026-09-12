@@ -155,8 +155,7 @@ function sendEmail(config: AppConfig["Service"], email: string, content: EmailCo
       logOperationalError("Email delivery failed", { stage: "render" });
       throw new AppError({
         status: 502,
-        message:
-          "The verification email could not be prepared. Contact the workspace administrator.",
+        message: "Unable to prepare the email. Contact the workspace administrator.",
       });
     })
     .then((html) =>
@@ -171,7 +170,7 @@ function sendEmail(config: AppConfig["Service"], email: string, content: EmailCo
         throw new AppError({
           status: 502,
           message:
-            "Email delivery could not be confirmed. Check the invitation before sending it again.",
+            "Unable to confirm email delivery. Check whether the email arrived before sending again.",
         });
       }),
     )
@@ -234,11 +233,11 @@ function sendEmail(config: AppConfig["Service"], email: string, content: EmailCo
           status: 502,
           message:
             result.error.statusCode >= 500
-              ? "Email delivery could not be confirmed. Check the invitation before sending it again."
+              ? "Unable to confirm email delivery. Check whether the email arrived before sending again."
               : domainNotVerified
-                ? "The sender domain is not verified in Resend. Contact the workspace administrator."
+                ? "The email sender is not verified. Contact the workspace administrator."
                 : keyDomainRestricted || senderNotAllowed
-                  ? "The Resend key does not allow this sender. Contact the workspace administrator."
+                  ? "Email sending is not configured correctly. Contact the workspace administrator."
                   : "The email provider rejected this message. Contact the workspace administrator.",
         });
       }
@@ -251,8 +250,7 @@ export function sendVerificationEmail(
 ) {
   return sendEmail(config, input.email, {
     title: "Verify your email for Chronicon",
-    description:
-      "Verify this email address to accept invitations and share projects and documents with other people.",
+    description: "Verify your email to accept invitations and share projects and documents.",
     action: "Verify email",
     url: input.url,
     footer:
@@ -266,7 +264,7 @@ export function sendTeamInvitationEmail(
 ) {
   return sendEmail(config, input.email, {
     title: `Join ${input.teamName} on Chronicon`,
-    description: `${input.inviterName} invited you to their team. Sign in or create an account using ${input.email} to accept. Projects are shared with you separately.`,
+    description: `${input.inviterName} invited you to join ${input.teamName}. Sign in or create an account with ${input.email} to accept. Team members share projects with you separately.`,
     action: "View invitation",
     url: input.url,
     footer:
@@ -286,7 +284,7 @@ export function sendResourceInvitationEmail(
 ) {
   return sendEmail(config, input.email, {
     title: `${input.inviterName} shared ${input.resourceName} with you`,
-    description: `You have been invited to a ${input.resourceType} on Chronicon. Sign in or create an account using ${input.email}, then verify your email to access it.`,
+    description: `${input.inviterName} shared a ${input.resourceType} with you on Chronicon. Sign in or create an account with ${input.email}, then verify your email to open it.`,
     action: `Open ${input.resourceType}`,
     url: input.url,
     footer: "If you were not expecting this invitation, you can ignore this email.",

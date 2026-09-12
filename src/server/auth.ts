@@ -117,7 +117,8 @@ function makeAuth(config: AppConfig["Service"], pool: Pool, email: EmailDelivery
 
           if (!Schema.is(Schema.String)(handle) || !Schema.is(usernameSchema)(handle.toLowerCase()))
             throw new APIError("BAD_REQUEST", {
-              message: "Use 3–40 lowercase letters, numbers, or hyphens.",
+              message:
+                "Use 3 to 40 lowercase letters or numbers, with single hyphens between words.",
             });
 
           return getSessionFromCtx(context).then((session) => {
@@ -283,7 +284,9 @@ export const authCall = <A>(work: () => Promise<A>) =>
         return new AppError({
           status: error.statusCode,
           message:
-            error.statusCode < 500 ? error.message : "Authentication is unavailable. Try again.",
+            error.statusCode < 500
+              ? error.message
+              : "Unable to confirm the result. Refresh to check for changes before trying again.",
         });
       const details = Schema.is(Schema.JsonObject)(error) ? error : undefined;
       const constraint = details?.constraint;

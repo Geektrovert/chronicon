@@ -132,7 +132,10 @@ export function TeamSettings() {
                 runAction(requestEmailVerification(currentMember.email, "/settings/team")).then(
                   (result) => {
                     if (Result.isFailure(result)) setError(result.failure);
-                    else setNotice("Verification email sent. Open its link to continue.");
+                    else
+                      setNotice(
+                        "Verification email sent. Follow the link in your inbox to continue.",
+                      );
                   },
                 ),
               );
@@ -196,8 +199,7 @@ export function TeamSettings() {
             </Button>
           </div>
           <FieldDescription>
-            Admins can invite and remove team members. Project and document permissions are managed
-            separately.
+            Admins can invite and remove team members. Share projects and documents separately.
           </FieldDescription>
         </Form>
       )}

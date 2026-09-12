@@ -11,6 +11,7 @@ export function DocumentList({
   query,
   section,
   filtered,
+  readOnly,
   clearFilters,
   toggleStar,
   pendingDocuments,
@@ -20,6 +21,7 @@ export function DocumentList({
   query: string;
   section: string;
   filtered: boolean;
+  readOnly: boolean;
   clearFilters: () => void;
   toggleStar: (document: Document) => void;
   pendingDocuments: ReadonlyArray<string>;
@@ -48,10 +50,15 @@ export function DocumentList({
             : section === "starred"
               ? "Star a document to find it here."
               : section === "archived"
-                ? "Archive documents you want to keep but no longer need in your main list."
-                : projects.length
-                  ? "Choose Publish document to add your first HTML file."
-                  : "Choose Create project to start organizing your documents."
+                ? "Archive a document to remove it from your main list and keep it here."
+                : readOnly
+                  ? "Ask someone with edit access to publish a document in this project."
+                  : projects.some(
+                        (project) =>
+                          project.accessRole === "edit" || project.accessRole === "full_access",
+                      )
+                    ? "Choose Publish document to add an HTML file."
+                    : "Choose Create project to add your own documents."
         }
       >
         {(query || filtered) && (
@@ -96,7 +103,7 @@ export function DocumentList({
               variant="ghost"
               size="icon-sm"
               className={`star-button ${doc.starred ? "is-starred" : ""}`}
-              aria-label={`${doc.starred ? "Unstar" : "Star"} ${doc.title}`}
+              aria-label={doc.starred ? `Unstar ${doc.title}` : `Star ${doc.title}`}
               aria-pressed={doc.starred}
               disabled={pendingIds.has(doc.id)}
               onClick={() => toggleStar(doc)}

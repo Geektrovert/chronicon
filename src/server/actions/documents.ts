@@ -142,7 +142,8 @@ export const findDocumentContext = Effect.fn("Library.findDocumentContext")(func
   if (Option.isNone(found))
     return yield* new AppError({
       status: 404,
-      message: "Document not found. Check the document and account.",
+      message:
+        "Document not found. Check the link or reference and confirm your account has access.",
     });
 
   const project = yield* lookupProjectById(found.value.projectId).pipe(
@@ -152,7 +153,8 @@ export const findDocumentContext = Effect.fn("Library.findDocumentContext")(func
   if (Option.isNone(project))
     return yield* new AppError({
       status: 404,
-      message: "Document not found. Check the document and account.",
+      message:
+        "Document not found. Check the link or reference and confirm your account has access.",
     });
 
   return {
@@ -604,7 +606,8 @@ export const readDocumentByReference = Effect.fn("Library.readByReference")(func
   if (Option.isNone(found))
     return yield* new AppError({
       status: 404,
-      message: "Document not found. Check the document and account.",
+      message:
+        "Document not found. Check the link or reference and confirm your account has access.",
     });
 
   return yield* readDocument(principal, found.value.id, input.revision);

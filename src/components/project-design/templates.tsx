@@ -18,7 +18,7 @@ const NOTIFICATIONS = [
   {
     id: "security",
     label: "Send security alerts",
-    description: "Login attempts and account changes.",
+    description: "Sign-in attempts and account changes.",
     defaultChecked: true,
   },
   {
@@ -63,7 +63,7 @@ export function NotificationSettings() {
               setSaved(false);
             }}
           />
-          <FieldLabel htmlFor={`${id}-all`}>Select all</FieldLabel>
+          <FieldLabel htmlFor={`${id}-all`}>Send all notifications</FieldLabel>
         </div>
         {NOTIFICATIONS.map((n) => (
           <div key={n.id} className="flex items-start gap-3">
@@ -108,7 +108,7 @@ export function EmptyConnectBank() {
           </CardDescription>
         </div>
         <Button type="button" variant="outline" onClick={() => setConnected(!connected)}>
-          {connected ? "Reset preview" : "Set up payouts"}
+          {connected ? "Reset preview" : "Connect a bank"}
         </Button>
       </CardContent>
     </Card>

@@ -2,8 +2,21 @@
 
 Publish documents and manage project designs from your terminal.
 
-The package is `@chronicon/cli` and the command is `chronicon`. npm and JSR releases
-are not available yet. [Build from source](#build-from-source) to use it now.
+The command is `chronicon`. Build it from source to get started. npm and JSR
+releases are not available yet.
+
+## Build from source
+
+From the repository root, with Bun and Node.js 22+ installed:
+
+```sh
+bun install --frozen-lockfile
+bun run --cwd packages/cli build
+node packages/cli/dist/cli.js --help
+```
+
+Use the compiled script in place of `chronicon` in the examples below. To link a
+different repository, run the script by its absolute path from that repository.
 
 ## Connect your terminal
 
@@ -12,9 +25,9 @@ chronicon login
 chronicon whoami
 ```
 
-Login opens your default browser. Sign in, choose **Authorize CLI**, then return to
-your terminal. Access expires after 30 days. Use `--no-browser` to open the printed
-link yourself on the same computer.
+Your browser opens when you log in. Sign in, select **Authorize CLI**, then return
+to your terminal. Access expires after 30 days. Use `--no-browser` to open the
+printed link yourself on the same computer.
 
 Run `chronicon logout` to revoke this terminal's key and remove its saved login.
 You can also revoke it from **Connect an agent** in the workspace sidebar.
@@ -36,7 +49,7 @@ chronicon project link PROJECT_ID
 Use `--relink` to replace a different default, or `--project ID` for one command.
 Outside Git, pass `--project ID`. Linked worktrees share the default project.
 
-## Publish and update documents
+## Publish a document
 
 ```sh
 chronicon docs upsert plan --file plan.html --title "Implementation plan" \
@@ -45,7 +58,9 @@ chronicon docs list --query "authentication"
 chronicon docs read plan
 ```
 
-Use revision `0` for a new document. For an update, read the document first and
+### Update a document
+
+Use revision `0` for a new document. To update it, read the document first and
 pass its current revision:
 
 ```sh
@@ -57,8 +72,8 @@ Updates replace all HTML and metadata. Include the title, summary, type, and tag
 you want to keep. If the revision changed, read the latest document and merge your
 changes before publishing again.
 
-HTML files can be up to 2 MB. Include assets in the file. For automatic light and
-dark appearance, use CSS variables with light defaults, dark overrides inside
+HTML files can be up to 2 MB. Include assets in the file. To follow Chronicon's
+appearance, use CSS variables with light defaults, dark overrides inside
 `@media (prefers-color-scheme: dark)`, and `:root { color-scheme: light dark }`.
 
 ## Read and update design guidance
@@ -74,9 +89,10 @@ Edit guidance outside the generated block. Get the current design revision with
 another download into `design.md`, since `>` replaces the file.
 
 To change theme settings, use `chronicon design update --input design-update.json`.
-The JSON must include `expectedRevision` and `settings`, `guidance`, or `markdown`.
+The JSON must include `expectedRevision` and at least one of `settings`, `guidance`,
+or `markdown`.
 Include the complete settings object when changing settings. Omitted guidance or
-settings are preserved; `guidance` and `markdown` are mutually exclusive.
+settings stay unchanged. Use either `guidance` or `markdown`, not both.
 
 ## Other commands
 
@@ -115,21 +131,8 @@ the repository link or printed by data commands.
 
 </details>
 
-## Build from source
-
-From the repository root, with Bun installed:
-
-```sh
-bun install --frozen-lockfile
-bun run --cwd packages/cli build
-node packages/cli/dist/cli.js --help
-```
-
-Use `node packages/cli/dist/cli.js` in place of `chronicon` in the examples above.
-Node.js 22+ is required. Repository lint, typecheck, and formatting include the CLI.
-
 <details>
-<summary>Registry installation after publication</summary>
+<summary>Install from npm or JSR after publication</summary>
 
 ```sh
 npx @chronicon/cli login

@@ -53,8 +53,8 @@ function AppearanceControl({
     <fieldset aria-label="Preview appearance" className="design-mode-controls segmented-control">
       {(
         [
-          { value: "light", label: "Light preview", Icon: Sun },
-          { value: "dark", label: "Dark preview", Icon: Moon },
+          { value: "light", label: "Preview light mode", Icon: Sun },
+          { value: "dark", label: "Preview dark mode", Icon: Moon },
           { value: "both", label: "Compare light and dark", Icon: Columns2 },
         ] as const
       ).map(({ value, label, Icon }) => (
@@ -261,11 +261,11 @@ export function ProjectDesignEditor({
                 }}
               >
                 <Shuffle />
-                Shuffle
+                Shuffle design
               </Button>
               <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={reload}>
                 <RotateCcw />
-                {busy && operation === "reload" ? "Loading…" : "Discard changes"}
+                {busy && operation === "reload" ? "Loading design…" : "Discard changes"}
               </Button>
               <a
                 href={SOURCE_URL}
@@ -294,9 +294,7 @@ export function ProjectDesignEditor({
                 Customize
               </Button>
               <span className="design-stage-caption text-xs text-muted-foreground">
-                {showGuidance
-                  ? "Project notes and theme CSS"
-                  : "Component previews · sample content"}
+                {showGuidance ? "Project notes and theme CSS" : "Preview only · sample content"}
               </span>
               <form.Subscribe selector={(state) => designChanged(state.values, saved)}>
                 {(dirty) => (
@@ -312,8 +310,8 @@ export function ProjectDesignEditor({
             </div>
             {error && (
               <div className="design-status text-destructive" role="alert">
-                {error} Your changes are still here. Choose Discard changes to load the saved
-                design.
+                {error} Your edits are still here. Choose Discard changes to replace them with the
+                latest saved design.
               </div>
             )}
             {message && (
@@ -335,7 +333,7 @@ export function ProjectDesignEditor({
                       <div>
                         <h2 className="text-xl font-semibold">Design guidance</h2>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Project notes and theme settings for your agents.
+                          Share design choices and theme settings with your agents.
                         </p>
                       </div>
                       <ButtonLink
@@ -354,8 +352,8 @@ export function ProjectDesignEditor({
                         <Field>
                           <FieldLabel htmlFor="design-guidance">Project guidance</FieldLabel>
                           <FieldDescription id="design-guidance-help">
-                            Describe layout, writing, and accessibility choices. These notes are
-                            included in design.md when you save.
+                            Describe layout, writing, and accessibility choices. Save the design to
+                            include these notes in design.md.
                           </FieldDescription>
                           <Textarea
                             id="design-guidance"

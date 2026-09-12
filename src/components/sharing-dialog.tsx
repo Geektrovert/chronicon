@@ -98,7 +98,7 @@ function SharingDialog({
   const form = useForm({
     // SAFETY: The literal is one of the AccessRole values accepted by the invitation form.
     defaultValues: { email: "", role: "view" as AccessRole },
-    onSubmit: ({ value }) => change({ action: "invite", ...value }, "Access updated."),
+    onSubmit: ({ value }) => change({ action: "invite", ...value }, "Sharing updated."),
   });
 
   return (
@@ -122,7 +122,7 @@ function SharingDialog({
                   <form.Field name="email">
                     {(field) => (
                       <Field className="min-w-44 flex-1">
-                        <FieldLabel htmlFor={`${fieldId}-email`}>Invite by email</FieldLabel>
+                        <FieldLabel htmlFor={`${fieldId}-email`}>Add by email</FieldLabel>
                         <Input
                           id={`${fieldId}-email`}
                           type="email"
@@ -144,7 +144,7 @@ function SharingDialog({
                         <FieldLabel htmlFor={`${fieldId}-role`}>Permission</FieldLabel>
                         <SelectField
                           id={`${fieldId}-role`}
-                          label="Invitation permission"
+                          label="Permission for this person"
                           options={sharingRoleOptions}
                           value={field.state.value}
                           onBlur={field.handleBlur}
@@ -157,14 +157,15 @@ function SharingDialog({
                     )}
                   </form.Field>
                   <Button type="submit" disabled={busy}>
-                    {busy ? "Saving…" : "Invite"}
+                    {busy ? "Saving…" : "Add person"}
                   </Button>
                 </div>
                 <FieldDescription>
                   {type === "project"
-                    ? "Project access includes its documents. Team membership alone does not give access."
-                    : "Guests can open this document without access to its project."}{" "}
-                  Full access also allows sharing. New guests receive an email invitation.
+                    ? "Project access includes its documents. Joining a team does not grant project access."
+                    : "People can access this document without access to its project."}{" "}
+                  Full access lets people edit and manage sharing. People with a verified account
+                  get access immediately. Others receive an email invitation.
                 </FieldDescription>
               </Form>
             ) : data.role === "full_access" ? (

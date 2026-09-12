@@ -23,7 +23,9 @@ async function Authorization({ searchParams }: Props) {
   if (!Schema.is(cliAuthorization)(input))
     return (
       <main className="signin-page">
-        <p>This login link is invalid. Run chronicon login again in your terminal.</p>
+        <p>
+          This login link is invalid. Run <code>chronicon login</code> again in your terminal.
+        </p>
       </main>
     );
   const principal = await pagePrincipal();
@@ -50,7 +52,7 @@ async function Authorization({ searchParams }: Props) {
 
 export default function Page(props: Props) {
   return (
-    <Suspense fallback={<LoadingState>Opening authorization…</LoadingState>}>
+    <Suspense fallback={<LoadingState>Loading CLI access request…</LoadingState>}>
       <Authorization {...props} />
     </Suspense>
   );

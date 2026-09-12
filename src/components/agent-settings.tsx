@@ -35,7 +35,7 @@ export function AgentSettings({
         <DialogHeader>
           <DialogTitle>Connect an agent</DialogTitle>
           <DialogDescription>
-            Choose an agent's projects, permissions, and access duration.
+            Choose which projects an agent can access and what it can do.
           </DialogDescription>
         </DialogHeader>
         {open && <SettingsForm projects={projects} />}
@@ -208,7 +208,9 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
             </form.Field>
           </FieldGroup>
           <FieldDescription>
-            Write access includes reading, editing, and sharing documents.
+            Write access lets an agent read, create, and edit content. Sharing documents also
+            requires your verified email and full access. Keys stay within one team and your current
+            permissions.
           </FieldDescription>
           <Button type="submit" disabled={busy}>
             <KeyRound size={16} />
@@ -219,7 +221,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
         <div className="new-key">
           <div className="success-note">
             <Check size={17} />
-            Key created. Copy this configuration now; the key is shown only once.
+            Key created. Copy this configuration now. The key won't be shown again.
           </div>
           <pre className="connection-code">
             <code>{config}</code>
@@ -227,7 +229,7 @@ function SettingsForm({ projects }: { projects: ReadonlyArray<Project> }) {
           <Button
             variant="outline"
             onClick={() =>
-              run(copyText(config, "Select and copy the configuration above."), {
+              run(copyText(config, "Unable to copy. Select and copy the configuration above."), {
                 onSuccess: () => {
                   setCopied(true);
                   capture("agent_configuration_copied");

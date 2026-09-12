@@ -27,7 +27,7 @@ const nacelle = localFont({
 
 export const metadata: Metadata = {
   title: { default: "Chronicon", template: "%s · Chronicon" },
-  description: "A private library for plans, reports, and ideas.",
+  description: "A workspace for the documents you and your AI agents create.",
   robots: { index: false, follow: false, noarchive: true, nosnippet: true, noimageindex: true },
 };
 

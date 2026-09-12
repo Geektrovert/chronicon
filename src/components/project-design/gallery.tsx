@@ -24,7 +24,7 @@ function ContributionHistory() {
     <Card>
       <CardHeader>
         <CardTitle>Contribution history</CardTitle>
-        <CardDescription>Last 6 months of activity</CardDescription>
+        <CardDescription>Contributions from December to May</CardDescription>
       </CardHeader>
       <CardContent>
         <figure
@@ -61,7 +61,7 @@ function ContributionHistory() {
           <div className="gallery-inset">
             <span className="gallery-small-label">Auto-save plan</span>
             <strong className="gallery-heading">Accelerated</strong>
-            <span className="text-muted-foreground">Recurring weekly</span>
+            <span className="text-muted-foreground">Every week</span>
           </div>
         </div>
         {detail && (
@@ -283,7 +283,7 @@ function ClaimableBalance() {
         </div>
       </CardContent>
       <CardFooter>
-        <CardDescription>Connect your bank to receive monthly distributions.</CardDescription>
+        <CardDescription>Connect a bank to receive monthly royalty payments.</CardDescription>
       </CardFooter>
     </Card>
   );

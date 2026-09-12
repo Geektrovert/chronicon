@@ -49,7 +49,7 @@ export function bindingError(bindings: Keybindings) {
     if (!binding) continue;
 
     if (!/^(Mod\+)?(Shift\+)?[a-z0-9,./;]$/.test(binding))
-      return "Use a letter, number, or punctuation key, optionally with Ctrl/Cmd and Shift.";
+      return "Use a letter, number, comma, period, slash, or semicolon. You can add Ctrl/Cmd and Shift.";
 
     if (/^Mod\+(Shift\+)?[wtqnlrphf0-9]$/.test(binding))
       return "That combination is reserved for the browser. Choose another shortcut.";

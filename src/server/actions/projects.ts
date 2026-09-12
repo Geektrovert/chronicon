@@ -160,7 +160,8 @@ export const resolvePublishProject = Effect.fn("Library.resolvePublishProject")(
 
     return yield* new AppError({
       status: 404,
-      message: "Project not found. Check the project and account.",
+      message:
+        "Project not found. Check the link or reference and confirm your account has access.",
     });
   }
 

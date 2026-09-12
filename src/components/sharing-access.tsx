@@ -44,7 +44,7 @@ function SharingMembers({ type, data, busy, change }: AccessProps) {
                   <p className="truncate text-xs text-muted-foreground">{member.email}</p>
                   {member.inherited && (
                     <p className="text-xs text-muted-foreground">
-                      {type === "project" ? "Project creator" : "Inherited from project"}
+                      {type === "project" ? "Project creator" : "Access through project"}
                     </p>
                   )}
                 </div>
@@ -152,10 +152,10 @@ function SharingLinkAccess({ type, id, data, busy, change }: AccessProps) {
             <Lock className="size-4" aria-hidden="true" />
           )}
           <Field className="flex-1">
-            <FieldLabel htmlFor={`${fieldId}-visibility`}>General access</FieldLabel>
+            <FieldLabel htmlFor={`${fieldId}-visibility`}>Link access</FieldLabel>
             <SelectField
               id={`${fieldId}-visibility`}
-              label="General access"
+              label="Link access"
               value={data.visibility}
               disabled={busy || !data.canManage}
               options={[
@@ -208,14 +208,16 @@ function SharingLinkAccess({ type, id, data, busy, change }: AccessProps) {
                         `/${type === "project" ? "projects" : "documents"}/${encodeURIComponent(id)}`,
                         window.location.origin,
                       ).href,
-                  "Unable to copy. Copy the link from your browser's address bar.",
+                  publicAccess
+                    ? "Unable to copy. Select and copy the public link above."
+                    : "Unable to copy. Open the project or document and copy its browser address.",
                 ),
                 { onSuccess: () => setCopied(true), onError: setError },
               )
             }
           >
             {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-            {copied ? "Copied" : publicAccess ? "Copy link" : "Copy private link"}
+            {copied ? "Copied" : publicAccess ? "Copy public link" : "Copy private link"}
           </Button>
         </div>
       </section>

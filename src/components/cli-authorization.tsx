@@ -26,12 +26,12 @@ export function CliAuthorization({
       <div className="signin-form space-y-5">
         <PageHeader title="Connect your terminal" />
         <p>
-          Signed in as {account}. Authorize the CLI to read and edit projects, documents, and design
-          systems in this account for 30 days. Write access also allows document sharing where you
-          have full access and a verified email.
+          Signed in as {account}. The CLI will have read and write access in your current team for
+          30 days, limited to your permissions. Sharing documents also requires your verified email
+          and full access.
         </p>
         <p className="text-sm text-muted-foreground">
-          Continue only if you started this login. Revoke access anytime from Connect an agent in
+          Continue only if you started this sign-in. Revoke access anytime from Connect an agent in
           the workspace sidebar.
         </p>
         {error && <FieldError>{error}</FieldError>}

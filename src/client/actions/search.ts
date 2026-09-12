@@ -22,7 +22,7 @@ export const watchSearchWorker = Effect.fn("Client.watchSearchWorker")(function*
       Effect.gen(function* () {
         const message = yield* Schema.decodeUnknownEffect(searchResponse)(event.data).pipe(
           Effect.mapError(
-            () => new ClientError({ message: "Search returned invalid data. Reload the page." }),
+            () => new ClientError({ message: "Unable to load search results. Reload the page." }),
           ),
         );
 

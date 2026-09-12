@@ -63,7 +63,11 @@ export const readSharing = Effect.fn("Sharing.read")(function* (
   const config = yield* AppConfig;
   const { project, document, role } = yield* sharingContext(principal, reference);
 
-  if (!role) return yield* new AppError({ status: 404, message: "Content not found." });
+  if (!role)
+    return yield* new AppError({
+      status: 404,
+      message: "Shared content not found. Check that your account still has access.",
+    });
   const canManage = role === "full_access" && principal.emailVerified;
   const canReadParent = !document || !!(yield* projectRole(principal, project));
 

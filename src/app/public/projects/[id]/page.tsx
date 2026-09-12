@@ -46,7 +46,9 @@ async function PublicProjectPage({ params }: PageProps<"/public/projects/[id]">)
           </Link>
         ))}
         {!data.documents.length && (
-          <p className="p-5 text-sm text-muted-foreground">No published documents.</p>
+          <p className="p-5 text-sm text-muted-foreground">
+            No documents to read yet. Ask the person who shared this project to add one.
+          </p>
         )}
       </div>
     </main>

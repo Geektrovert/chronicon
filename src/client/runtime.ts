@@ -16,7 +16,7 @@ function taskError(cause: Cause.Cause<unknown>) {
 
   if (Result.isSuccess(defect)) captureError(defect.success, { source: "effect_runtime" });
 
-  return "Unable to complete this action. Try again.";
+  return "Unable to confirm the result. Refresh to check for changes before trying again.";
 }
 
 // React Actions await the write, keeping useOptimistic active until confirmation.

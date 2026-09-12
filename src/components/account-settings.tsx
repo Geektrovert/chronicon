@@ -41,7 +41,7 @@ export function AccountSettings({
 
             setProfile(result.success);
             form.reset({ username: result.success.username });
-            setNotice("Username saved. Existing public links still work.");
+            setNotice("Username saved. Existing links still work.");
           },
         ),
       );
@@ -53,14 +53,14 @@ export function AccountSettings({
       <header>
         <h2 className="content-title text-xl">Public username</h2>
         <p className="content-description mt-2 text-sm text-muted-foreground">
-          Your username appears in public document links. Changing it keeps existing links working.
+          Your username appears in public document links. Changing it won't break existing links.
         </p>
       </header>
       {!emailVerified && (
         <div className="space-y-3 rounded-lg border p-4">
           <p className="text-sm">Verify your email before choosing a public username.</p>
           <ButtonLink href="/settings/team" variant="outline">
-            Email verification
+            Verify email
           </ButtonLink>
         </div>
       )}
@@ -91,7 +91,7 @@ export function AccountSettings({
                 aria-describedby={`${fieldId}-description`}
               />
               <FieldDescription id={`${fieldId}-description`}>
-                Use 3–40 lowercase letters, numbers, or hyphens.
+                Use 3 to 40 lowercase letters or numbers, with single hyphens between words.
               </FieldDescription>
               <p className="break-all text-xs text-muted-foreground">
                 /{field.state.value || "username"}/d/document-slug-a1b2

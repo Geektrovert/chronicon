@@ -35,7 +35,7 @@ const starter = `<!doctype html>
   h1 { font-size: 40px; line-height: 1.2; letter-spacing: -.04em; }
 </style>
 <h1>Untitled document</h1>
-<p>Add your document content here.</p>
+<p>Add your document content.</p>
 </html>`;
 
 export function Publisher({
@@ -144,8 +144,8 @@ export function Publisher({
           <DialogTitle>{initial ? "Publish revision" : "Publish document"}</DialogTitle>
           <DialogDescription>
             {initial
-              ? "Earlier revisions stay available."
-              : "Upload a self-contained HTML file or paste its source."}
+              ? "Save your changes as a new revision. Earlier revisions stay available."
+              : "Choose an HTML file or paste its source, then preview and publish."}
           </DialogDescription>
         </DialogHeader>
         <Form
@@ -162,7 +162,7 @@ export function Publisher({
                   <Input
                     id="publisher-field-1"
                     className="font-sans"
-                    placeholder="Implementation plan"
+                    placeholder="Website redesign plan"
                     maxLength={160}
                     required
 
@@ -215,8 +215,8 @@ export function Publisher({
                     onChange={(event) => field.handleChange(event.target.value)}
                   />
                   <FieldDescription id="document-slug-hint">
-                    Agents use this name to find the document. Use lowercase words separated by
-                    hyphens.
+                    Agents use this name to find the document. Use lowercase words or numbers
+                    separated by hyphens.
                   </FieldDescription>
                 </Field>
               )}
@@ -274,12 +274,16 @@ export function Publisher({
                   <Input
                     id="publisher-field-6"
                     name="tags"
-                    placeholder="architecture, research"
+                    placeholder="design, research"
+                    aria-describedby="document-tags-hint"
 
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.target.value)}
                   />
+                  <FieldDescription id="document-tags-hint">
+                    Separate tags with commas.
+                  </FieldDescription>
                 </Field>
               )}
             </form.Field>
@@ -309,7 +313,7 @@ export function Publisher({
           </div>
           <div className="publish-footer">
             <p className="hint">
-              HTML up to 2 MB. Include styles, scripts, and images in the file.
+              HTML files up to 2 MB. Include all styles, scripts, and images in the file.
             </p>
             <Button type="submit" disabled={busy}>
               {busy ? "Publishing…" : initial ? "Publish revision" : "Publish document"}

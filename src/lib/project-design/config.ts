@@ -22,13 +22,13 @@ const SYSTEM_FONTS = {
 };
 
 export const STYLES = [
-  { value: "vega", label: "Vega", description: "Clean, neutral, and familiar" },
+  { value: "vega", label: "Vega", description: "Rounded controls with borders and shadows" },
   { value: "nova", label: "Nova", description: "Reduced padding and margins" },
   { value: "maia", label: "Maia", description: "Rounded, with generous spacing" },
-  { value: "lyra", label: "Lyra", description: "Boxy and sharp. For mono fonts" },
+  { value: "lyra", label: "Lyra", description: "Square corners for monospaced fonts" },
   { value: "mira", label: "Mira", description: "Made for compact interfaces" },
-  { value: "luma", label: "Luma", description: "Fluid, luminous, and soft" },
-  { value: "sera", label: "Sera", description: "Editorial and typographic" },
+  { value: "luma", label: "Luma", description: "Rounded controls with filled backgrounds" },
+  { value: "sera", label: "Sera", description: "Square corners and uppercase labels" },
   { value: "rhea", label: "Rhea", description: "Like Luma but compact" },
 ] as const;
 

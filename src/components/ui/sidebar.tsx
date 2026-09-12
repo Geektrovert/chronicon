@@ -134,8 +134,8 @@ function SidebarResizeHandle({
         }}
       />
       <span id={descriptionId} className="sr-only">
-        Click or press Enter to collapse or expand. Drag or use arrow keys to resize. Shift+Home
-        resets the width.
+        Select or press Enter to collapse or expand. Drag or use the left and right arrow keys to
+        resize. Press Shift+Home to reset the width.
       </span>
     </>
   );
